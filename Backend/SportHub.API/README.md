@@ -60,13 +60,7 @@ Backend/SportHub.API/
 
 ## Cấu hình bảo mật & Khởi chạy
 
-1. **Cấu hình User Secrets (không lưu secret trong Git):**
-
-   ```powershell
-   cd Backend/SportHub.API
-   dotnet user-secrets set "Jwt:Key" "Chuoi_Bi_Mat_JWT_Toi_Thieu_32_Ky_Tu_2026!"
-   dotnet user-secrets set "DemoAdmin:Password" "MatKhauAdminDev_TuyChon"
-   ```
+1. **Cấu hình User Secrets (không lưu secret trong Git):
 
 2. **Khởi chạy dự án:**
 

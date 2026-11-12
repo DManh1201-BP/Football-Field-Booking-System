@@ -1,22 +1,26 @@
-# Build results
+# .NET / Visual Studio
 [Bb]in/
 [Oo]bj/
 [Dd]ebug/
 [Rr]elease/
-
-# Visual Studio & IDE files
 .vs/
-*.suo
+.vscode/
 *.user
+*.rsuser
+*.suo
+*.sln.docstates
+*.DotSettings.user
 
-# Local configuration (tránh lộ connection string cá nhân)
+# Local secrets
+.env
+.env.*
 appsettings.Development.json
 appsettings.Local.json
 
-# Uploaded test files
-Backend/SportHub.API/wwwroot/uploads/*
-!Backend/SportHub.API/wwwroot/uploads/.gitkeep
+# Uploaded files
+Backend/SportHub.API/wwwroot/uploads/fields/*
+!Backend/SportHub.API/wwwroot/uploads/fields/.gitkeep
 
-# OS generated files
+# OS files
 .DS_Store
 Thumbs.db

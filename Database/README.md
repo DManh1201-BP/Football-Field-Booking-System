@@ -10,4 +10,23 @@ Thư mục này chứa schema SQL Server của SportHub 2.0. Theo architecture b
 - Không đưa dữ liệu cá nhân thật, thông tin thanh toán, mật khẩu hoặc secret vào script mẫu.
 - Ghi chú cách cập nhật EF Core models/`DbContext` sau mỗi thay đổi schema.
 
-`schema.sql` sẽ được bổ sung khi mô hình dữ liệu được thống nhất.
+## Khởi tạo database local
+
+1. Mở SQL Server Management Studio hoặc Azure Data Studio và kết nối tới SQL Server local.
+2. Mở file `Database/schema.sql` và chạy toàn bộ script. Script sẽ tạo database `SportHubDb`, các bảng `Users`, `Fields`, `Bookings`, `Matches`, index, ràng buộc và dữ liệu mẫu giả lập.
+3. Nếu SQL Server dùng instance khác `localhost`, sửa giá trị `Server=` trong `Backend/SportHub.API/appsettings.json`. Ví dụ với SQL Server Express: `Server=.\SQLEXPRESS`.
+4. Không sử dụng dữ liệu mẫu hoặc giá trị `PasswordHash` placeholder trong môi trường production.
+
+## Kết nối API
+
+Connection string mặc định trong `appsettings.json` dùng Windows Authentication:
+
+```text
+Server=localhost;Database=SportHubDb;Trusted_Connection=True;MultipleActiveResultSets=True;TrustServerCertificate=True
+```
+
+Không commit connection string có tài khoản/mật khẩu thật. Với môi trường khác, dùng biến môi trường hoặc User Secrets.
+
+## Quy trình Database-First
+
+Sau khi schema ổn định, scaffold entity và `DbContext` từ database bằng EF Core Tools, sau đó đặt các file sinh ra vào `Backend/SportHub.API/Models` và `Backend/SportHub.API/Data`. Mọi thay đổi schema cần cập nhật `schema.sql` trước, chạy kiểm tra trên database local rồi scaffold/cập nhật lại mã nguồn.

@@ -1,17 +1,3 @@
-<<<<<<< HEAD
-var builder = WebApplication.CreateBuilder(args);
-
-// Add services to the container.
-
-builder.Services.AddControllers();
-
-var app = builder.Build();
-
-// Configure the HTTP request pipeline.
-
-app.UseAuthorization();
-
-=======
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
@@ -31,6 +17,7 @@ var builder = WebApplication.CreateBuilder(args);
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException("Connection string 'DefaultConnection' is not configured.");
 
+// Đăng ký SportHubDbContext với SQL Server
 builder.Services.AddDbContext<SportHubDbContext>(options =>
     options.UseSqlServer(connectionString));
 
@@ -213,7 +200,6 @@ app.MapGet("/api/health", () => Results.Ok(new
     timestamp = DateTime.Now
 })).AllowAnonymous();
 
->>>>>>> 9e9bb1fe0bdd7c169d5f97408ebc72fc1b381c95
 app.MapControllers();
 
 app.Run();
