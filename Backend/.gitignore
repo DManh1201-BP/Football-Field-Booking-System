@@ -1,0 +1,22 @@
+## Ignore Visual Studio / .NET temporary files, build results, and local secrets
+[Bb]in/
+[Oo]bj/
+[Ll]og/
+[Ll]ogs/
+.vs/
+.vscode/
+*.user
+*.rsuser
+*.suo
+*.userosscache
+*.sln.docstates
+*.DotSettings.user
+
+# User-specific secrets & environment files
+.env
+.env.*
+appsettings.Local.json
+
+# Uploaded runtime files (keep folder structure via .gitkeep)
+SportHub.API/wwwroot/uploads/fields/*
+!SportHub.API/wwwroot/uploads/fields/.gitkeep

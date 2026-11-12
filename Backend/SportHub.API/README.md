@@ -1,15 +1,111 @@
 # SportHub.API
 
-Dự án Web API mục tiêu: ASP.NET Core 8. Các thư mục và thành phần dự kiến được mô tả trong [README dự án](../../README.md#kiến-trúc-và-cấu-trúc-dự-án).
+Backend chính của **SportHub 2.0**, được refactor từ phiên bản Java Spring Boot (`com.sporthub.*`) sang **C# / ASP.NET Core 8 Web API** và **Entity Framework Core (SQL Server)** theo kiến trúc phân tầng chuẩn.
 
-Luồng phụ thuộc:
+## Kiến trúc phân tầng (Layered Architecture)
 
 ```text
-HTTP request → Controller → Service → Repository/DbContext → SQL Server
-                     ↕
-                 DTOs ↔ Models
+HTTP Request → Controller → Service → Repository / EF Core → SQL Server
+                    ↕
+               DTOs ↔ Models
 ```
 
-Controller chỉ điều phối HTTP; quy tắc đặt sân, kiểm tra tính khả dụng và xử lý kết quả trận đấu nằm ở service. DTO dùng cho request/response, entity dùng cho lưu trữ. `Program.cs` đăng ký DI, middleware, authentication/authorization và CORS theo cấu hình môi trường.
+```text
+Backend/SportHub.API/
+├── Controllers/                  # Tầng API điều phối HTTP request/response
+│   ├── AuthController.cs         # Đăng ký, đăng nhập JWT, thông tin tài khoản (/api/auth)
+│   ├── FieldController.cs        # CRUD sân, lọc/tìm kiếm, upload ảnh sân (/api/fields)
+│   ├── BookingController.cs      # Đặt sân chống trùng lịch, giữ chỗ, huỷ lịch (/api/bookings)
+│   ├── AdminController.cs        # Quản trị booking & thống kê doanh thu (/api/admin)
+│   ├── MatchController.cs        # Trận giao lưu/thách đấu & bảng xếp hạng Elo (/api/matches)
+│   └── ClaimsPrincipalExtensions.cs
+├── Models/                       # Entity ánh xạ bảng SQL Server qua EF Core
+│   ├── User.cs
+│   ├── UserRole.cs
+│   ├── Field.cs
+│   ├── Booking.cs
+│   └── Match.cs
+├── Data/                         # DbContext & khởi tạo dữ liệu mẫu môi trường Dev
+│   ├── SportHubDbContext.cs
+│   └── DbInitializer.cs
+├── DTOs/                         # Data Transfer Objects & DataAnnotations Validation
+│   ├── FieldDto.cs
+│   ├── BookingCreateDto.cs
+│   ├── MatchCreateDto.cs
+│   ├── AuthDtos.cs
+│   ├── AdminRevenueSummaryResponseDto.cs
+│   └── ApiErrorResponseDto.cs
+├── Repositories/                 # Tầng truy vấn dữ liệu (Repository Pattern)
+│   ├── IFieldRepository.cs & FieldRepository.cs
+│   ├── IUserRepository.cs & UserRepository.cs
+│   ├── IBookingRepository.cs & BookingRepository.cs
+│   └── IMatchRepository.cs & MatchRepository.cs
+├── Services/                     # Tầng xử lý nghiệp vụ & bảo mật JWT/BCrypt
+│   ├── IFieldService.cs & FieldService.cs
+│   ├── IAuthService.cs & AuthService.cs
+│   ├── IBookingService.cs & BookingService.cs
+│   ├── IAdminService.cs & AdminService.cs
+│   ├── IMatchService.cs & MatchService.cs
+│   ├── IJwtService.cs & JwtService.cs
+│   └── IPasswordHasher.cs & LegacyAwarePasswordHasher.cs
+├── Middleware/                   # Xử lý ngoại lệ tập trung & chuẩn hóa JSON TimeOnly
+│   ├── ApiExceptionMiddleware.cs
+│   └── FlexibleTimeOnlyJsonConverter.cs
+├── wwwroot/uploads/fields/       # Lưu trữ ảnh sân upload tĩnh
+├── appsettings.json
+├── appsettings.Development.json
+├── Program.cs                    # Điểm khởi chạy, DI Container, Auth, CORS, Swagger
+└── SportHub.API.csproj
+```
 
-Chưa có project `.csproj` hoặc mã API trong bộ tài liệu hiện tại.
+## Cấu hình bảo mật & Khởi chạy
+
+1. **Cấu hình User Secrets (không lưu secret trong Git):**
+
+   ```powershell
+   cd Backend/SportHub.API
+   dotnet user-secrets set "Jwt:Key" "Chuoi_Bi_Mat_JWT_Toi_Thieu_32_Ky_Tu_2026!"
+   dotnet user-secrets set "DemoAdmin:Password" "MatKhauAdminDev_TuyChon"
+   ```
+
+2. **Khởi chạy dự án:**
+
+   ```powershell
+   dotnet restore
+   dotnet run
+   ```
+
+   - API mặc định lắng nghe tại: `http://localhost:8081`
+   - Swagger UI (Development): `http://localhost:8081/swagger`
+   - Health check: `http://localhost:8081/api/health` và `http://localhost:8081/api/fields/health`
+
+## Danh sách Endpoint chính
+
+| Nhóm | Method & Route | Quyền truy cập | Mô tả |
+|---|---|---|---|
+| Auth | `POST /api/auth/register` | Public | Đăng ký tài khoản mới & cấp JWT |
+| Auth | `POST /api/auth/login` | Public | Đăng nhập & cấp JWT |
+| Auth | `GET /api/auth/me` | Authenticated | Lấy hồ sơ người dùng hiện tại |
+| Fields | `GET /api/fields` | Public | Danh sách tất cả sân |
+| Fields | `GET /api/fields/available` | Public | Danh sách sân đang mở đặt |
+| Fields | `GET /api/fields/{id}` | Public | Chi tiết sân theo ID |
+| Fields | `GET /api/fields/city/{city}` | Public | Lọc sân khả dụng theo thành phố |
+| Fields | `GET /api/fields/sport/{sportType}` | Public | Lọc sân khả dụng theo môn thể thao |
+| Fields | `GET /api/fields/search` | Public | Tìm kiếm đa tiêu chí (city, sportType, giá, tiện ích, khung giờ trống) |
+| Fields | `POST /api/fields` | `ADMIN`, `OWNER` | Tạo sân mới |
+| Fields | `PUT /api/fields/{id}` | `ADMIN`, `OWNER` | Cập nhật thông tin sân |
+| Fields | `POST /api/fields/{id}/image` | `ADMIN`, `OWNER` | Upload ảnh sân vào `wwwroot/uploads/fields/` |
+| Fields | `DELETE /api/fields/{id}` | `ADMIN` | Xóa sân |
+| Bookings | `GET /api/bookings/field/{fieldId}` | Public | Xem lịch đã đặt của một sân |
+| Bookings | `GET /api/bookings/me` | Authenticated | Lịch đặt sân của tôi |
+| Bookings | `POST /api/bookings` | Authenticated | Đặt sân / giữ chỗ (kiểm soát xung đột qua `Serializable` transaction) |
+| Bookings | `PATCH /api/bookings/{bookingId}/cancel` | Owner / `ADMIN` | Hủy lượt đặt sân |
+| Bookings | `GET /api/bookings` | `ADMIN` | Truy vấn toàn bộ booking |
+| Admin | `GET /api/admin/bookings` | `ADMIN` | Quản lý danh sách booking |
+| Admin | `GET /api/admin/revenue/summary` | `ADMIN` | Tổng hợp số lượng & doanh thu |
+| Admin | `PATCH /api/admin/bookings/{bookingId}/confirm` | `ADMIN` | Xác nhận booking |
+| Matches | `GET /api/matches` | Public | Danh sách trận giao lưu/thách đấu |
+| Matches | `POST /api/matches` | Authenticated | Tạo trận giao lưu mới |
+| Matches | `POST /api/matches/{id}/join` | Authenticated | Tham gia trận đấu đang mở |
+| Matches | `PATCH /api/matches/{id}/result` | Host / `ADMIN` | Ghi nhận tỉ số & cập nhật điểm Elo |
+| Matches | `GET /api/matches/leaderboard` | Public | Bảng xếp hạng Elo khu vực |
