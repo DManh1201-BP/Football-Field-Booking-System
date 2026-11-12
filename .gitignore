@@ -1,0 +1,22 @@
+# Build results
+[Bb]in/
+[Oo]bj/
+[Dd]ebug/
+[Rr]elease/
+
+# Visual Studio & IDE files
+.vs/
+*.suo
+*.user
+
+# Local configuration (tránh lộ connection string cá nhân)
+appsettings.Development.json
+appsettings.Local.json
+
+# Uploaded test files
+Backend/SportHub.API/wwwroot/uploads/*
+!Backend/SportHub.API/wwwroot/uploads/.gitkeep
+
+# OS generated files
+.DS_Store
+Thumbs.db
