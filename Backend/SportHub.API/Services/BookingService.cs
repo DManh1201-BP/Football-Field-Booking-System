@@ -127,6 +127,7 @@ public class BookingService : IBookingService
         long bookingId,
         long requesterUserId,
         bool isAdmin,
+        string? reason = null,
         CancellationToken cancellationToken = default)
     {
         var booking = await _bookingRepository.GetByIdAsync(bookingId, cancellationToken)
@@ -144,8 +145,91 @@ public class BookingService : IBookingService
 
         booking.Status = "CANCELLED";
         booking.HoldExpiresAt = null;
+        if (!string.IsNullOrWhiteSpace(reason))
+        {
+            booking.CancellationReason = reason.Trim();
+        }
 
         var updated = await _bookingRepository.UpdateAsync(booking, cancellationToken);
+        return BookingResponseDto.FromEntity(updated);
+    }
+
+    public async Task<BookingResponseDto> UpdateBookingAsync(
+        long bookingId,
+        long requesterUserId,
+        bool isAdmin,
+        BookingUpdateDto request,
+        CancellationToken cancellationToken = default)
+    {
+        var booking = await _bookingRepository.GetByIdAsync(bookingId, cancellationToken)
+            ?? throw new KeyNotFoundException($"Booking not found: {bookingId}");
+
+        if (!isAdmin && booking.UserId != requesterUserId)
+        {
+            throw new UnauthorizedAccessException("You are not allowed to update this booking");
+        }
+
+        if (string.Equals(booking.Status, "COMPLETED", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(booking.Status, "CANCELLED", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new ArgumentException("Completed or cancelled booking cannot be updated");
+        }
+
+        var fieldId = request.FieldId ?? throw new ArgumentException("Field ID is required");
+        var bookingDate = request.BookingDate ?? throw new ArgumentException("Booking date is required");
+        var startTime = request.StartTime ?? throw new ArgumentException("Start time is required");
+        var endTime = request.EndTime ?? throw new ArgumentException("End time is required");
+
+        if (endTime <= startTime)
+        {
+            throw new ArgumentException("End time must be after start time");
+        }
+
+        if (bookingDate < DateOnly.FromDateTime(DateTime.Today))
+        {
+            throw new ArgumentException("Booking date must be today or later");
+        }
+
+        await using var transaction = await _dbContext.Database.BeginTransactionAsync(
+            IsolationLevel.Serializable,
+            cancellationToken);
+
+        await _bookingRepository.ReleaseExpiredHoldsAsync(cancellationToken);
+
+        var field = await _fieldRepository.GetByIdAsync(fieldId, cancellationToken)
+            ?? throw new KeyNotFoundException($"Field not found: {fieldId}");
+
+        if (!field.IsAvailable)
+        {
+            throw new ArgumentException("Field is not available for booking");
+        }
+
+        var hasConflict = await _bookingRepository.HasConflictingBookingAsync(
+            fieldId,
+            bookingDate,
+            startTime,
+            endTime,
+            booking.Id,
+            cancellationToken);
+
+        if (hasConflict)
+        {
+            throw new ArgumentException("Selected time slot is already booked");
+        }
+
+        booking.FieldId = field.Id;
+        booking.Field = field;
+        booking.BookingDate = bookingDate;
+        booking.StartTime = startTime;
+        booking.EndTime = endTime;
+        booking.CustomerPhone = request.CustomerPhone.Trim();
+        booking.Notes = request.Notes?.Trim();
+        booking.TotalPrice = CalculateTotalPrice(field.PricePerHour, startTime, endTime);
+        booking.UpdatedAt = DateTime.Now;
+
+        var updated = await _bookingRepository.UpdateAsync(booking, cancellationToken);
+        await transaction.CommitAsync(cancellationToken);
+
         return BookingResponseDto.FromEntity(updated);
     }
 

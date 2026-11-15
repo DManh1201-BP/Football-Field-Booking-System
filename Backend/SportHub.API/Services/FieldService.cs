@@ -94,10 +94,16 @@ public class FieldService : IFieldService
         return FieldDto.FromEntity(saved);
     }
 
-    public async Task<FieldDto> UpdateFieldAsync(long id, FieldUpdateDto dto, CancellationToken cancellationToken = default)
+    public async Task<FieldDto> UpdateFieldAsync(long id, FieldUpdateDto dto, long? currentUserId = null, CancellationToken cancellationToken = default)
     {
         var field = await _fieldRepository.GetByIdAsync(id, cancellationToken)
             ?? throw new KeyNotFoundException($"Field not found: {id}");
+
+        // Ownership check: only ADMIN or the field owner can update
+        if (currentUserId.HasValue && field.OwnerId != currentUserId && currentUserId != 0)
+        {
+            throw new UnauthorizedAccessException($"You do not have permission to update field {id}");
+        }
 
         if (dto.Name is not null) field.Name = dto.Name.Trim();
         if (dto.Description is not null) field.Description = dto.Description.Trim();
@@ -110,7 +116,11 @@ public class FieldService : IFieldService
         if (dto.SportType is not null) field.SportType = dto.SportType.Trim().ToUpperInvariant();
         if (dto.Amenities is not null) field.Amenities = dto.Amenities.Trim();
         if (dto.IsAvailable.HasValue) field.IsAvailable = dto.IsAvailable.Value;
-        if (dto.OwnerId.HasValue) field.OwnerId = dto.OwnerId.Value;
+        // Prevent owner change by non-admin users
+        if (dto.OwnerId.HasValue && currentUserId.HasValue && currentUserId != 0)
+        {
+            throw new UnauthorizedAccessException("Only admins can reassign field ownership");
+        }
 
         var updated = await _fieldRepository.UpdateAsync(field, cancellationToken);
         return FieldDto.FromEntity(updated);
@@ -124,10 +134,16 @@ public class FieldService : IFieldService
         await _fieldRepository.DeleteAsync(field, cancellationToken);
     }
 
-    public async Task<FieldDto> UploadFieldImageAsync(long id, IFormFile file, CancellationToken cancellationToken = default)
+    public async Task<FieldDto> UploadFieldImageAsync(long id, IFormFile file, long? currentUserId = null, CancellationToken cancellationToken = default)
     {
         var field = await _fieldRepository.GetByIdAsync(id, cancellationToken)
             ?? throw new KeyNotFoundException($"Field not found: {id}");
+
+        // Ownership check: only ADMIN or the field owner can upload images
+        if (currentUserId.HasValue && field.OwnerId != currentUserId && currentUserId != 0)
+        {
+            throw new UnauthorizedAccessException($"You do not have permission to upload images for field {id}");
+        }
 
         if (file is null || file.Length == 0)
         {

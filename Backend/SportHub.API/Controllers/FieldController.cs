@@ -84,7 +84,8 @@ public class FieldController : ControllerBase
         [FromBody] FieldUpdateDto request,
         CancellationToken cancellationToken)
     {
-        var updated = await _fieldService.UpdateFieldAsync(id, request, cancellationToken);
+        long? currentUserId = User.TryGetUserId(out var uid) ? uid : null;
+        var updated = await _fieldService.UpdateFieldAsync(id, request, currentUserId, cancellationToken);
         return Ok(updated);
     }
 
@@ -103,7 +104,8 @@ public class FieldController : ControllerBase
         IFormFile file,
         CancellationToken cancellationToken)
     {
-        var updated = await _fieldService.UploadFieldImageAsync(id, file, cancellationToken);
+        long? currentUserId = User.TryGetUserId(out var uid) ? uid : null;
+        var updated = await _fieldService.UploadFieldImageAsync(id, file, currentUserId, cancellationToken);
         return Ok(updated);
     }
 

@@ -74,10 +74,33 @@ public class BookingController : ControllerBase
         return StatusCode(StatusCodes.Status201Created, createdBooking);
     }
 
+    [HttpPut("{bookingId:long}")]
+    [Authorize]
+    public async Task<ActionResult<BookingResponseDto>> UpdateBooking(
+        long bookingId,
+        [FromBody] BookingUpdateDto request,
+        CancellationToken cancellationToken)
+    {
+        if (!User.TryGetUserId(out var userId))
+        {
+            return Unauthorized();
+        }
+
+        var updatedBooking = await _bookingService.UpdateBookingAsync(
+            bookingId,
+            userId,
+            User.IsAdmin(),
+            request,
+            cancellationToken);
+
+        return Ok(updatedBooking);
+    }
+
     [HttpPatch("{bookingId:long}/cancel")]
     [Authorize]
     public async Task<ActionResult<BookingResponseDto>> CancelBooking(
         long bookingId,
+        [FromBody] BookingCancelDto request,
         CancellationToken cancellationToken)
     {
         if (!User.TryGetUserId(out var userId))
@@ -89,6 +112,7 @@ public class BookingController : ControllerBase
             bookingId,
             userId,
             User.IsAdmin(),
+            request?.Reason?.Trim(),
             cancellationToken);
 
         return Ok(cancelled);
