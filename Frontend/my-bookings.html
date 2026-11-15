@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Lịch sử đặt sân SportHub">
+    <title>Lịch của tôi - SportHub</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="admin-page customer-page">
+    <nav class="navbar">
+        <div class="container">
+            <div class="navbar-brand">
+                <h1><i data-lucide="calendar-clock" class="brand-mark"></i><span>My Bookings</span></h1>
+                <p class="subtitle">Theo dõi lịch sử đặt sân của bạn</p>
+            </div>
+            <div class="nav-actions">
+                <a class="btn btn-secondary nav-action-btn" href="index.html">
+                    <i data-lucide="arrow-left" class="btn-icon"></i>
+                    <span>Về trang chủ</span>
+                </a>
+                <button id="bookings-logout-btn" class="btn btn-primary nav-action-btn" type="button">
+                    <i data-lucide="log-out" class="btn-icon"></i>
+                    <span>Đăng xuất</span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="admin-shell">
+        <section class="admin-hero">
+            <div class="container">
+                <p class="eyebrow">Lịch của tôi</p>
+                <h2>Các booking bạn đã tạo</h2>
+                <p id="bookings-session-text" class="section-description">Đang kiểm tra phiên đăng nhập customer...</p>
+            </div>
+        </section>
+
+        <section class="admin-section">
+            <div class="container">
+                <div id="bookings-access-alert" class="error-alert hidden" role="alert">
+                    <div class="error-copy">
+                        <strong>Không thể truy cập lịch sử đặt sân</strong>
+                        <span id="bookings-access-text">Vui lòng đăng nhập bằng tài khoản customer.</span>
+                    </div>
+                </div>
+
+                <div class="account-panel" id="current-bookings-panel">
+                    <div class="panel-head">
+                        <div>
+                            <h3>Booking hiện tại</h3>
+                            <p>Các booking đang chờ hoặc đã xác nhận và chưa diễn ra. Bạn có thể sửa hoặc hủy (hủy cần ghi lý do).</p>
+                        </div>
+                    </div>
+                    <p id="current-bookings-feedback" class="booking-feedback hidden" role="status"></p>
+                    <div id="current-bookings-list" class="current-booking-grid">
+                        <p class="table-empty">Đang tải booking hiện tại...</p>
+                    </div>
+                </div>
+
+                <div class="account-panel">
+                    <div class="panel-head">
+                        <div>
+                            <h3>Lịch sử đặt sân</h3>
+                            <p>Các booking đã diễn ra hoặc đã hủy, đồng bộ trực tiếp từ backend.</p>
+                        </div>
+                    </div>
+                    <div class="summary-grid">
+                        <div class="summary-card">
+                            <span class="summary-label">Tổng booking</span>
+                            <strong id="customer-booking-count">0</strong>
+                        </div>
+                        <div class="summary-card">
+                            <span class="summary-label">Đã xác nhận</span>
+                            <strong id="customer-confirmed-count">0</strong>
+                        </div>
+                        <div class="summary-card">
+                            <span class="summary-label">Đang chờ</span>
+                            <strong id="customer-pending-count">0</strong>
+                        </div>
+                    </div>
+                    <div class="table-wrap">
+                        <table class="booking-table admin-table">
+                            <thead>
+                                <tr>
+                                    <th>Sân</th>
+                                    <th>Ngày</th>
+                                    <th>Giờ</th>
+                                    <th>Trạng thái</th>
+                                    <th>Tiền</th>
+                                    <th>Ghi chú</th>
+                                </tr>
+                            </thead>
+                            <tbody id="customer-bookings-body"></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Modal: cập nhật booking -->
+    <div id="edit-booking-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="edit-booking-title" aria-hidden="true">
+        <div class="modal-content auth-modal-content" tabindex="-1">
+            <button class="close-modal" type="button" data-close-modal aria-label="Đóng cửa sổ cập nhật">&times;</button>
+            <h2 id="edit-booking-title">Cập nhật booking</h2>
+            <p id="edit-booking-summary" class="secondary-text"></p>
+            <form id="edit-booking-form" class="booking-form" novalidate>
+                <div class="booking-grid">
+                    <label class="form-field">
+                        <span>Ngày đặt</span>
+                        <input id="edit-booking-date" type="date" required>
+                    </label>
+                    <label class="form-field">
+                        <span>Số điện thoại</span>
+                        <input id="edit-booking-phone" type="tel" placeholder="0901 234 567" required>
+                    </label>
+                    <label class="form-field">
+                        <span>Giờ bắt đầu</span>
+                        <input id="edit-booking-start" type="time" required>
+                    </label>
+                    <label class="form-field">
+                        <span>Giờ kết thúc</span>
+                        <input id="edit-booking-end" type="time" required>
+                    </label>
+                </div>
+                <label class="form-field">
+                    <span>Ghi chú</span>
+                    <textarea id="edit-booking-notes" rows="3" placeholder="Yêu cầu thêm, số lượng người, giờ ưu tiên..."></textarea>
+                </label>
+                <div class="modal-actions">
+                    <button id="edit-booking-submit" class="btn btn-primary" type="submit">Lưu thay đổi</button>
+                    <button class="btn btn-secondary" type="button" data-close-modal>Đóng</button>
+                </div>
+                <p id="edit-booking-feedback" class="booking-feedback hidden" role="alert"></p>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal: hủy booking -->
+    <div id="cancel-booking-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="cancel-booking-title" aria-hidden="true">
+        <div class="modal-content auth-modal-content" tabindex="-1">
+            <button class="close-modal" type="button" data-close-modal aria-label="Đóng cửa sổ hủy booking">&times;</button>
+            <h2 id="cancel-booking-title">Hủy booking</h2>
+            <p id="cancel-booking-summary" class="secondary-text"></p>
+            <form id="cancel-booking-form" class="booking-form" novalidate>
+                <label class="form-field">
+                    <span>Lý do hủy (bắt buộc)</span>
+                    <textarea id="cancel-booking-reason" rows="4" maxlength="300" placeholder="Ví dụ: Bận việc đột xuất, đổi sang sân khác..." required></textarea>
+                </label>
+                <div class="modal-actions">
+                    <button id="cancel-booking-submit" class="btn btn-danger" type="submit">Xác nhận hủy</button>
+                    <button class="btn btn-secondary" type="button" data-close-modal>Giữ lại booking</button>
+                </div>
+                <p id="cancel-booking-feedback" class="booking-feedback hidden" role="alert"></p>
+            </form>
+        </div>
+    </div>
+
+    <script id="sporthub-config" type="application/json">{"apiBaseUrl":"http://localhost:8081/api"}</script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="js/config.js"></script>
+    <script src="js/my-bookings.js"></script>
+</body>
+</html>

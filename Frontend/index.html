@@ -1,0 +1,364 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="SportHub - Website đặt sân thể thao trực tuyến">
+    <meta name="author" content="Võ Ngọc Tân">
+    
+    <title>SportHub - Đặt Sân Thể Thao Trực Tuyến</title>
+    
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+    <!-- Navigation Bar -->
+    <nav class="navbar">
+        <div class="container">
+            <div class="navbar-brand">
+                <h1><i data-lucide="calendar-search" class="brand-mark"></i><span>SportHub</span></h1>
+                <p class="subtitle">Đặt sân thể thao dễ dàng, giá rẻ</p>
+            </div>
+            <div class="nav-menu">
+                <ul>
+                    <li><a href="#home" class="active">Trang chủ</a></li>
+                    <li><a href="#fields">Danh sách sân</a></li>
+                    <li><a href="#about">Về chúng tôi</a></li>
+                    <li><a href="#contact">Liên hệ</a></li>
+                </ul>
+            </div>
+            <div class="nav-actions">
+                <button id="dashboard-nav-btn" class="btn btn-secondary nav-action-btn hidden" type="button">
+                    <i data-lucide="layout-dashboard" class="btn-icon"></i>
+                    <span>Bảng điều khiển</span>
+                </button>
+                <button id="open-login-btn" class="btn btn-secondary nav-action-btn" type="button">
+                    <i data-lucide="log-in" class="btn-icon"></i>
+                    <span>Đăng nhập</span>
+                </button>
+                <button id="open-register-btn" class="btn btn-primary nav-action-btn" type="button">
+                    <i data-lucide="user-plus" class="btn-icon"></i>
+                    <span>Đăng ký</span>
+                </button>
+                <button id="logout-btn" class="btn btn-secondary nav-action-btn hidden" type="button">
+                    <i data-lucide="log-out" class="btn-icon"></i>
+                    <span>Đăng xuất</span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Hero Section -->
+    <section class="hero" id="home">
+        <div class="container">
+            <div class="hero-content">
+                <div class="hero-copy">
+                    <p class="hero-kicker"><span class="hero-dot"></span>Nền tảng đặt sân tại Thủ Dầu Một</p>
+                    <h2>Tìm sân phù hợp và <span class="hero-highlight">gửi yêu cầu đặt sân</span> trong vài phút</h2>
+                    <p>Xem nhanh loại sân, khu vực, giá theo giờ và tình trạng khả dụng trước khi đặt.</p>
+                    <div class="hero-cta">
+                        <a class="btn btn-primary hero-btn" href="#search-section"><i data-lucide="search" class="btn-icon"></i><span>Tìm sân ngay</span></a>
+                        <a class="btn hero-btn-ghost hero-btn" href="#fields"><span>Xem danh sách sân</span><i data-lucide="arrow-right" class="btn-icon"></i></a>
+                    </div>
+                    <ul class="hero-points">
+                        <li>Giá theo giờ rõ ràng</li>
+                        <li>5 môn thể thao</li>
+                        <li>Gửi yêu cầu chỉ vài bước</li>
+                    </ul>
+                </div>
+                <div class="hero-visual">
+                    <button class="sport-tile tile-football" type="button" data-sport="FOOTBALL"><span class="sport-emoji">⚽</span><span class="sport-name">Bóng đá</span></button>
+                    <button class="sport-tile tile-volleyball" type="button" data-sport="VOLLEYBALL"><span class="sport-emoji">🏐</span><span class="sport-name">Bóng chuyền</span></button>
+                    <button class="sport-tile tile-badminton" type="button" data-sport="BADMINTON"><span class="sport-emoji">🏸</span><span class="sport-name">Cầu lông</span></button>
+                    <button class="sport-tile tile-basketball" type="button" data-sport="BASKETBALL"><span class="sport-emoji">🏀</span><span class="sport-name">Bóng rổ</span></button>
+                    <button class="sport-tile tile-tennis" type="button" data-sport="TENNIS"><span class="sport-emoji">🎾</span><span class="sport-name">Tennis</span></button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Search Section -->
+    <section id="search-section" class="filter-section">
+        <div class="container">
+            <div class="section-heading search-heading">
+                <p class="eyebrow">Tìm kiếm sân</p>
+                <h2 class="section-title">Bắt đầu với nhu cầu của bạn</h2>
+                <p class="section-description">Chọn môn thể thao hoặc nhập tên sân, khu vực để thu hẹp danh sách phù hợp.</p>
+            </div>
+            <div class="filter-container">
+                <div class="sport-chips" role="group" aria-label="Chọn nhanh loại thể thao">
+                    <button class="sport-chip active" type="button" data-sport="" aria-pressed="true">Tất cả</button>
+                    <button class="sport-chip" type="button" data-sport="FOOTBALL" aria-pressed="false">⚽ Bóng đá</button>
+                    <button class="sport-chip" type="button" data-sport="VOLLEYBALL" aria-pressed="false">🏐 Bóng chuyền</button>
+                    <button class="sport-chip" type="button" data-sport="BADMINTON" aria-pressed="false">🏸 Cầu lông</button>
+                    <button class="sport-chip" type="button" data-sport="BASKETBALL" aria-pressed="false">🏀 Bóng rổ</button>
+                    <button class="sport-chip" type="button" data-sport="TENNIS" aria-pressed="false">🎾 Tennis</button>
+                </div>
+                <div class="filter-group filter-group-hidden">
+                    <label for="sport-filter">Chọn loại thể thao:</label>
+                    <select id="sport-filter">
+                        <option value="">-- Tất cả các loại --</option>
+                        <option value="FOOTBALL">Bóng đá</option>
+                        <option value="VOLLEYBALL">Bóng chuyền</option>
+                        <option value="BADMINTON">Cầu lông</option>
+                        <option value="BASKETBALL">Bóng rổ</option>
+                        <option value="TENNIS">Tennis</option>
+                    </select>
+                </div>
+                <div class="filter-group search-group">
+                    <label for="field-search">Tìm theo tên hoặc địa điểm:</label>
+                    <input id="field-search" type="search" placeholder="Ví dụ: Thủ Dầu Một, Tennis..." autocomplete="off">
+                </div>
+                <button id="search-btn" class="btn btn-primary"><i data-lucide="search" class="btn-icon"></i><span>Tìm kiếm</span></button>
+                <button id="reset-btn" class="btn btn-secondary"><i data-lucide="rotate-ccw" class="btn-icon"></i><span>Đặt lại</span></button>
+                <button id="retry-btn" class="btn btn-secondary hidden" type="button"><i data-lucide="refresh-cw" class="btn-icon"></i><span>Thử lại</span></button>
+            </div>
+        </div>
+    </section>
+
+    <!-- State Section -->
+    <section id="state-section" class="state-section hidden">
+        <div class="container state-stack">
+            <div id="loading" class="loading-spinner hidden">
+                <div class="spinner"></div>
+                <p>Đang tải dữ liệu...</p>
+            </div>
+
+            <div id="error-message" class="error-alert hidden" role="alert" aria-live="polite">
+                <div class="error-copy">
+                    <strong>Lỗi tải dữ liệu</strong>
+                    <span id="error-text"></span>
+                </div>
+                <div class="error-actions">
+                    <button id="error-retry-btn" class="btn btn-secondary retry-button hidden" type="button">Thử lại</button>
+                    <button class="close-btn" type="button" aria-label="Đóng thông báo lỗi">✕</button>
+                </div>
+            </div>
+
+            <div id="no-results" class="no-results hidden">
+                <p id="no-results-text">Không tìm thấy sân phù hợp. Vui lòng thử lại với các tiêu chí khác.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- Result Section -->
+    <section id="fields" class="fields-section result-section">
+        <div class="container">
+            <div class="section-heading">
+                <p class="eyebrow">Kết quả tìm kiếm</p>
+                <h2 class="section-title">Danh sách sân đang mở đặt</h2>
+                <p class="section-description">So sánh nhanh giá, vị trí và sức chứa trước khi mở chi tiết sân.</p>
+            </div>
+
+            <!-- Fields Grid -->
+            <div id="fields-grid" class="fields-grid">
+                <!-- Fields will be loaded here by JavaScript -->
+            </div>
+        </div>
+    </section>
+
+    <!-- Stats Section -->
+    <section id="stats-section" class="stats-section hidden">
+        <div class="container">
+            <div class="section-heading">
+                <p class="eyebrow">Số liệu hiện có</p>
+                <h2 class="section-title">Tổng quan kết quả</h2>
+            </div>
+            <div class="stats-container">
+                <div class="stat-item">
+                    <span class="stat-number" id="total-fields">0</span>
+                    <span class="stat-label">Tổng sân</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-number" id="available-fields">0</span>
+                    <span class="stat-label">Sân khả dụng</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Why Choose Us -->
+    <section id="about" class="about-section">
+        <div class="container">
+            <div class="section-heading">
+                <p class="eyebrow">Lợi ích khi sử dụng</p>
+                <h2 class="section-title">Vì sao người dùng chọn SportHub</h2>
+            </div>
+            <div class="about-content">
+                <p>SportHub giúp người chơi tìm sân, so sánh thông tin cơ bản và gửi yêu cầu đặt sân thuận tiện hơn trên cùng một giao diện.</p>
+                <ul class="features">
+                    <li><i data-lucide="check" class="feature-icon"></i><span>Thông tin sân rõ ràng, dễ so sánh</span></li>
+                    <li><i data-lucide="check" class="feature-icon"></i><span>Gửi yêu cầu đặt sân nhanh ngay trong modal</span></li>
+                    <li><i data-lucide="check" class="feature-icon"></i><span>Giá theo giờ hiển thị trực tiếp trên danh sách</span></li>
+                    <li><i data-lucide="check" class="feature-icon"></i><span>Phù hợp cho demo đặt sân thực tế</span></li>
+                </ul>
+            </div>
+        </div>
+    </section>
+
+    <!-- Contact Section -->
+    <section id="contact" class="contact-section">
+        <div class="container">
+            <div class="section-heading">
+                <p class="eyebrow">Hỗ trợ đặt sân</p>
+                <h2 class="section-title">Cần hỗ trợ thêm?</h2>
+            </div>
+            <div class="contact-info">
+                <div class="contact-item">
+                    <h4><i data-lucide="phone" class="contact-icon"></i><span>Điện thoại</span></h4>
+                    <p>0901 234 567</p>
+                </div>
+                <div class="contact-item">
+                    <h4><i data-lucide="mail" class="contact-icon"></i><span>Email</span></h4>
+                    <p>support@sporthub.com</p>
+                </div>
+                <div class="contact-item">
+                    <h4><i data-lucide="map-pin" class="contact-icon"></i><span>Địa chỉ</span></h4>
+                    <p>123 Đường Trường Chinh, Thủ Dầu Một, Bình Dương</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="container">
+            <p>&copy; 2026 SportHub. All rights reserved.</p>
+            <p>Phát triển bởi: Phạm Nguyễn Thành Trung, Võ Ngọc Tân, Nguyễn Tuấn Thiện</p>
+        </div>
+    </footer>
+
+    <button id="chatbot-toggle" class="chatbot-toggle" type="button" aria-label="Mở chat hỗ trợ">
+        <i data-lucide="message-circle" class="btn-icon"></i>
+        <span>Chat</span>
+    </button>
+
+    <section id="chatbot-panel" class="chatbot-panel hidden" aria-label="Chatbot hỗ trợ SportHub">
+        <div class="chatbot-header">
+            <div>
+                <p class="chatbot-eyebrow">SportHub Assistant</p>
+                <h3>Hỏi nhanh về đặt sân</h3>
+            </div>
+            <button id="chatbot-close" class="chatbot-close" type="button" aria-label="Đóng chat">
+                <i data-lucide="x" class="btn-icon"></i>
+            </button>
+        </div>
+        <div id="chatbot-messages" class="chatbot-messages">
+            <article class="chatbot-message bot">
+                <p>Xin chào. Mình có thể hỗ trợ tìm sân, giải thích giá, hoặc hướng dẫn đặt sân.</p>
+            </article>
+        </div>
+        <form id="chatbot-form" class="chatbot-form">
+            <div class="chatbot-input-row">
+                <textarea id="chatbot-input" rows="2" placeholder="Ví dụ: Sân bóng đá nào còn phù hợp cho 10 người tối mai?" required></textarea>
+                <button class="btn btn-primary chatbot-send" type="submit">Gửi</button>
+            </div>
+        </form>
+    </section>
+
+    <!-- Auth Modal -->
+    <div id="auth-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="auth-modal-title" aria-describedby="auth-modal-description" aria-hidden="true">
+        <div class="modal-content auth-modal-content" tabindex="-1">
+            <button class="close-modal" id="close-auth-modal-btn" type="button" aria-label="Đóng cửa sổ đăng nhập">&times;</button>
+            <h2 id="auth-modal-title">Đăng nhập</h2>
+            <p id="auth-modal-description" class="secondary-text">Dùng tài khoản demo hoặc tạo tài khoản customer mới để đặt sân.</p>
+            <div class="auth-tabs">
+                <button id="auth-login-tab" class="auth-tab active" type="button">Đăng nhập</button>
+                <button id="auth-register-tab" class="auth-tab" type="button">Đăng ký</button>
+            </div>
+            <form id="login-form" class="auth-form">
+                <label class="form-field">
+                    <span>Email</span>
+                    <input id="login-email" type="email" autocomplete="email" required>
+                </label>
+                <label class="form-field">
+                    <span>Mật khẩu</span>
+                    <input id="login-password" type="password" autocomplete="current-password" required>
+                </label>
+                <button class="btn btn-primary auth-submit" type="submit">Đăng nhập</button>
+            </form>
+            <form id="register-form" class="auth-form hidden">
+                <label class="form-field">
+                    <span>Họ và tên</span>
+                    <input id="register-name" type="text" autocomplete="name" required>
+                </label>
+                <label class="form-field">
+                    <span>Email</span>
+                    <input id="register-email" type="email" autocomplete="email" required>
+                </label>
+                <label class="form-field">
+                    <span>Số điện thoại</span>
+                    <input id="register-phone" type="tel" autocomplete="tel" required>
+                </label>
+                <label class="form-field">
+                    <span>Mật khẩu</span>
+                    <input id="register-password" type="password" autocomplete="new-password" required>
+                </label>
+                <label class="form-field">
+                    <span>Xác nhận mật khẩu</span>
+                    <input id="register-confirm-password" type="password" autocomplete="new-password" required>
+                </label>
+                <button class="btn btn-primary auth-submit" type="submit">Tạo tài khoản</button>
+            </form>
+            <p id="auth-feedback" class="booking-feedback hidden"></p>
+        </div>
+    </div>
+
+    <!-- Modal for Field Details -->
+    <div id="field-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="modal-field-name" aria-describedby="modal-field-description" aria-hidden="true">
+        <div class="modal-content" tabindex="-1">
+            <button class="close-modal" id="close-modal-btn" type="button" aria-label="Đóng cửa sổ chi tiết">&times;</button>
+            <h2 id="modal-field-name"></h2>
+            <img id="modal-field-image" src="" alt="Sân" class="modal-image">
+            <div class="modal-details">
+                <p><strong>Địa chỉ:</strong> <span id="modal-field-location"></span></p>
+                <p><strong>Loại thể thao:</strong> <span id="modal-field-sport"></span></p>
+                <p><strong>Giá tiền:</strong> <span id="modal-field-price"></span> VND/giờ</p>
+                <p><strong>Sức chứa:</strong> <span id="modal-field-capacity"></span> người</p>
+                <p><strong>Mô tả:</strong> <span id="modal-field-description"></span></p>
+                <p><strong>Trạng thái:</strong> <span id="modal-field-status"></span></p>
+            </div>
+            <div class="modal-divider"></div>
+            <div class="booking-panel">
+                <h3 class="modal-section-title">Đặt sân demo</h3>
+                <p class="secondary-text">Điền thông tin tối thiểu để mô phỏng luồng đặt sân.</p>
+                <form id="booking-form" class="booking-form" novalidate>
+                    <div class="booking-grid">
+                        <label class="form-field">
+                            <span>Ngày đặt</span>
+                            <input id="booking-date" name="bookingDate" type="date" required>
+                        </label>
+                        <label class="form-field">
+                            <span>Giờ bắt đầu</span>
+                            <input id="booking-start-time" name="startTime" type="time" required>
+                        </label>
+                        <label class="form-field">
+                            <span>Giờ kết thúc</span>
+                            <input id="booking-end-time" name="endTime" type="time" required>
+                        </label>
+                        <label class="form-field">
+                            <span>Số điện thoại</span>
+                            <input id="booking-phone" name="phone" type="tel" placeholder="0901 234 567" required>
+                        </label>
+                    </div>
+                    <label class="form-field">
+                        <span>Ghi chú</span>
+                        <textarea id="booking-notes" name="notes" rows="3" placeholder="Yêu cầu thêm, số lượng người, giờ ưu tiên..."></textarea>
+                    </label>
+                    <div class="modal-actions">
+                        <button class="btn btn-primary" type="submit">Gửi yêu cầu</button>
+                        <button class="btn btn-secondary" id="cancel-booking-btn" type="button">Hủy</button>
+                    </div>
+                    <p id="booking-feedback" class="booking-feedback hidden"></p>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script id="sporthub-config" type="application/json">{"apiBaseUrl":"http://localhost:8081/api"}</script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="js/config.js"></script>
+    <script src="js/main.js"></script>
+    <script src="js/home-ui.js"></script>
+</body>
+</html>

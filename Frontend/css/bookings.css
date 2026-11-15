@@ -1,0 +1,100 @@
+/* ===== My bookings: booking hiện tại ===== */
+
+.customer-page .account-panel + .account-panel {
+    margin-top: var(--space-4);
+}
+
+.customer-page .modal-content h2 {
+    font-size: 1.8rem;
+}
+
+.current-booking-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: var(--space-3);
+}
+
+.current-booking-grid > .table-empty {
+    grid-column: 1 / -1;
+}
+
+.current-booking-card {
+    position: relative;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    padding: 18px 18px 16px 24px;
+    border-radius: var(--radius-lg);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    box-shadow: var(--shadow-sm);
+    transition: var(--transition);
+}
+
+.current-booking-card::before {
+    content: "";
+    position: absolute;
+    inset: 0 auto 0 0;
+    width: 5px;
+    background: #f59e0b;
+}
+
+.current-booking-card.is-confirmed::before {
+    background: var(--accent);
+}
+
+.current-booking-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
+}
+
+.current-booking-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--space-2);
+}
+
+.current-booking-head h4 {
+    font-size: 1.1rem;
+    line-height: 1.3;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    color: var(--primary);
+}
+
+.current-booking-meta {
+    display: grid;
+    gap: 8px;
+    color: var(--text-soft);
+    font-size: 0.94rem;
+    font-weight: 500;
+}
+
+.current-booking-meta span {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.current-booking-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: auto;
+    padding-top: 4px;
+}
+
+.btn-danger {
+    color: #ffffff;
+    background: var(--danger);
+    box-shadow: 0 10px 22px rgba(239, 68, 68, 0.2);
+}
+
+.btn-danger:hover {
+    background: #dc2626;
+}
+
+a.btn {
+    text-decoration: none;
+}

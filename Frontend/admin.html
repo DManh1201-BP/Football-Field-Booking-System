@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="SportHub Admin Dashboard">
+    <title>SportHub Admin</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="admin-page">
+    <nav class="navbar">
+        <div class="container">
+            <div class="navbar-brand">
+                <h1><i data-lucide="shield-check" class="brand-mark"></i><span>SportHub Admin</span></h1>
+                <p class="subtitle">Quản lý sân, booking và doanh thu</p>
+            </div>
+            <div class="nav-actions">
+                <a class="btn btn-secondary nav-action-btn" href="index.html">
+                    <i data-lucide="arrow-left" class="btn-icon"></i>
+                    <span>Về trang chủ</span>
+                </a>
+                <button id="admin-logout-btn" class="btn btn-primary nav-action-btn" type="button">
+                    <i data-lucide="log-out" class="btn-icon"></i>
+                    <span>Đăng xuất</span>
+                </button>
+            </div>
+        </div>
+    </nav>
+
+    <main class="admin-shell">
+        <section class="admin-hero">
+            <div class="container">
+                <p class="eyebrow">Trang quản trị</p>
+                <h2>Điều khiển hệ thống đặt sân</h2>
+                <p id="admin-session-text" class="section-description">Đang kiểm tra phiên đăng nhập admin...</p>
+            </div>
+        </section>
+
+        <section class="admin-section">
+            <div class="container">
+                <div id="admin-access-alert" class="error-alert hidden" role="alert">
+                    <div class="error-copy">
+                        <strong>Không thể truy cập trang quản trị</strong>
+                        <span id="admin-access-text">Vui lòng đăng nhập bằng tài khoản admin.</span>
+                    </div>
+                </div>
+
+                <div class="admin-grid">
+                    <div class="account-panel">
+                        <div class="panel-head">
+                            <div>
+                                <h3>Tổng quan</h3>
+                                <p>Doanh thu và trạng thái booking hiện tại.</p>
+                            </div>
+                        </div>
+                        <div class="summary-grid">
+                            <div class="summary-card">
+                                <span class="summary-label">Doanh thu</span>
+                                <strong id="dashboard-revenue">0</strong>
+                            </div>
+                            <div class="summary-card">
+                                <span class="summary-label">Tổng booking</span>
+                                <strong id="dashboard-bookings">0</strong>
+                            </div>
+                            <div class="summary-card">
+                                <span class="summary-label">Đã xác nhận</span>
+                                <strong id="dashboard-confirmed">0</strong>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="account-panel">
+                        <div class="panel-head">
+                            <div>
+                                <h3>Quản lý sân</h3>
+                                <p>Tạo mới hoặc cập nhật thông tin sân.</p>
+                            </div>
+                        </div>
+                        <form id="field-form" class="admin-form">
+                            <input id="field-id" type="hidden">
+                            <div class="booking-grid">
+                                <label class="form-field">
+                                    <span>Tên sân</span>
+                                    <input id="field-name" type="text" required>
+                                </label>
+                                <label class="form-field">
+                                    <span>Loại thể thao</span>
+                                    <select id="field-sport" required>
+                                        <option value="FOOTBALL">Bóng đá</option>
+                                        <option value="VOLLEYBALL">Bóng chuyền</option>
+                                        <option value="BADMINTON">Cầu lông</option>
+                                        <option value="BASKETBALL">Bóng rổ</option>
+                                        <option value="TENNIS">Tennis</option>
+                                    </select>
+                                </label>
+                                <label class="form-field">
+                                    <span>Địa chỉ</span>
+                                    <input id="field-location" type="text" required>
+                                </label>
+                                <label class="form-field">
+                                    <span>Thành phố</span>
+                                    <input id="field-city" type="text">
+                                </label>
+                                <label class="form-field">
+                                    <span>Tỉnh</span>
+                                    <input id="field-province" type="text">
+                                </label>
+                                <label class="form-field">
+                                    <span>Giá/giờ</span>
+                                    <input id="field-price" type="number" min="0" step="1000" required>
+                                </label>
+                                <label class="form-field">
+                                    <span>Sức chứa</span>
+                                    <input id="field-capacity" type="number" min="1" step="1">
+                                </label>
+                                <label class="form-field form-field-wide">
+                                    <span>Ảnh URL</span>
+                                    <input id="field-image-url" type="url">
+                                </label>
+                                <label class="form-field form-field-wide">
+                                    <span>Chọn ảnh từ máy</span>
+                                    <input id="field-image-file" type="file" accept="image/*">
+                                </label>
+                                <div id="field-image-preview" class="field-image-preview hidden"></div>
+                                <label class="form-field form-field-wide">
+                                    <span>Mô tả</span>
+                                    <textarea id="field-description" rows="3"></textarea>
+                                </label>
+                                <label class="form-field admin-checkbox">
+                                    <input id="field-available" type="checkbox" checked>
+                                    <span>Đang khả dụng</span>
+                                </label>
+                            </div>
+                            <div class="modal-actions">
+                                <button class="btn btn-primary" type="submit">Lưu sân</button>
+                                <button id="field-form-reset" class="btn btn-secondary" type="button">Tạo mới</button>
+                            </div>
+                            <p id="field-form-feedback" class="booking-feedback hidden"></p>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <section class="admin-section">
+            <div class="container">
+                <div class="admin-grid admin-grid-wide">
+                    <div class="account-panel">
+                        <div class="panel-head">
+                            <div>
+                                <h3>Danh sách sân</h3>
+                                <p>Cập nhật, xóa hoặc xem nhanh thông tin sân hiện có.</p>
+                            </div>
+                        </div>
+                        <div class="table-wrap">
+                            <table class="booking-table admin-table">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>Tên sân</th>
+                                        <th>Loại</th>
+                                        <th>Giá</th>
+                                        <th>Khả dụng</th>
+                                        <th>Hành động</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="fields-table-body"></tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="account-panel">
+                        <div class="panel-head">
+                            <div>
+                                <h3>Booking gần đây</h3>
+                                <p>Danh sách booking để admin theo dõi hoạt động hệ thống.</p>
+                            </div>
+                        </div>
+                        <div class="table-wrap">
+                            <table class="booking-table admin-table">
+                                <thead>
+                                    <tr>
+                                        <th>Khách</th>
+                                        <th>Sân</th>
+                                        <th>Ngày</th>
+                                        <th>Giờ</th>
+                                        <th>Trạng thái</th>
+                                        <th>Tiền</th>
+                                        <th>Hành động</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="bookings-table-body"></tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <script id="sporthub-config" type="application/json">{"apiBaseUrl":"http://localhost:8081/api"}</script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="js/config.js"></script>
+    <script src="js/admin.js"></script>
+</body>
+</html>

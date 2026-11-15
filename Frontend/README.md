@@ -1,11 +1,62 @@
-# Frontend
+# SportHub Frontend
 
-Giao diện mục tiêu là HTML/CSS/JavaScript, gọi `SportHub.API` qua HTTPS/JSON.
+Frontend hiện tại sử dụng HTML, CSS và JavaScript thuần, gọi `SportHub.API` bằng JSON.
 
-- `index.html`: cấu trúc trang và các vùng chức năng.
-- `css/style.css`: trình bày và bố cục responsive.
-- `js/main.js`: tương tác giao diện và gọi API.
+## Cấu trúc
 
-Frontend không phải ranh giới tin cậy: xác thực quyền, validation quan trọng và kiểm tra khả năng đặt sân phải được thực hiện ở backend. Cấu hình API URL theo môi trường và chỉ cho phép các origin cần thiết qua CORS.
+```text
+Frontend/
+├── index.html              # Trang tìm kiếm sân, đăng nhập và tạo booking
+├── admin.html              # Trang quản trị sân, booking và doanh thu
+├── my-bookings.html        # Booking hiện tại và lịch sử của customer
+├── css/
+│   ├── style.css           # Entry point, import các stylesheet theo thứ tự
+│   ├── base.css            # Reset, biến giao diện và layout nền
+│   ├── home.css            # Hero, bộ lọc và giao diện trang chủ
+│   ├── components.css      # Card, bảng, modal và thành phần dùng chung
+│   ├── auth-chat.css       # Authentication modal và chat panel
+│   ├── admin.css           # Dashboard và biểu mẫu quản trị
+│   └── bookings.css        # Thành phần trang lịch booking
+└── js/
+	├── main.js             # Trang chủ, authentication và tạo booking
+	├── home-ui.js          # Chip/môn thể thao trên trang chủ
+	├── admin.js            # Chức năng quản trị
+	└── my-bookings.js      # Cập nhật, hủy và hiển thị booking của customer
+```
 
-Chưa có giao diện chạy được trong bộ tài liệu hiện tại.
+## Chạy local
+
+1. Khởi động backend bằng profile HTTP:
+
+   ```powershell
+   dotnet run --project Backend/SportHub.API --launch-profile http
+   ```
+
+2. Phục vụ thư mục repository bằng một static web server, ví dụ Visual Studio Live Server hoặc:
+
+   ```powershell
+   python -m http.server 5500 --directory Frontend
+   ```
+
+3. Mở `http://localhost:5500`.
+
+Frontend development mặc định gọi:
+
+```text
+http://localhost:8081/api
+```
+
+URL này được cấu hình trong `window.SPORTHUB_CONFIG` ở mỗi trang HTML. Khi triển khai môi trường khác, thay `apiBaseUrl` và thêm origin frontend vào `Cors:AllowedOrigins` của backend.
+
+## API chính đang sử dụng
+
+- `POST /api/auth/register`, `POST /api/auth/login`, `GET /api/auth/me`
+- `GET /api/fields`
+- `POST /api/bookings`
+- `PUT /api/bookings/{id}` để cập nhật booking chưa hoàn tất/hủy
+- `PATCH /api/bookings/{id}/cancel` để hủy booking
+- `GET /api/bookings/me`
+- Các endpoint quản trị `/api/admin/*`
+
+Frontend không phải ranh giới tin cậy. Backend vẫn phải xác thực JWT, phân quyền, kiểm tra dữ liệu, khả dụng và xung đột booking.
+
