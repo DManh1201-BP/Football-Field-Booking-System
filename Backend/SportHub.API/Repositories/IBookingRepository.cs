@@ -7,6 +7,7 @@ public interface IBookingRepository
     Task<List<Booking>> GetAllOrderedAsync(CancellationToken cancellationToken = default);
     Task<Booking?> GetByIdAsync(long id, CancellationToken cancellationToken = default);
     Task<List<Booking>> GetByFieldIdAsync(long fieldId, CancellationToken cancellationToken = default);
+    Task<List<Booking>> GetPublicScheduleByFieldIdAsync(long fieldId, CancellationToken cancellationToken = default);
     Task<List<Booking>> GetByUserIdAsync(long userId, CancellationToken cancellationToken = default);
     Task<bool> HasConflictingBookingAsync(
         long fieldId,

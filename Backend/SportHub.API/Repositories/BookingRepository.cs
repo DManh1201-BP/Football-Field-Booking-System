@@ -44,6 +44,19 @@ public class BookingRepository : IBookingRepository
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<List<Booking>> GetPublicScheduleByFieldIdAsync(long fieldId, CancellationToken cancellationToken = default)
+    {
+        var now = DateTime.Now;
+        return await _dbContext.Bookings
+            .AsNoTracking()
+            .Where(b => b.FieldId == fieldId &&
+                b.Status != "CANCELLED" &&
+                (b.Status != "HOLD" || (b.HoldExpiresAt != null && b.HoldExpiresAt > now)))
+            .OrderBy(b => b.BookingDate)
+            .ThenBy(b => b.StartTime)
+            .ToListAsync(cancellationToken);
+    }
+
     public async Task<List<Booking>> GetByUserIdAsync(long userId, CancellationToken cancellationToken = default)
     {
         return await _dbContext.Bookings

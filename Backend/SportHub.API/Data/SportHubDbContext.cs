@@ -80,7 +80,7 @@ public class SportHubDbContext : DbContext
             entity.HasOne(b => b.Field)
                 .WithMany(f => f.Bookings)
                 .HasForeignKey(b => b.FieldId)
-                .OnDelete(DeleteBehavior.Cascade)
+                .OnDelete(DeleteBehavior.Restrict)
                 .HasConstraintName("fk_bookings_field");
         });
 

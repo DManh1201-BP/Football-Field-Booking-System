@@ -14,12 +14,13 @@ public class LegacyAwarePasswordHasher : IPasswordHasher
             return false;
         }
 
-        if (IsBcryptHash(encodedPassword))
+        // Only accept BCrypt-hashed passwords; plaintext comparison removed for security
+        if (!IsBcryptHash(encodedPassword))
         {
-            return BCrypt.Net.BCrypt.Verify(rawPassword, encodedPassword);
+            return false;
         }
 
-        return string.Equals(encodedPassword, rawPassword, StringComparison.Ordinal);
+        return BCrypt.Net.BCrypt.Verify(rawPassword, encodedPassword);
     }
 
     public bool NeedsRehash(string? encodedPassword)

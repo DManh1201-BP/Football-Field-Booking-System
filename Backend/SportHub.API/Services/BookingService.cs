@@ -42,6 +42,12 @@ public class BookingService : IBookingService
         return bookings.Select(BookingResponseDto.FromEntity).ToList();
     }
 
+    public async Task<List<PublicBookingScheduleDto>> GetPublicScheduleByFieldAsync(long fieldId, CancellationToken cancellationToken = default)
+    {
+        var bookings = await _bookingRepository.GetPublicScheduleByFieldIdAsync(fieldId, cancellationToken);
+        return bookings.Select(PublicBookingScheduleDto.FromEntity).ToList();
+    }
+
     public async Task<List<BookingResponseDto>> GetBookingsByUserAsync(long userId, CancellationToken cancellationToken = default)
     {
         await _bookingRepository.ReleaseExpiredHoldsAsync(cancellationToken);

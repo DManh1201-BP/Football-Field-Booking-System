@@ -38,11 +38,11 @@ public class BookingController : ControllerBase
 
     [HttpGet("field/{fieldId:long}")]
     [AllowAnonymous]
-    public async Task<ActionResult<List<BookingResponseDto>>> GetBookingsByField(
+    public async Task<ActionResult<List<PublicBookingScheduleDto>>> GetBookingsByField(
         long fieldId,
         CancellationToken cancellationToken)
     {
-        var bookings = await _bookingService.GetBookingsByFieldAsync(fieldId, cancellationToken);
+        var bookings = await _bookingService.GetPublicScheduleByFieldAsync(fieldId, cancellationToken);
         return Ok(bookings);
     }
 

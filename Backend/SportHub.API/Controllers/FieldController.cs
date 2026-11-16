@@ -73,7 +73,7 @@ public class FieldController : ControllerBase
         CancellationToken cancellationToken)
     {
         long? currentUserId = User.TryGetUserId(out var uid) ? uid : null;
-        var created = await _fieldService.CreateFieldAsync(request, currentUserId, cancellationToken);
+        var created = await _fieldService.CreateFieldAsync(request, currentUserId, User.IsAdmin(), cancellationToken);
         return StatusCode(StatusCodes.Status201Created, created);
     }
 
@@ -85,7 +85,7 @@ public class FieldController : ControllerBase
         CancellationToken cancellationToken)
     {
         long? currentUserId = User.TryGetUserId(out var uid) ? uid : null;
-        var updated = await _fieldService.UpdateFieldAsync(id, request, currentUserId, cancellationToken);
+        var updated = await _fieldService.UpdateFieldAsync(id, request, currentUserId, User.IsAdmin(), cancellationToken);
         return Ok(updated);
     }
 
@@ -105,7 +105,7 @@ public class FieldController : ControllerBase
         CancellationToken cancellationToken)
     {
         long? currentUserId = User.TryGetUserId(out var uid) ? uid : null;
-        var updated = await _fieldService.UploadFieldImageAsync(id, file, currentUserId, cancellationToken);
+        var updated = await _fieldService.UploadFieldImageAsync(id, file, currentUserId, User.IsAdmin(), cancellationToken);
         return Ok(updated);
     }
 

@@ -82,3 +82,19 @@ public class BookingResponseDto
         };
     }
 }
+
+public class PublicBookingScheduleDto
+{
+    public DateOnly BookingDate { get; set; }
+    public TimeOnly StartTime { get; set; }
+    public TimeOnly EndTime { get; set; }
+    public string Status { get; set; } = string.Empty;
+
+    public static PublicBookingScheduleDto FromEntity(Booking booking) => new()
+    {
+        BookingDate = booking.BookingDate,
+        StartTime = booking.StartTime,
+        EndTime = booking.EndTime,
+        Status = booking.Status
+    };
+}

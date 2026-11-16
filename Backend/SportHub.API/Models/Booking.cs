@@ -63,4 +63,8 @@ public class Booking
 
     [Column("updated_at")]
     public DateTime UpdatedAt { get; set; } = DateTime.Now;
+
+    [MaxLength(300)]
+    [Column("cancellation_reason")]
+    public string? CancellationReason { get; set; }
 }

@@ -72,8 +72,13 @@ public class FieldService : IFieldService
         return fields.Select(FieldDto.FromEntity).ToList();
     }
 
-    public async Task<FieldDto> CreateFieldAsync(FieldCreateDto dto, long? currentUserId = null, CancellationToken cancellationToken = default)
+    public async Task<FieldDto> CreateFieldAsync(FieldCreateDto dto, long? currentUserId = null, bool isAdmin = false, CancellationToken cancellationToken = default)
     {
+        if (dto.OwnerId.HasValue && !isAdmin)
+        {
+            throw new UnauthorizedAccessException("Only admins can assign field ownership");
+        }
+
         var field = new Field
         {
             Name = dto.Name.Trim(),
@@ -87,20 +92,20 @@ public class FieldService : IFieldService
             SportType = dto.SportType.Trim().ToUpperInvariant(),
             Amenities = dto.Amenities?.Trim(),
             IsAvailable = dto.IsAvailable ?? true,
-            OwnerId = dto.OwnerId ?? currentUserId
+            OwnerId = isAdmin ? dto.OwnerId ?? currentUserId : currentUserId
         };
 
         var saved = await _fieldRepository.AddAsync(field, cancellationToken);
         return FieldDto.FromEntity(saved);
     }
 
-    public async Task<FieldDto> UpdateFieldAsync(long id, FieldUpdateDto dto, long? currentUserId = null, CancellationToken cancellationToken = default)
+    public async Task<FieldDto> UpdateFieldAsync(long id, FieldUpdateDto dto, long? currentUserId = null, bool isAdmin = false, CancellationToken cancellationToken = default)
     {
         var field = await _fieldRepository.GetByIdAsync(id, cancellationToken)
             ?? throw new KeyNotFoundException($"Field not found: {id}");
 
         // Ownership check: only ADMIN or the field owner can update
-        if (currentUserId.HasValue && field.OwnerId != currentUserId && currentUserId != 0)
+        if (!isAdmin && currentUserId.HasValue && field.OwnerId != currentUserId)
         {
             throw new UnauthorizedAccessException($"You do not have permission to update field {id}");
         }
@@ -117,9 +122,13 @@ public class FieldService : IFieldService
         if (dto.Amenities is not null) field.Amenities = dto.Amenities.Trim();
         if (dto.IsAvailable.HasValue) field.IsAvailable = dto.IsAvailable.Value;
         // Prevent owner change by non-admin users
-        if (dto.OwnerId.HasValue && currentUserId.HasValue && currentUserId != 0)
+        if (dto.OwnerId.HasValue && !isAdmin)
         {
             throw new UnauthorizedAccessException("Only admins can reassign field ownership");
+        }
+        if (isAdmin && dto.OwnerId.HasValue)
+        {
+            field.OwnerId = dto.OwnerId.Value;
         }
 
         var updated = await _fieldRepository.UpdateAsync(field, cancellationToken);
@@ -134,13 +143,13 @@ public class FieldService : IFieldService
         await _fieldRepository.DeleteAsync(field, cancellationToken);
     }
 
-    public async Task<FieldDto> UploadFieldImageAsync(long id, IFormFile file, long? currentUserId = null, CancellationToken cancellationToken = default)
+    public async Task<FieldDto> UploadFieldImageAsync(long id, IFormFile file, long? currentUserId = null, bool isAdmin = false, CancellationToken cancellationToken = default)
     {
         var field = await _fieldRepository.GetByIdAsync(id, cancellationToken)
             ?? throw new KeyNotFoundException($"Field not found: {id}");
 
         // Ownership check: only ADMIN or the field owner can upload images
-        if (currentUserId.HasValue && field.OwnerId != currentUserId && currentUserId != 0)
+        if (!isAdmin && currentUserId.HasValue && field.OwnerId != currentUserId)
         {
             throw new UnauthorizedAccessException($"You do not have permission to upload images for field {id}");
         }

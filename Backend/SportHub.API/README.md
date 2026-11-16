@@ -93,6 +93,7 @@ Backend/SportHub.API/
 | Bookings | `GET /api/bookings/field/{fieldId}` | Public | Xem lịch đã đặt của một sân |
 | Bookings | `GET /api/bookings/me` | Authenticated | Lịch đặt sân của tôi |
 | Bookings | `POST /api/bookings` | Authenticated | Đặt sân / giữ chỗ (kiểm soát xung đột qua `Serializable` transaction) |
+| Bookings | `PUT /api/bookings/{bookingId}` | Owner / `ADMIN` | Cập nhật thời gian, sân và thông tin liên hệ; kiểm tra lại xung đột |
 | Bookings | `PATCH /api/bookings/{bookingId}/cancel` | Owner / `ADMIN` | Hủy lượt đặt sân |
 | Bookings | `GET /api/bookings` | `ADMIN` | Truy vấn toàn bộ booking |
 | Admin | `GET /api/admin/bookings` | `ADMIN` | Quản lý danh sách booking |

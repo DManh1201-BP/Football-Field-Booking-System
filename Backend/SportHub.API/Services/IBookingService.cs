@@ -6,6 +6,7 @@ public interface IBookingService
 {
     Task<List<BookingResponseDto>> GetAllBookingsAsync(CancellationToken cancellationToken = default);
     Task<List<BookingResponseDto>> GetBookingsByFieldAsync(long fieldId, CancellationToken cancellationToken = default);
+    Task<List<PublicBookingScheduleDto>> GetPublicScheduleByFieldAsync(long fieldId, CancellationToken cancellationToken = default);
     Task<List<BookingResponseDto>> GetBookingsByUserAsync(long userId, CancellationToken cancellationToken = default);
     Task<BookingResponseDto> CreateBookingAsync(long authenticatedUserId, BookingCreateDto request, CancellationToken cancellationToken = default);
     Task<BookingResponseDto> UpdateBookingAsync(long bookingId, long requesterUserId, bool isAdmin, BookingUpdateDto request, CancellationToken cancellationToken = default);
