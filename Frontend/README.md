@@ -7,21 +7,26 @@ Frontend hiện tại sử dụng HTML, CSS và JavaScript thuần, gọi `Sport
 ```text
 Frontend/
 ├── index.html              # Trang tìm kiếm sân, đăng nhập và tạo booking
+├── matches.html            # Trang tìm đối thủ giao hữu và bảng xếp hạng Elo
 ├── admin.html              # Trang quản trị sân, booking và doanh thu
 ├── my-bookings.html        # Booking hiện tại và lịch sử của customer
 ├── css/
 │   ├── style.css           # Entry point, import các stylesheet theo thứ tự
-│   ├── base.css            # Reset, biến giao diện và layout nền
-│   ├── home.css            # Hero, bộ lọc và giao diện trang chủ
-│   ├── components.css      # Card, bảng, modal và thành phần dùng chung
-│   ├── auth-chat.css       # Authentication modal và chat panel
-│   ├── admin.css           # Dashboard và biểu mẫu quản trị
-│   └── bookings.css        # Thành phần trang lịch booking
+│   ├── base.css            # Reset, design tokens chuẩn WCAG AA và layout nền
+│   ├── components.css      # Button, card, bảng, modal, skeleton và toast
+│   ├── auth-chat.css       # Authentication modal và trợ lý gợi ý sân
+│   ├── home.css            # Hero search-first, bộ lọc nâng cao và thẻ sân
+│   ├── bookings.css        # Thành phần trang lịch booking cá nhân
+│   ├── admin.css           # Operations workspace, biểu đồ và drawer quản trị
+│   └── matches.css         # Giao diện tìm đối thủ và bảng xếp hạng Elo
 └── js/
-	├── main.js             # Trang chủ, authentication và tạo booking
-	├── home-ui.js          # Chip/môn thể thao trên trang chủ
-	├── admin.js            # Chức năng quản trị
-	└── my-bookings.js      # Cập nhật, hủy và hiển thị booking của customer
+	├── config.js           # Đọc cấu hình API base URL và origin
+	├── shared.js           # Tiện ích dùng chung, auth modal, navbar và SVG fallback
+	├── main.js             # Trang chủ, tìm kiếm/lọc sân, timeline slot và booking
+	├── home-ui.js          # Chip môn thể thao và bộ lọc nâng cao trang chủ
+	├── matches.js          # Tạo kèo, nhận kèo, nhập tỷ số và bảng xếp hạng Elo
+	├── admin.js            # Chức năng quản trị, analytics và upload ảnh sân
+	└── my-bookings.js      # Cập nhật, hủy và hiển thị lịch booking cá nhân
 ```
 
 ## Chạy local

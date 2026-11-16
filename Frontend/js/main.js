@@ -1,1639 +1,1123 @@
-/**
- * SportHub Frontend - Main JavaScript File
- *
- * Handles API communication, rendering, filtering, and booking demo flow.
- */
+(function() {
+    'use strict';
 
-// ================================================================
-// Configuration
-// ================================================================
+    var S = window.SportHubShared;
 
-var DEFAULT_API_BASE_URL = 'http://localhost:8081/api';
-var config = getSportHubConfig();
-var API_BASE_URL = config.apiBaseUrl || localStorage.getItem('sporthubApiBaseUrl') || DEFAULT_API_BASE_URL;
-var FIELDS_ENDPOINT = trimTrailingSlash(API_BASE_URL) + '/fields';
-var BOOKINGS_ENDPOINT = trimTrailingSlash(API_BASE_URL) + '/bookings';
-var AUTH_LOGIN_ENDPOINT = trimTrailingSlash(API_BASE_URL) + '/auth/login';
-var AUTH_REGISTER_ENDPOINT = trimTrailingSlash(API_BASE_URL) + '/auth/register';
-var AUTH_ME_ENDPOINT = trimTrailingSlash(API_BASE_URL) + '/auth/me';
-var MY_BOOKINGS_ENDPOINT = trimTrailingSlash(API_BASE_URL) + '/bookings/me';
-var ADMIN_BOOKINGS_ENDPOINT = trimTrailingSlash(API_BASE_URL) + '/admin/bookings';
-var ADMIN_REVENUE_ENDPOINT = trimTrailingSlash(API_BASE_URL) + '/admin/revenue/summary';
-var DEMO_BOOKINGS_STORAGE_KEY = 'sporthubDemoBookings';
-var CUSTOMER_BOOKINGS_STORAGE_KEY = 'sporthubCustomerBookings';
-var AUTH_SESSION_STORAGE_KEY = 'sporthubAuthSession';
+    var PREVIEW_FIELDS = [
+        { id: 1, name: 'Sân Bóng Đá 7v7 Premium Mỹ Phước', description: 'Sân cỏ nhân tạo chuẩn FIFA, hệ thống đèn LED chống chói và phòng thay đồ riêng biệt.', location: '111 Đường Mỹ Phước, Thủ Dầu Một', city: 'Thủ Dầu Một', province: 'Bình Dương', imageUrl: '', pricePerHour: 200000, capacity: 14, sportType: 'FOOTBALL', amenities: 'Cỏ FIFA, Đèn LED, Phòng tắm, Căng tin', isAvailable: true },
+        { id: 2, name: 'Sân Tennis Hard Court Thủ Dầu Một', description: 'Bề mặt sân cứng tiêu chuẩn giải đấu, không gian thoáng đãng kèm khu vực nghỉ có mái che.', location: '222 Đường Mỹ Phước, Thủ Dầu Một', city: 'Thủ Dầu Một', province: 'Bình Dương', imageUrl: '', pricePerHour: 180000, capacity: 4, sportType: 'TENNIS', amenities: 'Hard court, Đèn LED, Khu nghỉ', isAvailable: true },
+        { id: 3, name: 'Sân Cầu Lông Thảm PVC Huỳnh Văn Lũy', description: 'Cụm sân thảm PVC độ bám cao, trang bị điều hòa toàn khu vực và trần cao chuẩn thi đấu.', location: '789 Đường Huỳnh Văn Lũy, Thủ Dầu Một', city: 'Thủ Dầu Một', province: 'Bình Dương', imageUrl: '', pricePerHour: 80000, capacity: 8, sportType: 'BADMINTON', amenities: 'Điều hòa, Thảm PVC, Phòng thay đồ', isAvailable: true },
+        { id: 4, name: 'Sân Bóng Đá 5v5 Trường Chinh', description: 'Mặt cỏ mới, đường biên rộng an toàn, phù hợp đá giao hữu sau giờ làm việc.', location: '123 Đường Trường Chinh, Thủ Dầu Một', city: 'Thủ Dầu Một', province: 'Bình Dương', imageUrl: '', pricePerHour: 150000, capacity: 10, sportType: 'FOOTBALL', amenities: 'Đèn LED, Bãi giữ xe, Nước uống', isAvailable: true },
+        { id: 5, name: 'Sân Bóng Rổ Arena Lê Lợi', description: 'Mặt sân sinh thái độ nảy chuẩn, bảng rổ kính cường lực và khán đài mini cho cổ động viên.', location: '999 Đường Lê Lợi, Thủ Dầu Một', city: 'Thủ Dầu Một', province: 'Bình Dương', imageUrl: '', pricePerHour: 120000, capacity: 15, sportType: 'BASKETBALL', amenities: 'Đèn LED, Khán đài mini', isAvailable: true },
+        { id: 6, name: 'Sân Bóng Chuyền Pro 30 Tháng 4', description: 'Sân tiêu chuẩn thi đấu phong trào và bán chuyên, có khu khởi động riêng.', location: '444 Đường 30 Tháng 4, Thủ Dầu Một', city: 'Thủ Dầu Một', province: 'Bình Dương', imageUrl: '', pricePerHour: 130000, capacity: 14, sportType: 'VOLLEYBALL', amenities: 'Đèn LED, Lưới chuẩn thi đấu', isAvailable: true },
+        { id: 7, name: 'Sân Tennis Indoor Quốc Lộ 13', description: 'Sân tennis trong nhà có mái che cách nhiệt và hệ thống thông gió hiện đại, thi đấu mọi thời tiết.', location: '777 Quốc Lộ 13, Thủ Dầu Một', city: 'Thủ Dầu Một', province: 'Bình Dương', imageUrl: '', pricePerHour: 200000, capacity: 4, sportType: 'TENNIS', amenities: 'Trong nhà, Điều hòa, Phòng tắm', isAvailable: true },
+        { id: 8, name: 'Nhà Thi Đấu Futsal Quốc Lộ 1', description: 'Mặt sàn futsal tiêu chuẩn trong nhà, âm thanh và chiếu sáng đồng bộ cho giải nội bộ.', location: '666 Quốc Lộ 1, Thủ Dầu Một', city: 'Thủ Dầu Một', province: 'Bình Dương', imageUrl: '', pricePerHour: 160000, capacity: 12, sportType: 'FOOTBALL', amenities: 'Trong nhà, Đèn LED, Phòng thay đồ', isAvailable: true },
+        { id: 9, name: 'Cụm 2 Sân Cầu Lông Đôi Tân Uyên', description: 'Hai court liền kề độc lập, ánh sáng chống lóa mắt, giữ xe miễn phí.', location: '333 Đường Tân Uyên, Thủ Dầu Một', city: 'Thủ Dầu Một', province: 'Bình Dương', imageUrl: '', pricePerHour: 75000, capacity: 10, sportType: 'BADMINTON', amenities: 'Điều hòa, 2 sân đôi, Bãi giữ xe', isAvailable: true },
+        { id: 10, name: 'Sân Bóng Chuyền Nguyễn Hữu Cảnh', description: 'Sân bóng chuyền mặt phẳng chuẩn, chiếu sáng đồng đều, phù hợp giao hữu tối.', location: '456 Đường Nguyễn Hữu Cảnh, Thủ Dầu Một', city: 'Thủ Dầu Một', province: 'Bình Dương', imageUrl: '', pricePerHour: 100000, capacity: 12, sportType: 'VOLLEYBALL', amenities: 'Đèn chiếu sáng, Bãi giữ xe', isAvailable: true },
+        { id: 11, name: 'Sân Bóng Chuyền Cát Tân Uyên', description: 'Sân bóng chuyền cát tự nhiên ngoài trời, trang bị vòi tắm tráng sạch sẽ.', location: '888 Đường Tân Uyên, Thủ Dầu Một', city: 'Thủ Dầu Một', province: 'Bình Dương', imageUrl: '', pricePerHour: 70000, capacity: 12, sportType: 'VOLLEYBALL', amenities: 'Cát tự nhiên, Vòi tắm tráng', isAvailable: true },
+        { id: 12, name: 'Sân Bóng Rổ 3v3 Lý Tự Trọng', description: 'Không gian half-court luyện kỹ thuật cá nhân và thi đấu 3x3 nhịp độ cao.', location: '555 Đường Lý Tự Trọng, Thủ Dầu Một', city: 'Thủ Dầu Một', province: 'Bình Dương', imageUrl: '', pricePerHour: 90000, capacity: 8, sportType: 'BASKETBALL', amenities: 'Đèn chiếu sáng', isAvailable: false }
+    ];
 
-var SPORT_TYPE_MAP = {
-    FOOTBALL: 'Bóng đá',
-    VOLLEYBALL: 'Bóng chuyền',
-    BADMINTON: 'Cầu lông',
-    BASKETBALL: 'Bóng rổ',
-    TENNIS: 'Tennis',
-    PING_PONG: 'Bóng bàn'
-};
+    var SLOT_PRESETS = [
+        { label: '07:00 - 08:30', start: '07:00', end: '08:30' },
+        { label: '16:00 - 17:30', start: '16:00', end: '17:30' },
+        { label: '17:30 - 19:00', start: '17:30', end: '19:00' },
+        { label: '19:00 - 20:30', start: '19:00', end: '20:30' },
+        { label: '20:30 - 22:00', start: '20:30', end: '22:00' }
+    ];
 
-var state = {
-    allFields: [],
-    filteredFields: [],
-    searchQuery: '',
-    sportFilter: '',
-    selectedField: null,
-    pendingBookingField: null,
-    pendingBookingDraft: null,
-    modalOpen: false,
-    authModalOpen: false,
-    activeAuthTab: 'login',
-    currentUser: null,
-    currentRole: null,
-    authToken: '',
-    customerBookings: [],
-    chatbotOpen: false,
-    chatbotLoading: false,
-    previouslyFocusedElement: null
-};
+    var state = {
+        allFields: [],
+        filteredFields: [],
+        searchQuery: '',
+        sportFilter: '',
+        maxPrice: '',
+        amenityQuery: '',
+        availableOnly: false,
+        sortBy: 'default',
+        serverFilteredIds: null,
+        selectedField: null,
+        fieldBookings: [],
+        pendingBookingField: null,
+        pendingBookingDraft: null,
+        modalOpen: false,
+        chatbotOpen: false,
+        previouslyFocusedElement: null
+    };
 
-var elements = {};
+    var el = {};
 
-// ================================================================
-// Initialization
-// ================================================================
+    document.addEventListener('DOMContentLoaded', initApp);
 
-document.addEventListener('DOMContentLoaded', initApp);
-
-function initApp() {
-    cacheElements();
-    loadAuthSession();
-    bindEvents();
-    updateNavigation();
-    renderAuthState();
-    refreshLucideIcons();
-    loadFields();
-    syncAuthenticatedUser();
-
-    console.log('SportHub frontend initialized');
-    console.log('API Base URL:', API_BASE_URL);
-}
-
-function cacheElements() {
-    elements.searchInput = document.getElementById('field-search');
-    elements.sportFilter = document.getElementById('sport-filter');
-    elements.searchButton = document.getElementById('search-btn');
-    elements.resetButton = document.getElementById('reset-btn');
-    elements.retryButton = document.getElementById('retry-btn');
-    elements.errorMessage = document.getElementById('error-message');
-    elements.errorText = document.getElementById('error-text');
-    elements.errorRetryButton = document.getElementById('error-retry-btn');
-    elements.errorCloseButton = document.querySelector('#error-message .close-btn');
-    elements.loading = document.getElementById('loading');
-    elements.noResults = document.getElementById('no-results');
-    elements.noResultsText = document.getElementById('no-results-text');
-    elements.fieldsGrid = document.getElementById('fields-grid');
-    elements.stateSection = document.getElementById('state-section');
-    elements.resultSection = document.getElementById('fields');
-    elements.statsSection = document.getElementById('stats-section');
-    elements.totalFields = document.getElementById('total-fields');
-    elements.availableFields = document.getElementById('available-fields');
-    elements.modal = document.getElementById('field-modal');
-    elements.modalContent = document.querySelector('#field-modal .modal-content');
-    elements.closeModalButton = document.getElementById('close-modal-btn');
-    elements.authModal = document.getElementById('auth-modal');
-    elements.authModalContent = document.querySelector('.auth-modal-content');
-    elements.closeAuthModalButton = document.getElementById('close-auth-modal-btn');
-    elements.authModalTitle = document.getElementById('auth-modal-title');
-    elements.authModalDescription = document.getElementById('auth-modal-description');
-    elements.authLoginTab = document.getElementById('auth-login-tab');
-    elements.authRegisterTab = document.getElementById('auth-register-tab');
-    elements.loginForm = document.getElementById('login-form');
-    elements.loginEmail = document.getElementById('login-email');
-    elements.loginPassword = document.getElementById('login-password');
-    elements.registerForm = document.getElementById('register-form');
-    elements.registerName = document.getElementById('register-name');
-    elements.registerEmail = document.getElementById('register-email');
-    elements.registerPhone = document.getElementById('register-phone');
-    elements.registerPassword = document.getElementById('register-password');
-    elements.registerConfirmPassword = document.getElementById('register-confirm-password');
-    elements.authFeedback = document.getElementById('auth-feedback');
-    elements.bookingForm = document.getElementById('booking-form');
-    elements.bookingDate = document.getElementById('booking-date');
-    elements.bookingStartTime = document.getElementById('booking-start-time');
-    elements.bookingEndTime = document.getElementById('booking-end-time');
-    elements.bookingPhone = document.getElementById('booking-phone');
-    elements.bookingNotes = document.getElementById('booking-notes');
-    elements.bookingFeedback = document.getElementById('booking-feedback');
-    elements.cancelBookingButton = document.getElementById('cancel-booking-btn');
-    elements.modalName = document.getElementById('modal-field-name');
-    elements.modalImage = document.getElementById('modal-field-image');
-    elements.modalLocation = document.getElementById('modal-field-location');
-    elements.modalSport = document.getElementById('modal-field-sport');
-    elements.modalPrice = document.getElementById('modal-field-price');
-    elements.modalCapacity = document.getElementById('modal-field-capacity');
-    elements.modalDescription = document.getElementById('modal-field-description');
-    elements.modalStatus = document.getElementById('modal-field-status');
-    elements.openLoginButton = document.getElementById('open-login-btn');
-    elements.openRegisterButton = document.getElementById('open-register-btn');
-    elements.logoutButton = document.getElementById('logout-btn');
-    elements.dashboardNavButton = document.getElementById('dashboard-nav-btn');
-    elements.chatbotToggle = document.getElementById('chatbot-toggle');
-    elements.chatbotPanel = document.getElementById('chatbot-panel');
-    elements.chatbotClose = document.getElementById('chatbot-close');
-    elements.chatbotMessages = document.getElementById('chatbot-messages');
-    elements.chatbotForm = document.getElementById('chatbot-form');
-    elements.chatbotInput = document.getElementById('chatbot-input');
-}
-
-function bindEvents() {
-    if (elements.searchInput) {
-        elements.searchInput.addEventListener('input', function() {
-            state.searchQuery = this.value;
-            applyFilters();
+    function initApp() {
+        cacheElements();
+        S.initSharedNavbar({
+            onAuthSuccess: handleAuthSuccess,
+            onLogout: handleAfterLogout
         });
-        elements.searchInput.addEventListener('keydown', function(event) {
-            if (event.key === 'Enter') {
-                event.preventDefault();
+        bindEvents();
+        updateSectionNavigation();
+        initDefaultDates();
+        loadFields();
+        S.syncCurrentUser();
+    }
+
+    function cacheElements() {
+        el.heroTotalFields = document.getElementById('hero-total-fields');
+        el.heroAvailableFields = document.getElementById('hero-available-fields');
+        el.heroSearchForm = document.getElementById('hero-search-form');
+        el.searchInput = document.getElementById('field-search');
+        el.sportFilter = document.getElementById('sport-filter');
+        el.filterDate = document.getElementById('filter-date');
+        el.filterMaxPrice = document.getElementById('filter-max-price');
+        el.filterAmenity = document.getElementById('filter-amenity');
+        el.filterStartTime = document.getElementById('filter-start-time');
+        el.filterEndTime = document.getElementById('filter-end-time');
+        el.applyAdvancedBtn = document.getElementById('apply-advanced-btn');
+        el.resetBtn = document.getElementById('reset-btn');
+        el.emptyResetBtn = document.getElementById('empty-reset-btn');
+        el.availableOnlyToggle = document.getElementById('available-only-toggle');
+        el.sortSelect = document.getElementById('sort-fields');
+
+        el.stateSection = document.getElementById('state-section');
+        el.loading = document.getElementById('loading');
+        el.errorMessage = document.getElementById('error-message');
+        el.errorText = document.getElementById('error-text');
+        el.errorRetryBtn = document.getElementById('error-retry-btn');
+        el.errorCloseBtn = document.querySelector('#error-message .close-btn');
+        el.noResults = document.getElementById('no-results');
+        el.noResultsText = document.getElementById('no-results-text');
+
+        el.resultsSection = document.getElementById('fields');
+        el.previewBanner = document.getElementById('preview-mode-banner');
+        el.previewReconnectBtn = document.getElementById('preview-reconnect-btn');
+        el.resultsCountPill = document.getElementById('results-count-pill');
+        el.resultsAvailableNote = document.getElementById('results-available-note');
+        el.fieldsGrid = document.getElementById('fields-grid');
+
+        el.modal = document.getElementById('field-modal');
+        el.modalContent = document.querySelector('#field-modal .modal-content');
+        el.closeModalBtn = document.getElementById('close-modal-btn');
+        el.modalName = document.getElementById('modal-field-name');
+        el.modalSubtitle = document.getElementById('modal-field-subtitle');
+        el.modalMedia = document.getElementById('modal-field-media');
+        el.modalLocation = document.getElementById('modal-field-location');
+        el.modalSport = document.getElementById('modal-field-sport');
+        el.modalPrice = document.getElementById('modal-field-price');
+        el.modalCapacity = document.getElementById('modal-field-capacity');
+        el.modalStatus = document.getElementById('modal-field-status');
+        el.modalDescription = document.getElementById('modal-field-description');
+        el.modalAmenities = document.getElementById('modal-field-amenities');
+
+        el.slotStatusSummary = document.getElementById('slot-status-summary');
+        el.slotPresets = document.getElementById('slot-presets');
+        el.bookedSlotsWrapper = document.getElementById('booked-slots-wrapper');
+        el.bookedSlotsList = document.getElementById('booked-slots-list');
+
+        el.bookingForm = document.getElementById('booking-form');
+        el.bookingDate = document.getElementById('booking-date');
+        el.bookingStartTime = document.getElementById('booking-start-time');
+        el.bookingEndTime = document.getElementById('booking-end-time');
+        el.bookingPhone = document.getElementById('booking-phone');
+        el.bookingNotes = document.getElementById('booking-notes');
+        el.bookingHoldOnly = document.getElementById('booking-hold-only');
+        el.bookingDurationText = document.getElementById('booking-duration-text');
+        el.bookingTotalPreview = document.getElementById('booking-total-preview');
+        el.submitBookingBtn = document.getElementById('submit-booking-btn');
+        el.cancelBookingBtn = document.getElementById('cancel-booking-btn');
+        el.bookingFeedback = document.getElementById('booking-feedback');
+
+        el.chatbotToggle = document.getElementById('chatbot-toggle');
+        el.chatbotPanel = document.getElementById('chatbot-panel');
+        el.chatbotClose = document.getElementById('chatbot-close');
+        el.chatbotMessages = document.getElementById('chatbot-messages');
+        el.chatbotForm = document.getElementById('chatbot-form');
+        el.chatbotInput = document.getElementById('chatbot-input');
+    }
+
+    function initDefaultDates() {
+        var todayStr = S.formatDateForInput(new Date());
+        if (el.filterDate) {
+            el.filterDate.min = todayStr;
+        }
+    }
+
+    function bindEvents() {
+        if (el.heroSearchForm) {
+            el.heroSearchForm.addEventListener('submit', function(e) {
+                e.preventDefault();
+                runCombinedSearch(true);
+            });
+        }
+
+        if (el.searchInput) {
+            el.searchInput.addEventListener('input', function() {
                 state.searchQuery = this.value;
                 applyFilters();
-            }
-        });
-    }
-
-    if (elements.sportFilter) {
-        elements.sportFilter.addEventListener('change', function() {
-            state.sportFilter = this.value;
-            applyFilters();
-        });
-    }
-
-    if (elements.searchButton) {
-        elements.searchButton.addEventListener('click', function() {
-            if (elements.searchInput) {
-                state.searchQuery = elements.searchInput.value;
-            }
-            applyFilters();
-        });
-    }
-
-    if (elements.resetButton) {
-        elements.resetButton.addEventListener('click', resetFilters);
-    }
-
-    if (elements.retryButton) {
-        elements.retryButton.addEventListener('click', function() {
-            loadFields();
-        });
-    }
-
-    if (elements.errorRetryButton) {
-        elements.errorRetryButton.addEventListener('click', function() {
-            loadFields();
-        });
-    }
-
-    if (elements.errorCloseButton) {
-        elements.errorCloseButton.addEventListener('click', closeError);
-    }
-
-    if (elements.closeModalButton) {
-        elements.closeModalButton.addEventListener('click', closeModal);
-    }
-
-    if (elements.cancelBookingButton) {
-        elements.cancelBookingButton.addEventListener('click', closeModal);
-    }
-
-    if (elements.bookingForm) {
-        elements.bookingForm.addEventListener('submit', handleBookingSubmit);
-    }
-
-    if (elements.openLoginButton) {
-        elements.openLoginButton.addEventListener('click', function() {
-            openAuthModal('login');
-        });
-    }
-
-    if (elements.openRegisterButton) {
-        elements.openRegisterButton.addEventListener('click', function() {
-            openAuthModal('register');
-        });
-    }
-
-    if (elements.logoutButton) {
-        elements.logoutButton.addEventListener('click', handleLogout);
-    }
-
-    if (elements.dashboardNavButton) {
-        elements.dashboardNavButton.addEventListener('click', handleDashboardNavigation);
-    }
-
-    if (elements.chatbotToggle) {
-        elements.chatbotToggle.addEventListener('click', toggleChatbotPanel);
-    }
-
-    if (elements.chatbotClose) {
-        elements.chatbotClose.addEventListener('click', closeChatbotPanel);
-    }
-
-    if (elements.chatbotForm) {
-        elements.chatbotForm.addEventListener('submit', handleChatbotSubmit);
-    }
-
-    if (elements.closeAuthModalButton) {
-        elements.closeAuthModalButton.addEventListener('click', closeAuthModal);
-    }
-
-    if (elements.authModal) {
-        elements.authModal.addEventListener('click', function(event) {
-            if (event.target === elements.authModal) {
-                closeAuthModal();
-            }
-        });
-    }
-
-    if (elements.authLoginTab) {
-        elements.authLoginTab.addEventListener('click', function() {
-            setAuthModalTab('login');
-        });
-    }
-
-    if (elements.authRegisterTab) {
-        elements.authRegisterTab.addEventListener('click', function() {
-            setAuthModalTab('register');
-        });
-    }
-
-    if (elements.loginForm) {
-        elements.loginForm.addEventListener('submit', handleLoginSubmit);
-    }
-
-    if (elements.registerForm) {
-        elements.registerForm.addEventListener('submit', handleRegisterSubmit);
-    }
-
-    if (elements.modal) {
-        elements.modal.addEventListener('click', function(event) {
-            if (event.target === elements.modal) {
-                closeModal();
-            }
-        });
-    }
-
-    document.addEventListener('keydown', handleGlobalKeydown);
-}
-
-// ================================================================
-// Data Loading
-// ================================================================
-
-function loadFields() {
-    showLoading(true);
-    hideError();
-
-    fetch(FIELDS_ENDPOINT, {
-        method: 'GET',
-        headers: {
-            Accept: 'application/json'
-        }
-    })
-        .then(function(response) {
-            if (!response.ok) {
-                throw new Error('HTTP error! status: ' + response.status);
-            }
-            return response.json();
-        })
-        .then(function(data) {
-            if (!Array.isArray(data)) {
-                throw new Error('API response is not an array');
-            }
-
-            state.allFields = data.map(normalizeField).filter(Boolean);
-            applyFilters();
-            hideError();
-        })
-        .catch(function(error) {
-            console.error('Error loading fields:', error);
-            state.allFields = [];
-            state.filteredFields = [];
-            renderFields([]);
-            updateStatistics();
-            showNoResults(false);
-            showError('Không thể tải danh sách sân. Kiểm tra Backend hoặc thử lại sau.', true);
-        })
-        .finally(function() {
-            showLoading(false);
-        });
-}
-
-function normalizeField(field) {
-    if (!field || typeof field !== 'object') {
-        return null;
-    }
-
-    var price = Number(field.pricePerHour);
-    if (!Number.isFinite(price)) {
-        price = parseFloat(field.pricePerHour);
-    }
-
-    return {
-        id: field.id || null,
-        name: field.name || 'Sân chưa đặt tên',
-        description: field.description || '',
-        location: field.location || '',
-        city: field.city || '',
-        province: field.province || '',
-        imageUrl: field.imageUrl || '',
-        pricePerHour: Number.isFinite(price) ? price : 0,
-        capacity: field.capacity != null ? field.capacity : 0,
-        sportType: field.sportType || '',
-        isAvailable: field.isAvailable !== false,
-        ownerId: field.ownerId || null
-    };
-}
-
-// ================================================================
-// Filtering
-// ================================================================
-
-function applyFilters() {
-    var query = (state.searchQuery || '').trim().toLowerCase();
-    var sportFilter = state.sportFilter || '';
-
-    state.filteredFields = state.allFields.filter(function(field) {
-        var sportMatches = !sportFilter || field.sportType === sportFilter;
-        var searchableText = [
-            field.name,
-            field.location,
-            field.city,
-            field.province,
-            field.sportType
-        ].join(' ').toLowerCase();
-        var searchMatches = !query || searchableText.indexOf(query) !== -1;
-        return sportMatches && searchMatches;
-    });
-
-    renderFields(state.filteredFields);
-    updateStatistics();
-
-    if (state.filteredFields.length === 0) {
-        showNoResults(true, query || sportFilter ? 'Không tìm thấy sân phù hợp với bộ lọc hiện tại.' : 'Không có sân nào để hiển thị.');
-    } else {
-        showNoResults(false);
-    }
-}
-
-function resetFilters() {
-    state.searchQuery = '';
-    state.sportFilter = '';
-
-    if (elements.searchInput) {
-        elements.searchInput.value = '';
-    }
-
-    if (elements.sportFilter) {
-        elements.sportFilter.value = '';
-    }
-
-    applyFilters();
-}
-
-// ================================================================
-// Rendering
-// ================================================================
-
-function renderFields(fields) {
-    if (!elements.fieldsGrid) {
-        return;
-    }
-
-    elements.fieldsGrid.innerHTML = '';
-
-    if (!fields || fields.length === 0) {
-        return;
-    }
-
-    fields.forEach(function(field) {
-        elements.fieldsGrid.appendChild(createFieldCard(field));
-    });
-}
-
-function createFieldCard(field) {
-    var card = document.createElement('article');
-    card.className = 'field-card';
-    card.setAttribute('tabindex', '0');
-    card.setAttribute('role', 'button');
-    card.setAttribute('aria-label', 'Xem chi tiết ' + field.name);
-
-    var formattedPrice = formatPrice(field.pricePerHour);
-    var sportTypeDisplay = SPORT_TYPE_MAP[field.sportType] || field.sportType || 'Chưa phân loại';
-    var statusClass = field.isAvailable ? 'available' : 'unavailable';
-    var statusText = field.isAvailable ? 'Khả dụng' : 'Không khả dụng';
-    var fallbackImage = '<div class="field-image error" aria-hidden="true">' + renderLucideIcon('image-off', 'image-fallback-icon') + '</div>';
-    var imageMarkup = field.imageUrl
-        ? '<img src="' + escapeHtml(field.imageUrl) + '" alt="' + escapeHtml(field.name) + '" class="field-image" onerror="handleImageError(this)">'
-        : fallbackImage;
-    var badgeMarkup = field.isAvailable ? '<span class="field-badge">Giá tốt</span>' : '';
-
-    card.innerHTML = [
-        '<div class="field-image-container">',
-        imageMarkup,
-        badgeMarkup,
-        '</div>',
-        '<div class="field-content">',
-        '<h3 class="field-name">' + escapeHtml(field.name) + '</h3>',
-        '<span class="field-sport">' + escapeHtml(sportTypeDisplay) + '</span>',
-        '<div class="field-location">',
-        '<span class="field-location-icon">' + renderLucideIcon('map-pin', 'field-inline-icon') + '</span>',
-        '<span>' + escapeHtml(field.location || 'Chưa cập nhật địa chỉ') + '</span>',
-        '</div>',
-        '<div class="field-price">',
-        '<span>' + formattedPrice + '</span>',
-        '<span class="field-price-unit">VND/giờ</span>',
-        '</div>',
-        '<div class="field-capacity"><span class="field-capacity-icon">' + renderLucideIcon('users', 'field-inline-icon') + '</span><span>Sức chứa: ' + escapeHtml(String(field.capacity || 0)) + ' người</span></div>',
-        '<span class="field-status ' + statusClass + '">' + statusText + '</span>',
-        '<div class="field-actions">',
-        '<button class="btn btn-primary field-detail-btn" type="button">Xem chi tiết</button>',
-        '<button class="btn btn-secondary field-book-btn" type="button">Đặt sân</button>',
-        '</div>',
-        '</div>'
-    ].join('');
-
-    card.querySelector('.field-detail-btn').addEventListener('click', function(event) {
-        event.stopPropagation();
-        openFieldModal(field);
-    });
-
-    card.querySelector('.field-book-btn').addEventListener('click', function(event) {
-        event.stopPropagation();
-        requestBookingForField(field);
-    });
-
-    card.addEventListener('click', function() {
-        openFieldModal(field);
-    });
-
-    card.addEventListener('keydown', function(event) {
-        if (event.target !== card) {
-            return;
+            });
         }
 
-        if (event.key === 'Enter' || event.key === ' ') {
-            event.preventDefault();
-            openFieldModal(field);
+        if (el.sportFilter) {
+            el.sportFilter.addEventListener('change', function() {
+                state.sportFilter = this.value;
+                applyFilters();
+            });
         }
-    });
 
-    refreshLucideIcons(card);
-
-    return card;
-}
-
-function handleImageError(img) {
-    var container = img.parentElement;
-    if (!container) {
-        return;
-    }
-
-    img.style.display = 'none';
-    var errorDiv = document.createElement('div');
-    errorDiv.className = 'field-image error';
-    errorDiv.setAttribute('aria-hidden', 'true');
-    errorDiv.innerHTML = renderLucideIcon('image-off', 'image-fallback-icon');
-    container.insertBefore(errorDiv, img);
-    refreshLucideIcons(container);
-}
-
-// ================================================================
-// Modal & Booking
-// ================================================================
-
-function openFieldModal(field, options) {
-    if (!field) {
-        return;
-    }
-
-    state.selectedField = field;
-    state.previouslyFocusedElement = document.activeElement;
-
-    if (elements.modalName) {
-        elements.modalName.textContent = field.name;
-    }
-    if (elements.modalImage) {
-        elements.modalImage.src = field.imageUrl || '';
-        elements.modalImage.alt = field.name;
-    }
-    if (elements.modalLocation) {
-        elements.modalLocation.textContent = field.location || 'Chưa cập nhật';
-    }
-    if (elements.modalSport) {
-        elements.modalSport.textContent = SPORT_TYPE_MAP[field.sportType] || field.sportType || 'Chưa phân loại';
-    }
-    if (elements.modalPrice) {
-        elements.modalPrice.textContent = formatPrice(field.pricePerHour);
-    }
-    if (elements.modalCapacity) {
-        elements.modalCapacity.textContent = field.capacity || 0;
-    }
-    if (elements.modalDescription) {
-        elements.modalDescription.textContent = field.description || 'Không có mô tả';
-    }
-    if (elements.modalStatus) {
-        elements.modalStatus.textContent = field.isAvailable ? 'Khả dụng' : 'Không khả dụng';
-    }
-
-    prepareBookingForm(field);
-    showBookingFeedback('');
-
-    if (elements.modal) {
-        elements.modal.classList.remove('hidden');
-        elements.modal.setAttribute('aria-hidden', 'false');
-    }
-    if (elements.modalContent) {
-        elements.modalContent.scrollTop = 0;
-    }
-
-    document.body.classList.add('modal-open');
-    state.modalOpen = true;
-
-    window.setTimeout(function() {
-        if (options && options.focusBooking && elements.bookingDate) {
-            elements.bookingDate.focus();
-        } else if (elements.closeModalButton) {
-            elements.closeModalButton.focus();
+        if (el.filterMaxPrice) {
+            el.filterMaxPrice.addEventListener('change', function() {
+                state.maxPrice = this.value;
+                applyFilters();
+            });
         }
-    }, 0);
-}
 
-function closeModal() {
-    if (elements.modal) {
-        elements.modal.classList.add('hidden');
-        elements.modal.setAttribute('aria-hidden', 'true');
+        if (el.filterAmenity) {
+            el.filterAmenity.addEventListener('input', function() {
+                state.amenityQuery = this.value;
+                applyFilters();
+            });
+        }
+
+        if (el.applyAdvancedBtn) {
+            el.applyAdvancedBtn.addEventListener('click', function() {
+                runCombinedSearch(false);
+            });
+        }
+
+        if (el.resetBtn) {
+            el.resetBtn.addEventListener('click', resetFilters);
+        }
+
+        if (el.emptyResetBtn) {
+            el.emptyResetBtn.addEventListener('click', resetFilters);
+        }
+
+        if (el.availableOnlyToggle) {
+            el.availableOnlyToggle.addEventListener('change', function() {
+                state.availableOnly = !!this.checked;
+                applyFilters();
+            });
+        }
+
+        if (el.sortSelect) {
+            el.sortSelect.addEventListener('change', function() {
+                state.sortBy = this.value;
+                applyFilters();
+            });
+        }
+
+        if (el.errorRetryBtn) {
+            el.errorRetryBtn.addEventListener('click', loadFields);
+        }
+
+        if (el.previewReconnectBtn) {
+            el.previewReconnectBtn.addEventListener('click', loadFields);
+        }
+
+        if (el.errorCloseBtn) {
+            el.errorCloseBtn.addEventListener('click', hideError);
+        }
+
+        if (el.closeModalBtn) el.closeModalBtn.addEventListener('click', closeModal);
+        if (el.cancelBookingBtn) el.cancelBookingBtn.addEventListener('click', closeModal);
+
+        if (el.modal) {
+            el.modal.addEventListener('click', function(e) {
+                if (e.target === el.modal) closeModal();
+            });
+        }
+
+        if (el.bookingForm) {
+            el.bookingForm.addEventListener('submit', handleBookingSubmit);
+        }
+
+        if (el.bookingDate) {
+            el.bookingDate.addEventListener('change', function() {
+                renderSlotTimeline();
+                updateBookingPricePreview();
+            });
+        }
+
+        if (el.bookingStartTime) {
+            el.bookingStartTime.addEventListener('input', function() {
+                syncPresetButtonsActiveState();
+                updateBookingPricePreview();
+            });
+        }
+
+        if (el.bookingEndTime) {
+            el.bookingEndTime.addEventListener('input', function() {
+                syncPresetButtonsActiveState();
+                updateBookingPricePreview();
+            });
+        }
+
+        if (el.chatbotToggle) {
+            el.chatbotToggle.addEventListener('click', toggleChatbot);
+        }
+
+        if (el.chatbotClose) {
+            el.chatbotClose.addEventListener('click', closeChatbot);
+        }
+
+        if (el.chatbotForm) {
+            el.chatbotForm.addEventListener('submit', handleChatbotSubmit);
+        }
+
+        Array.prototype.forEach.call(document.querySelectorAll('.chatbot-quick-chip'), function(chip) {
+            chip.addEventListener('click', function() {
+                var q = chip.getAttribute('data-chat-query') || '';
+                if (!q) return;
+                processAssistantQuery(q);
+            });
+        });
+
+        document.addEventListener('keydown', function(e) {
+            if (state.chatbotOpen && e.key === 'Escape' && !state.modalOpen) {
+                closeChatbot();
+            }
+            if (state.modalOpen) {
+                if (e.key === 'Escape') {
+                    e.preventDefault();
+                    closeModal();
+                } else if (e.key === 'Tab') {
+                    S.trapModalFocus(e, el.modalContent);
+                }
+            }
+        });
     }
 
-    document.body.classList.remove('modal-open');
-    state.modalOpen = false;
-    state.selectedField = null;
+    function loadFields() {
+        showLoading(true);
+        hideError();
+        if (el.previewBanner) el.previewBanner.classList.add('hidden');
 
-    if (state.previouslyFocusedElement && typeof state.previouslyFocusedElement.focus === 'function') {
-        state.previouslyFocusedElement.focus();
-    }
-}
-
-function prepareBookingForm(field) {
-    if (!elements.bookingForm) {
-        return;
-    }
-
-    var today = new Date();
-    var tomorrow = new Date(today.getTime() + 24 * 60 * 60 * 1000);
-
-    if (elements.bookingDate) {
-        elements.bookingDate.min = formatDateForInput(today);
-        elements.bookingDate.value = formatDateForInput(tomorrow);
-    }
-    if (elements.bookingStartTime) {
-        elements.bookingStartTime.value = '18:00';
-    }
-    if (elements.bookingEndTime) {
-        elements.bookingEndTime.value = '19:00';
-    }
-    if (elements.bookingPhone) {
-        elements.bookingPhone.value = '';
-    }
-    if (elements.bookingNotes) {
-        elements.bookingNotes.value = 'Yeu cau dat san demo cho ' + field.name;
-    }
-}
-
-function handleBookingSubmit(event) {
-    event.preventDefault();
-
-    if (!state.selectedField) {
-        showBookingFeedback('Vui lòng chọn sân trước khi đặt.', true);
-        return;
+        S.apiRequest('/fields', { method: 'GET', token: '' })
+            .then(function(data) {
+                if (!Array.isArray(data)) {
+                    throw new Error('Phản hồi danh sách sân không hợp lệ.');
+                }
+                state.allFields = data.map(normalizeField).filter(Boolean);
+                state.serverFilteredIds = null;
+                updateHeroStats();
+                applyFilters();
+            })
+            .catch(function(err) {
+                if (!err || !err.isBackendError) {
+                    state.allFields = PREVIEW_FIELDS.map(normalizeField).filter(Boolean);
+                    state.serverFilteredIds = null;
+                    if (el.previewBanner) el.previewBanner.classList.remove('hidden');
+                    updateHeroStats();
+                    applyFilters();
+                    return;
+                }
+                state.allFields = [];
+                state.filteredFields = [];
+                renderFields([]);
+                updateToolbarStats();
+                showNoResults(false);
+                showError(err.message || 'Không thể tải danh sách sân. Kiểm tra Backend hoặc thử lại sau.');
+            })
+            .then(function() {
+                showLoading(false);
+            });
     }
 
-    if (!state.currentUser) {
-        var pendingField = state.selectedField;
-        state.pendingBookingDraft = {
-            bookingDate: elements.bookingDate ? elements.bookingDate.value : '',
-            startTime: elements.bookingStartTime ? elements.bookingStartTime.value : '',
-            endTime: elements.bookingEndTime ? elements.bookingEndTime.value : '',
-            phone: elements.bookingPhone ? elements.bookingPhone.value : '',
-            notes: elements.bookingNotes ? elements.bookingNotes.value : ''
+    function normalizeField(field) {
+        if (!field || typeof field !== 'object') return null;
+        var price = Number(field.pricePerHour);
+        return {
+            id: field.id || null,
+            name: field.name || 'Sân thể thao',
+            description: field.description || '',
+            location: field.location || '',
+            city: field.city || '',
+            province: field.province || '',
+            imageUrl: field.imageUrl || '',
+            pricePerHour: Number.isFinite(price) ? price : 0,
+            capacity: field.capacity != null ? Number(field.capacity) : 0,
+            sportType: String(field.sportType || '').toUpperCase(),
+            amenities: field.amenities || '',
+            isAvailable: field.isAvailable !== false,
+            ownerId: field.ownerId || null
         };
-        showBookingFeedback('Vui lòng đăng nhập để tiếp tục đặt sân.', true);
-        closeModal();
-        openAuthModal('login', {
-            bookingField: pendingField,
-            message: 'Đăng nhập để gửi yêu cầu đặt sân.'
-        });
-        return;
     }
 
-    var bookingDate = elements.bookingDate ? elements.bookingDate.value : '';
-    var startTime = elements.bookingStartTime ? elements.bookingStartTime.value : '';
-    var endTime = elements.bookingEndTime ? elements.bookingEndTime.value : '';
-    var phone = elements.bookingPhone ? elements.bookingPhone.value.trim() : '';
-    var notes = elements.bookingNotes ? elements.bookingNotes.value.trim() : '';
+    function runCombinedSearch(scrollToResults) {
+        state.searchQuery = el.searchInput ? el.searchInput.value : '';
+        state.sportFilter = el.sportFilter ? el.sportFilter.value : '';
+        state.maxPrice = el.filterMaxPrice ? el.filterMaxPrice.value : '';
+        state.amenityQuery = el.filterAmenity ? el.filterAmenity.value : '';
 
-    if (!bookingDate || !startTime || !endTime || !phone) {
-        showBookingFeedback('Vui long nhap day du ngay dat, gio va so dien thoai.', true);
-        return;
-    }
+        var dateVal = el.filterDate ? el.filterDate.value : '';
+        var startVal = el.filterStartTime ? el.filterStartTime.value : '';
+        var endVal = el.filterEndTime ? el.filterEndTime.value : '';
 
-    if (endTime <= startTime) {
-        showBookingFeedback('Gio ket thuc phai sau gio bat dau.', true);
-        return;
-    }
-
-    if (phone.length < 9) {
-        showBookingFeedback('So dien thoai khong hop le.', true);
-        return;
-    }
-
-    var bookingPayload = {
-        fieldId: state.selectedField.id,
-        bookingDate: bookingDate,
-        startTime: startTime,
-        endTime: endTime,
-        customerPhone: phone,
-        notes: notes
-    };
-
-    var bookingRecord = {
-        bookingId: 'local-' + Date.now(),
-        fieldId: state.selectedField.id,
-        fieldName: state.selectedField.name,
-        bookingDate: bookingDate,
-        startTime: startTime,
-        endTime: endTime,
-        phone: phone,
-        notes: notes,
-        customerName: state.currentUser.name || state.currentUser.fullName || state.currentUser.email,
-        customerEmail: state.currentUser.email,
-        customerRole: state.currentRole || state.currentUser.role,
-        totalPrice: calculateBookingTotal(state.selectedField.pricePerHour, startTime, endTime),
-        status: 'PENDING',
-        createdAt: new Date().toISOString()
-    };
-
-    submitBooking(bookingPayload, bookingRecord);
-}
-
-function submitBooking(bookingPayload, bookingRecord) {
-    showBookingFeedback('Dang gui yeu cau dat san...', false);
-
-    fetch(BOOKINGS_ENDPOINT, {
-        method: 'POST',
-        headers: createAuthHeaders({
-            'Content-Type': 'application/json'
-        }),
-        body: JSON.stringify(bookingPayload)
-    })
-        .then(handleJsonResponse)
-        .then(function() {
-            showBookingFeedback('Yeu cau dat san da duoc tao thanh cong. Ban co the xem lai trong trang Lich cua toi.', false);
-            window.setTimeout(function() {
-                closeModal();
-            }, 900);
-        })
-        .catch(function(error) {
-            if (error && error.isBackendError) {
-                showBookingFeedback(error.message || 'Khong the tao booking tren backend.', true);
-                return;
-            }
-
-            console.error('Backend booking request failed:', error);
-            showBookingFeedback(
-                'Khong the ket noi backend. Vui long kiem tra ket noi va thu lai.',
-                true
-            );
-        });
-}
-
-function showBookingFeedback(message, isError) {
-    if (!elements.bookingFeedback) {
-        return;
-    }
-
-    if (!message) {
-        elements.bookingFeedback.textContent = '';
-        elements.bookingFeedback.className = 'booking-feedback hidden';
-        return;
-    }
-
-    elements.bookingFeedback.textContent = message;
-    elements.bookingFeedback.className = 'booking-feedback ' + (isError ? 'error' : 'success');
-}
-
-function hideBookingFeedback() {
-    showBookingFeedback('', false);
-}
-
-function bookField(field) {
-    if (field) {
-        requestBookingForField(field);
-        return;
-    }
-
-    if (state.selectedField) {
-        requestBookingForField(state.selectedField);
-        return;
-    }
-
-    showError('Vui lòng chọn sân trước khi đặt.', false);
-}
-
-function requestBookingForField(field) {
-    if (!field) {
-        return;
-    }
-
-    state.selectedField = field;
-
-    if (!state.currentUser) {
-        openAuthModal('login', {
-            bookingField: field,
-            message: 'Đăng nhập để tiếp tục gửi yêu cầu đặt sân.'
-        });
-        return;
-    }
-
-    openFieldModal(field, { focusBooking: true });
-}
-
-// ================================================================
-// Auth & Dashboard
-// ================================================================
-
-function normalizeStoredUser(user) {
-    if (!user || typeof user !== 'object') {
-        return null;
-    }
-
-    return {
-        id: user.id != null ? user.id : Date.now(),
-        backendUserId: user.backendUserId != null ? user.backendUserId : user.id,
-        name: user.name || user.fullName || 'Người dùng',
-        email: String(user.email || '').trim().toLowerCase(),
-        phone: user.phone || '',
-        address: user.address || '',
-        role: normalizeRole(user.role),
-        createdAt: user.createdAt || new Date().toISOString()
-    };
-}
-
-function normalizeRole(role) {
-    var normalized = String(role || 'CUSTOMER').toUpperCase();
-    if (normalized === 'USER') {
-        return 'CUSTOMER';
-    }
-    if (normalized === 'STAFF') {
-        return 'ADMIN';
-    }
-    return normalized === 'ADMIN' ? 'ADMIN' : 'CUSTOMER';
-}
-
-function loadAuthSession() {
-    try {
-        var rawSession = localStorage.getItem(AUTH_SESSION_STORAGE_KEY);
-        if (!rawSession) {
-            state.currentUser = null;
-            state.currentRole = null;
-            state.authToken = '';
-            state.customerBookings = [];
+        if (startVal && endVal && endVal <= startVal) {
+            S.showToast('Giờ kết thúc tìm kiếm phải sau giờ bắt đầu.', 'error');
             return;
         }
 
-        var session = JSON.parse(rawSession);
-        if (!session || !session.currentUser) {
-            clearAuthSession(false);
-            return;
-        }
-
-        state.currentUser = normalizeStoredUser(session.currentUser);
-        state.currentRole = normalizeRole(state.currentUser && state.currentUser.role);
-        state.authToken = session.token || '';
-    } catch (error) {
-        console.warn('Could not load auth session:', error);
-        clearAuthSession(false);
-    }
-}
-
-function persistAuthSession(user, token) {
-    var sessionUser = normalizeStoredUser(user);
-    localStorage.setItem(AUTH_SESSION_STORAGE_KEY, JSON.stringify({
-        token: token,
-        currentUser: sessionUser
-    }));
-    state.currentUser = sessionUser;
-    state.currentRole = normalizeRole(sessionUser && sessionUser.role);
-    state.authToken = token;
-}
-
-function clearAuthSession(updateUi) {
-    localStorage.removeItem(AUTH_SESSION_STORAGE_KEY);
-    state.currentUser = null;
-    state.currentRole = null;
-    state.authToken = '';
-    state.customerBookings = [];
-    state.pendingBookingField = null;
-    state.pendingBookingDraft = null;
-
-    if (updateUi !== false) {
-        renderAuthState();
-    }
-}
-
-function openAuthModal(tab, options) {
-    state.authModalOpen = true;
-    state.activeAuthTab = tab === 'register' ? 'register' : 'login';
-    state.pendingBookingField = options && Object.prototype.hasOwnProperty.call(options, 'bookingField')
-        ? options.bookingField
-        : null;
-    if (!state.pendingBookingField) {
-        state.pendingBookingDraft = null;
-    }
-    if (elements.loginForm) {
-        elements.loginForm.reset();
-    }
-    if (elements.registerForm) {
-        elements.registerForm.reset();
-    }
-    state.previouslyFocusedElement = document.activeElement;
-    setAuthModalTab(state.activeAuthTab);
-
-    if (elements.authModal) {
-        elements.authModal.classList.remove('hidden');
-        elements.authModal.setAttribute('aria-hidden', 'false');
-    }
-
-    document.body.classList.add('modal-open');
-    showAuthFeedback(options && options.message ? options.message : '', false);
-
-    window.setTimeout(function() {
-        if (state.activeAuthTab === 'register' && elements.registerName) {
-            elements.registerName.focus();
-        } else if (elements.loginEmail) {
-            elements.loginEmail.focus();
-        }
-    }, 0);
-}
-
-function closeAuthModal() {
-    if (elements.authModal) {
-        elements.authModal.classList.add('hidden');
-        elements.authModal.setAttribute('aria-hidden', 'true');
-    }
-
-    document.body.classList.remove('modal-open');
-    state.authModalOpen = false;
-
-    if (state.previouslyFocusedElement && typeof state.previouslyFocusedElement.focus === 'function') {
-        state.previouslyFocusedElement.focus();
-    }
-}
-
-function setAuthModalTab(tab) {
-    state.activeAuthTab = tab === 'register' ? 'register' : 'login';
-
-    if (elements.authLoginTab) {
-        elements.authLoginTab.classList.toggle('active', state.activeAuthTab === 'login');
-    }
-    if (elements.authRegisterTab) {
-        elements.authRegisterTab.classList.toggle('active', state.activeAuthTab === 'register');
-    }
-    if (elements.loginForm) {
-        elements.loginForm.classList.toggle('hidden', state.activeAuthTab !== 'login');
-    }
-    if (elements.registerForm) {
-        elements.registerForm.classList.toggle('hidden', state.activeAuthTab !== 'register');
-    }
-    if (elements.authModalTitle) {
-        elements.authModalTitle.textContent = state.activeAuthTab === 'register' ? 'Tạo tài khoản' : 'Đăng nhập';
-    }
-    if (elements.authModalDescription) {
-        elements.authModalDescription.textContent = state.activeAuthTab === 'register'
-            ? 'Tạo tài khoản customer để lưu lịch đặt sân và quay lại dễ dàng hơn.'
-            : 'Dùng tài khoản demo hoặc đăng nhập bằng tài khoản đã tạo.';
-    }
-    showAuthFeedback('', false);
-}
-
-function handleLoginSubmit(event) {
-    event.preventDefault();
-
-    var email = elements.loginEmail ? elements.loginEmail.value.trim().toLowerCase() : '';
-    var password = elements.loginPassword ? elements.loginPassword.value : '';
-
-    if (!email || !password) {
-        showAuthFeedback('Vui lòng nhập email và mật khẩu.', true);
-        return;
-    }
-
-    showAuthFeedback('Đang đăng nhập...', false);
-
-    fetch(AUTH_LOGIN_ENDPOINT, {
-        method: 'POST',
-        headers: createAuthHeaders({
-            'Content-Type': 'application/json'
-        }),
-        body: JSON.stringify({
-            email: email,
-            password: password
-        })
-    })
-        .then(handleJsonResponse)
-        .then(function(data) {
-            if (!data || !data.user || !data.token) {
-                throw new Error('Phản hồi đăng nhập không hợp lệ.');
-            }
-
-            persistAuthSession(data.user, data.token);
-            closeAuthModal();
-            renderAuthState();
-
-            if (state.pendingBookingField) {
-                var pendingField = state.pendingBookingField;
-                var pendingDraft = state.pendingBookingDraft;
-                state.pendingBookingField = null;
-                state.pendingBookingDraft = null;
-                window.setTimeout(function() {
-                    openFieldModal(pendingField, { focusBooking: true });
-                    restoreBookingFormDraft(pendingDraft);
-                }, 120);
-            }
-        })
-        .catch(function(error) {
-            showAuthFeedback(error.message || 'Sai email hoặc mật khẩu.', true);
-        });
-}
-
-function handleRegisterSubmit(event) {
-    event.preventDefault();
-
-    var name = elements.registerName ? elements.registerName.value.trim() : '';
-    var email = elements.registerEmail ? elements.registerEmail.value.trim().toLowerCase() : '';
-    var phone = elements.registerPhone ? elements.registerPhone.value.trim() : '';
-    var password = elements.registerPassword ? elements.registerPassword.value : '';
-    var confirmPassword = elements.registerConfirmPassword ? elements.registerConfirmPassword.value : '';
-
-    if (!name || !email || !phone || !password || !confirmPassword) {
-        showAuthFeedback('Vui lòng nhập đầy đủ thông tin đăng ký.', true);
-        return;
-    }
-
-    if (password !== confirmPassword) {
-        showAuthFeedback('Mật khẩu xác nhận không khớp.', true);
-        return;
-    }
-
-    if (password.length < 6) {
-        showAuthFeedback('Mật khẩu phải có ít nhất 6 ký tự.', true);
-        return;
-    }
-
-    showAuthFeedback('Đang tạo tài khoản...', false);
-
-    fetch(AUTH_REGISTER_ENDPOINT, {
-        method: 'POST',
-        headers: createAuthHeaders({
-            'Content-Type': 'application/json'
-        }),
-        body: JSON.stringify({
-            fullName: name,
-            email: email,
-            phone: phone,
-            password: password
-        })
-    })
-        .then(handleJsonResponse)
-        .then(function(data) {
-            if (!data || !data.user || !data.token) {
-                throw new Error('Không thể tạo tài khoản.');
-            }
-
-            persistAuthSession(data.user, data.token);
-            closeAuthModal();
-            renderAuthState();
-
-            if (state.pendingBookingField) {
-                var pendingField = state.pendingBookingField;
-                var pendingDraft = state.pendingBookingDraft;
-                state.pendingBookingField = null;
-                state.pendingBookingDraft = null;
-                window.setTimeout(function() {
-                    openFieldModal(pendingField, { focusBooking: true });
-                    restoreBookingFormDraft(pendingDraft);
-                }, 120);
-            }
-        })
-        .catch(function(error) {
-            showAuthFeedback(error.message || 'Không thể tạo tài khoản.', true);
-        });
-}
-
-function handleLogout() {
-    clearAuthSession();
-    hideAuthFeedback();
-    hideBookingFeedback();
-}
-
-function renderAuthState() {
-    var isAuthenticated = !!state.currentUser;
-    var isAdmin = state.currentRole === 'ADMIN';
-    var isCustomer = state.currentRole === 'CUSTOMER';
-
-    if (elements.openLoginButton) {
-        elements.openLoginButton.classList.toggle('hidden', isAuthenticated);
-    }
-    if (elements.openRegisterButton) {
-        elements.openRegisterButton.classList.toggle('hidden', isAuthenticated);
-    }
-    if (elements.logoutButton) {
-        elements.logoutButton.classList.toggle('hidden', !isAuthenticated);
-    }
-    if (elements.dashboardNavButton) {
-        elements.dashboardNavButton.classList.toggle('hidden', !isAuthenticated);
-        if (elements.dashboardNavButton.querySelector('span')) {
-            elements.dashboardNavButton.querySelector('span').textContent = isAdmin ? 'Trang quản trị' : 'Lịch của tôi';
-        }
-    }
-
-    if (!isAuthenticated) {
-        hideAuthFeedback();
-    }
-}
-
-function normalizeCustomerBooking(booking) {
-    if (!booking || typeof booking !== 'object') {
-        return null;
-    }
-
-    var field = booking.field || {};
-    var user = booking.user || {};
-
-    return {
-        bookingId: booking.id || booking.bookingId || ('booking-' + Date.now()),
-        fieldId: field.id || booking.fieldId || null,
-        fieldName: field.name || booking.fieldName || 'Sân thể thao',
-        bookingDate: booking.bookingDate || booking.booking_date || '',
-        startTime: booking.startTime || booking.start_time || '',
-        endTime: booking.endTime || booking.end_time || '',
-        phone: booking.customerPhone || user.phone || '',
-        notes: booking.notes || '',
-        customerName: user.fullName || user.name || state.currentUser.name,
-        customerEmail: user.email || state.currentUser.email,
-        customerRole: normalizeRole(user.role || state.currentRole),
-        totalPrice: Number(booking.totalPrice || 0),
-        status: normalizeBookingStatus(booking.status),
-        createdAt: booking.createdAt || booking.created_at || new Date().toISOString()
-    };
-}
-
-function formatBookingTimeRange(startTime, endTime) {
-    return (startTime || '--:--') + ' - ' + (endTime || '--:--');
-}
-
-function normalizeBookingStatus(status) {
-    var value = String(status || 'PENDING').toUpperCase();
-    if (value === 'DONE' || value === 'APPROVED') {
-        return 'CONFIRMED';
-    }
-    return value;
-}
-
-function getBookingStatusClass(status) {
-    var normalized = normalizeBookingStatus(status);
-    if (normalized === 'CONFIRMED') {
-        return 'success';
-    }
-    if (normalized === 'CANCELLED') {
-        return 'error';
-    }
-    return 'pending';
-}
-
-function calculateBookingTotal(pricePerHour, startTime, endTime) {
-    var price = Number(pricePerHour);
-    if (!Number.isFinite(price)) {
-        price = 0;
-    }
-
-    return Math.max(0, Math.round(price * getHoursBetweenTimes(startTime, endTime)));
-}
-
-function getHoursBetweenTimes(startTime, endTime) {
-    if (!startTime || !endTime) {
-        return 1;
-    }
-
-    var startParts = String(startTime).split(':');
-    var endParts = String(endTime).split(':');
-    var startMinutes = (Number(startParts[0]) || 0) * 60 + (Number(startParts[1]) || 0);
-    var endMinutes = (Number(endParts[0]) || 0) * 60 + (Number(endParts[1]) || 0);
-    var diff = endMinutes - startMinutes;
-
-    if (!Number.isFinite(diff) || diff <= 0) {
-        return 1;
-    }
-
-    return Math.max(1, diff / 60);
-}
-
-function showAuthFeedback(message, isError) {
-    if (!elements.authFeedback) {
-        return;
-    }
-
-    if (!message) {
-        elements.authFeedback.textContent = '';
-        elements.authFeedback.className = 'booking-feedback hidden';
-        return;
-    }
-
-    elements.authFeedback.textContent = message;
-    elements.authFeedback.className = 'booking-feedback ' + (isError ? 'error' : 'success');
-}
-
-function hideAuthFeedback() {
-    showAuthFeedback('', false);
-}
-
-function handleDashboardNavigation() {
-    if (state.currentRole === 'ADMIN') {
-        window.location.href = 'admin.html';
-        return;
-    }
-
-    window.location.href = 'my-bookings.html';
-}
-
-function toggleChatbotPanel() {
-    if (!elements.chatbotPanel) {
-        return;
-    }
-
-    if (state.chatbotOpen) {
-        closeChatbotPanel();
-        return;
-    }
-
-    state.chatbotOpen = true;
-    elements.chatbotPanel.classList.remove('hidden');
-
-    window.setTimeout(function() {
-        if (elements.chatbotInput) {
-            elements.chatbotInput.focus();
-        }
-    }, 0);
-}
-
-function closeChatbotPanel() {
-    if (!elements.chatbotPanel) {
-        return;
-    }
-
-    state.chatbotOpen = false;
-    elements.chatbotPanel.classList.add('hidden');
-}
-
-function handleChatbotSubmit(event) {
-    event.preventDefault();
-
-    if (!elements.chatbotInput) {
-        return;
-    }
-
-    var prompt = elements.chatbotInput.value.trim();
-
-    if (!prompt) {
-        return;
-    }
-
-    appendChatbotMessage('user', prompt);
-    elements.chatbotInput.value = '';
-    appendChatbotMessage('bot', 'Tính năng trợ lý AI đang được tạm khóa. Vui lòng dùng bộ lọc sân hoặc liên hệ hỗ trợ.');
-}
-
-function appendChatbotMessage(role, message) {
-    if (!elements.chatbotMessages || !message) {
-        return;
-    }
-
-    var item = document.createElement('article');
-    item.className = 'chatbot-message ' + (role === 'user' ? 'user' : 'bot');
-
-    var paragraph = document.createElement('p');
-    paragraph.textContent = message;
-    item.appendChild(paragraph);
-
-    elements.chatbotMessages.appendChild(item);
-    elements.chatbotMessages.scrollTop = elements.chatbotMessages.scrollHeight;
-}
-
-function setChatbotLoading(isLoading) {
-    state.chatbotLoading = !!isLoading;
-
-    if (!elements.chatbotForm) {
-        return;
-    }
-
-    elements.chatbotForm.classList.toggle('is-loading', state.chatbotLoading);
-
-    if (elements.chatbotInput) {
-        elements.chatbotInput.disabled = state.chatbotLoading;
-    }
-
-    var submitButton = elements.chatbotForm.querySelector('button[type="submit"]');
-    if (submitButton) {
-        submitButton.disabled = state.chatbotLoading;
-        submitButton.textContent = state.chatbotLoading ? 'Đang gửi...' : 'Gửi';
-    }
-}
-
-function restoreBookingFormDraft(draft) {
-    if (!draft) {
-        return;
-    }
-
-    if (elements.bookingDate && draft.bookingDate) {
-        elements.bookingDate.value = draft.bookingDate;
-    }
-    if (elements.bookingStartTime && draft.startTime) {
-        elements.bookingStartTime.value = draft.startTime;
-    }
-    if (elements.bookingEndTime && draft.endTime) {
-        elements.bookingEndTime.value = draft.endTime;
-    }
-    if (elements.bookingPhone && draft.phone) {
-        elements.bookingPhone.value = draft.phone;
-    }
-    if (elements.bookingNotes && draft.notes) {
-        elements.bookingNotes.value = draft.notes;
-    }
-}
-
-function handleGlobalKeydown(event) {
-    if (state.chatbotOpen && event.key === 'Escape' && !state.modalOpen && !state.authModalOpen) {
-        closeChatbotPanel();
-    }
-
-    if (state.authModalOpen) {
-        if (event.key === 'Escape') {
-            event.preventDefault();
-            closeAuthModal();
-            return;
-        }
-
-        if (event.key === 'Tab') {
-            trapFocus(event, elements.authModalContent);
-        }
-        return;
-    }
-
-    if (!state.modalOpen) {
-        return;
-    }
-
-    if (event.key === 'Escape') {
-        event.preventDefault();
-        closeModal();
-        return;
-    }
-
-    if (event.key === 'Tab') {
-        trapFocus(event, elements.modalContent);
-    }
-}
-
-function trapFocus(event, modalContent) {
-    if (!modalContent) {
-        return;
-    }
-
-    var focusableElements = modalContent.querySelectorAll(
-        'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-    );
-
-    if (!focusableElements.length) {
-        return;
-    }
-
-    var firstElement = focusableElements[0];
-    var lastElement = focusableElements[focusableElements.length - 1];
-
-    if (event.shiftKey && document.activeElement === firstElement) {
-        event.preventDefault();
-        lastElement.focus();
-    } else if (!event.shiftKey && document.activeElement === lastElement) {
-        event.preventDefault();
-        firstElement.focus();
-    }
-}
-
-// ================================================================
-// Navigation
-// ================================================================
-
-function updateNavigation() {
-    var navLinks = Array.prototype.slice.call(document.querySelectorAll('.nav-menu a'));
-    var sectionIds = ['home', 'fields', 'about', 'contact'];
-    var sections = sectionIds
-        .map(function(id) {
-            return document.getElementById(id);
-        })
-        .filter(Boolean);
-
-    function setActiveLink(sectionId) {
-        navLinks.forEach(function(link) {
-            link.classList.toggle('active', link.getAttribute('href') === '#' + sectionId);
-        });
-    }
-
-    if ('IntersectionObserver' in window) {
-        var observer = new IntersectionObserver(function(entries) {
-            var visibleEntry = entries
-                .filter(function(entry) {
-                    return entry.isIntersecting;
+        if (dateVal && startVal && endVal) {
+            var params = new URLSearchParams();
+            params.set('date', dateVal);
+            params.set('startTime', startVal);
+            params.set('endTime', endVal);
+            if (state.sportFilter) params.set('sportType', state.sportFilter);
+            if (state.maxPrice) params.set('maxPrice', state.maxPrice);
+            if (state.amenityQuery.trim()) params.set('amenity', state.amenityQuery.trim());
+
+            showLoading(true);
+            S.apiRequest('/fields/search?' + params.toString(), { method: 'GET', token: '' })
+                .then(function(list) {
+                    var ids = {};
+                    (Array.isArray(list) ? list : []).forEach(function(item) {
+                        if (item && item.id != null) ids[String(item.id)] = true;
+                    });
+                    state.serverFilteredIds = ids;
+                    applyFilters();
+                    if (scrollToResults && el.resultsSection) {
+                        el.resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
                 })
-                .sort(function(a, b) {
-                    return b.intersectionRatio - a.intersectionRatio;
-                })[0];
+                .catch(function(err) {
+                    S.showToast(err.message || 'Không thể lọc lịch trống theo giờ.', 'error');
+                })
+                .then(function() {
+                    showLoading(false);
+                });
+            return;
+        }
 
-            if (visibleEntry && visibleEntry.target && visibleEntry.target.id) {
-                setActiveLink(visibleEntry.target.id);
+        state.serverFilteredIds = null;
+        applyFilters();
+        if (scrollToResults && el.resultsSection) {
+            el.resultsSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }
+
+    function applyFilters() {
+        var query = (state.searchQuery || '').trim().toLowerCase();
+        var sportFilter = state.sportFilter || '';
+        var maxPrice = state.maxPrice ? Number(state.maxPrice) : null;
+        var amenityFilter = (state.amenityQuery || '').trim().toLowerCase();
+
+        var filtered = state.allFields.filter(function(field) {
+            if (state.serverFilteredIds && !state.serverFilteredIds[String(field.id)]) {
+                return false;
             }
-        }, {
-            threshold: [0.3, 0.5, 0.75],
-            rootMargin: '-15% 0px -55% 0px'
+            if (sportFilter && field.sportType !== sportFilter) {
+                return false;
+            }
+            if (state.availableOnly && !field.isAvailable) {
+                return false;
+            }
+            if (maxPrice != null && Number.isFinite(maxPrice) && field.pricePerHour > maxPrice) {
+                return false;
+            }
+            if (amenityFilter && String(field.amenities || '').toLowerCase().indexOf(amenityFilter) === -1) {
+                return false;
+            }
+            if (query) {
+                var sportLabel = S.getSportMeta(field.sportType).label;
+                var haystack = [
+                    field.name,
+                    field.location,
+                    field.city,
+                    field.province,
+                    field.amenities,
+                    field.sportType,
+                    sportLabel
+                ].join(' ').toLowerCase();
+                if (haystack.indexOf(query) === -1) {
+                    return false;
+                }
+            }
+            return true;
         });
 
-        sections.forEach(function(section) {
-            observer.observe(section);
-        });
-    } else {
-        window.addEventListener('scroll', function() {
-            var scrollPosition = window.scrollY + 180;
-            var activeSectionId = 'home';
+        if (state.sortBy === 'price-asc') {
+            filtered.sort(function(a, b) { return a.pricePerHour - b.pricePerHour; });
+        } else if (state.sortBy === 'price-desc') {
+            filtered.sort(function(a, b) { return b.pricePerHour - a.pricePerHour; });
+        } else if (state.sortBy === 'capacity-desc') {
+            filtered.sort(function(a, b) { return b.capacity - a.capacity; });
+        }
 
-            sections.forEach(function(section) {
-                if (section.offsetTop <= scrollPosition) {
-                    activeSectionId = section.id;
+        state.filteredFields = filtered;
+        renderFields(filtered);
+        updateToolbarStats();
+        showNoResults(filtered.length === 0 && state.allFields.length > 0);
+    }
+
+    function resetFilters() {
+        state.searchQuery = '';
+        state.sportFilter = '';
+        state.maxPrice = '';
+        state.amenityQuery = '';
+        state.availableOnly = false;
+        state.sortBy = 'default';
+        state.serverFilteredIds = null;
+
+        if (el.searchInput) el.searchInput.value = '';
+        if (el.sportFilter) el.sportFilter.value = '';
+        if (el.filterDate) el.filterDate.value = '';
+        if (el.filterMaxPrice) el.filterMaxPrice.value = '';
+        if (el.filterAmenity) el.filterAmenity.value = '';
+        if (el.filterStartTime) el.filterStartTime.value = '';
+        if (el.filterEndTime) el.filterEndTime.value = '';
+        if (el.availableOnlyToggle) el.availableOnlyToggle.checked = false;
+        if (el.sortSelect) el.sortSelect.value = 'default';
+
+        applyFilters();
+    }
+
+    function updateHeroStats() {
+        var total = state.allFields.length;
+        var available = state.allFields.filter(function(f) { return f.isAvailable; }).length;
+        if (el.heroTotalFields) el.heroTotalFields.textContent = String(total);
+        if (el.heroAvailableFields) el.heroAvailableFields.textContent = String(available);
+    }
+
+    function updateToolbarStats() {
+        var count = state.filteredFields.length;
+        var availableCount = state.filteredFields.filter(function(f) { return f.isAvailable; }).length;
+
+        if (el.resultsCountPill) {
+            el.resultsCountPill.textContent = count + ' sân';
+        }
+        if (el.resultsAvailableNote) {
+            el.resultsAvailableNote.textContent = count
+                ? (availableCount + ' sân sẵn sàng nhận lịch' + (state.serverFilteredIds ? ' (đã lọc theo giờ trống)' : ''))
+                : 'Không có sân khớp tiêu chí';
+        }
+    }
+
+    function renderFields(fields) {
+        if (!el.fieldsGrid) return;
+        el.fieldsGrid.innerHTML = '';
+        if (!fields || !fields.length) return;
+
+        var fragment = document.createDocumentFragment();
+        fields.forEach(function(field) {
+            fragment.appendChild(createFieldCard(field));
+        });
+        el.fieldsGrid.appendChild(fragment);
+        S.refreshIcons(el.fieldsGrid);
+    }
+
+    function createFieldCard(field) {
+        var card = document.createElement('article');
+        card.className = 'field-card' + (field.isAvailable ? '' : ' is-unavailable');
+        card.setAttribute('tabindex', '0');
+        card.setAttribute('role', 'button');
+        card.setAttribute('aria-label', 'Xem chi tiết ' + field.name);
+
+        var sportMeta = S.getSportMeta(field.sportType);
+        var amenities = S.parseAmenities(field.amenities);
+        var visibleAmenities = amenities.slice(0, 3);
+        var extraAmenitiesCount = Math.max(0, amenities.length - 3);
+
+        var amenitiesHtml = visibleAmenities.map(function(tag) {
+            return '<span class="amenity-tag">' + S.escapeHtml(tag) + '</span>';
+        }).join('') + (extraAmenitiesCount > 0 ? '<span class="amenity-tag">+' + extraAmenitiesCount + '</span>' : '');
+
+        var statusBadge = field.isAvailable
+            ? '<span class="status-badge success"><i data-lucide="check-circle-2" aria-hidden="true"></i><span>Khả dụng</span></span>'
+            : '<span class="status-badge error"><i data-lucide="ban" aria-hidden="true"></i><span>Tạm ngưng</span></span>';
+
+        var locationText = field.location || field.city || 'Chưa cập nhật địa chỉ';
+        var bookDisabledAttr = field.isAvailable ? '' : ' disabled title="Sân hiện đang tạm ngưng nhận đặt"';
+
+        card.innerHTML =
+            '<div class="field-image-container">' +
+            '  ' + S.renderFieldMediaMarkup(field, 'field-image') +
+            '  <span class="field-sport-pill">' + sportMeta.iconSvg + '<span>' + S.escapeHtml(sportMeta.label) + '</span></span>' +
+            '  <div class="field-status-overlay">' + statusBadge + '</div>' +
+            '</div>' +
+            '<div class="field-content">' +
+            '  <div class="field-card-kicker">' +
+            '    <span>' + S.escapeHtml(field.city || 'Thủ Dầu Một') + '</span>' +
+            '    <span class="tabular-nums">Tối đa ' + S.escapeHtml(String(field.capacity || 0)) + ' người</span>' +
+            '  </div>' +
+            '  <h3 class="field-name">' + S.escapeHtml(field.name) + '</h3>' +
+            '  <div class="field-meta-list">' +
+            '    <div class="field-meta-item"><i data-lucide="map-pin" aria-hidden="true"></i><span>' + S.escapeHtml(locationText) + '</span></div>' +
+            '  </div>' +
+            (amenitiesHtml ? '<div class="field-amenities">' + amenitiesHtml + '</div>' : '') +
+            '  <div class="field-card-footer">' +
+            '    <div class="field-price-block">' +
+            '      <span class="field-price">' + S.formatCurrency(field.pricePerHour) + '₫</span>' +
+            '      <span class="field-price-unit">Mỗi giờ</span>' +
+            '    </div>' +
+            '    <div class="field-actions">' +
+            '      <button class="btn btn-secondary btn-sm field-detail-btn" type="button">Chi tiết</button>' +
+            '      <button class="btn btn-primary btn-sm field-book-btn" type="button"' + bookDisabledAttr + '>Đặt lịch</button>' +
+            '    </div>' +
+            '  </div>' +
+            '</div>';
+
+        card.querySelector('.field-detail-btn').addEventListener('click', function(e) {
+            e.stopPropagation();
+            openFieldModal(field);
+        });
+
+        card.querySelector('.field-book-btn').addEventListener('click', function(e) {
+            e.stopPropagation();
+            requestBookingForField(field);
+        });
+
+        card.addEventListener('click', function() {
+            openFieldModal(field);
+        });
+
+        card.addEventListener('keydown', function(e) {
+            if (e.target === card && (e.key === 'Enter' || e.key === ' ')) {
+                e.preventDefault();
+                openFieldModal(field);
+            }
+        });
+
+        return card;
+    }
+
+    // ===== Field Detail & Smart Booking Modal =====
+
+    function requestBookingForField(field) {
+        if (!field || !field.isAvailable) {
+            S.showToast('Sân này hiện đang tạm ngưng nhận đặt.', 'error');
+            return;
+        }
+
+        var session = S.loadAuthSession();
+        if (!session.currentUser) {
+            state.pendingBookingField = field;
+            S.openAuthModal('login', {
+                message: 'Đăng nhập để tiếp tục đặt sân "' + field.name + '".'
+            });
+            return;
+        }
+
+        openFieldModal(field, { focusBooking: true });
+    }
+
+    function openFieldModal(field, options) {
+        if (!field) return;
+        state.selectedField = field;
+        state.fieldBookings = [];
+        state.previouslyFocusedElement = document.activeElement;
+
+        var sportMeta = S.getSportMeta(field.sportType);
+        if (el.modalName) el.modalName.textContent = field.name;
+        if (el.modalSubtitle) {
+            el.modalSubtitle.textContent = [sportMeta.label, field.city, field.province].filter(Boolean).join(' · ');
+        }
+        if (el.modalMedia) {
+            el.modalMedia.innerHTML = S.renderFieldMediaMarkup(field, 'field-image');
+        }
+        if (el.modalLocation) {
+            el.modalLocation.textContent = [field.location, field.city, field.province].filter(Boolean).join(', ') || 'Chưa cập nhật';
+        }
+        if (el.modalSport) el.modalSport.textContent = sportMeta.label;
+        if (el.modalPrice) el.modalPrice.textContent = S.formatCurrency(field.pricePerHour);
+        if (el.modalCapacity) el.modalCapacity.textContent = String(field.capacity || 0);
+        if (el.modalStatus) {
+            el.modalStatus.textContent = field.isAvailable ? 'Đang mở đặt sân' : 'Tạm ngưng nhận lịch';
+        }
+        if (el.modalDescription) {
+            el.modalDescription.textContent = field.description || 'Sân đạt tiêu chuẩn tập luyện và thi đấu phong trào.';
+        }
+        if (el.modalAmenities) {
+            var tags = S.parseAmenities(field.amenities);
+            el.modalAmenities.innerHTML = tags.map(function(tag) {
+                return '<span class="amenity-tag">' + S.escapeHtml(tag) + '</span>';
+            }).join('');
+        }
+
+        prepareBookingForm(field);
+        showBookingFeedback('');
+
+        if (el.modal) {
+            el.modal.classList.remove('hidden');
+            el.modal.setAttribute('aria-hidden', 'false');
+        }
+        if (el.modalContent) el.modalContent.scrollTop = 0;
+        document.body.classList.add('modal-open');
+        state.modalOpen = true;
+        S.refreshIcons(el.modal);
+
+        loadFieldSchedule(field.id);
+
+        window.setTimeout(function() {
+            if (options && options.focusBooking && el.bookingDate) {
+                el.bookingDate.focus();
+            } else if (el.closeModalBtn) {
+                el.closeModalBtn.focus();
+            }
+        }, 20);
+    }
+
+    function closeModal() {
+        if (el.modal) {
+            el.modal.classList.add('hidden');
+            el.modal.setAttribute('aria-hidden', 'true');
+        }
+        if (!document.querySelector('.modal:not(.hidden)')) {
+            document.body.classList.remove('modal-open');
+        }
+        state.modalOpen = false;
+        state.selectedField = null;
+
+        if (state.previouslyFocusedElement && typeof state.previouslyFocusedElement.focus === 'function') {
+            state.previouslyFocusedElement.focus();
+        }
+    }
+
+    function prepareBookingForm(field) {
+        var today = new Date();
+        var defaultDate = (el.filterDate && el.filterDate.value)
+            ? el.filterDate.value
+            : S.formatDateForInput(new Date(today.getTime() + 24 * 60 * 60 * 1000));
+        var session = S.loadAuthSession();
+
+        if (el.bookingDate) {
+            el.bookingDate.min = S.formatDateForInput(today);
+            el.bookingDate.value = defaultDate;
+        }
+        if (el.bookingStartTime) {
+            el.bookingStartTime.value = (el.filterStartTime && el.filterStartTime.value) || '17:30';
+        }
+        if (el.bookingEndTime) {
+            el.bookingEndTime.value = (el.filterEndTime && el.filterEndTime.value) || '19:00';
+        }
+        if (el.bookingPhone) {
+            el.bookingPhone.value = (session.currentUser && session.currentUser.phone) || '';
+        }
+        if (el.bookingNotes) {
+            el.bookingNotes.value = '';
+        }
+        if (el.bookingHoldOnly) {
+            el.bookingHoldOnly.checked = false;
+        }
+        if (el.submitBookingBtn) {
+            el.submitBookingBtn.disabled = !field.isAvailable;
+        }
+
+        renderSlotTimeline();
+        updateBookingPricePreview();
+    }
+
+    function loadFieldSchedule(fieldId) {
+        if (!fieldId) return;
+        if (el.slotStatusSummary) el.slotStatusSummary.textContent = 'Đang tải lịch trống...';
+
+        S.apiRequest('/bookings/field/' + encodeURIComponent(fieldId), { method: 'GET', token: '' })
+            .then(function(list) {
+                state.fieldBookings = Array.isArray(list) ? list : [];
+                renderSlotTimeline();
+            })
+            .catch(function() {
+                state.fieldBookings = [];
+                if (el.slotStatusSummary) el.slotStatusSummary.textContent = 'Chưa tải được lịch sân';
+            });
+    }
+
+    function getActiveBookingsOnDate(dateStr) {
+        if (!dateStr) return [];
+        var nowMs = Date.now();
+        return state.fieldBookings.filter(function(b) {
+            if (!b || String(b.bookingDate || '').slice(0, 10) !== dateStr) return false;
+            var status = S.normalizeBookingStatus(b.status);
+            if (status === 'CANCELLED') return false;
+            if (status === 'HOLD' && b.holdExpiresAt) {
+                var exp = new Date(b.holdExpiresAt).getTime();
+                if (!isNaN(exp) && exp <= nowMs) return false;
+            }
+            return true;
+        });
+    }
+
+    function hasTimeOverlap(startA, endA, startB, endB) {
+        return S.formatTime(startA) < S.formatTime(endB) && S.formatTime(endA) > S.formatTime(startB);
+    }
+
+    function renderSlotTimeline() {
+        if (!el.slotPresets) return;
+        var dateStr = el.bookingDate ? el.bookingDate.value : '';
+        var activeBookings = getActiveBookingsOnDate(dateStr);
+
+        if (el.slotStatusSummary) {
+            el.slotStatusSummary.textContent = activeBookings.length
+                ? (activeBookings.length + ' khung giờ đã đặt')
+                : 'Trống cả ngày';
+        }
+
+        if (el.bookedSlotsWrapper && el.bookedSlotsList) {
+            if (activeBookings.length) {
+                el.bookedSlotsWrapper.classList.remove('hidden');
+                el.bookedSlotsList.innerHTML = activeBookings.map(function(b) {
+                    return '<span class="booked-slot-chip">' + S.escapeHtml(S.formatTimeRange(b.startTime, b.endTime)) + '</span>';
+                }).join('');
+            } else {
+                el.bookedSlotsWrapper.classList.add('hidden');
+                el.bookedSlotsList.innerHTML = '';
+            }
+        }
+
+        el.slotPresets.innerHTML = '';
+        SLOT_PRESETS.forEach(function(preset) {
+            var isBooked = activeBookings.some(function(b) {
+                return hasTimeOverlap(preset.start, preset.end, b.startTime, b.endTime);
+            });
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'slot-preset-btn' + (isBooked ? ' is-booked' : '');
+            btn.textContent = preset.label;
+            btn.disabled = isBooked;
+            btn.setAttribute('data-start', preset.start);
+            btn.setAttribute('data-end', preset.end);
+            btn.title = isBooked ? 'Khung giờ này đã có người đặt' : 'Chọn nhanh khung ' + preset.label;
+            btn.addEventListener('click', function() {
+                if (el.bookingStartTime) el.bookingStartTime.value = preset.start;
+                if (el.bookingEndTime) el.bookingEndTime.value = preset.end;
+                syncPresetButtonsActiveState();
+                updateBookingPricePreview();
+            });
+            el.slotPresets.appendChild(btn);
+        });
+
+        syncPresetButtonsActiveState();
+    }
+
+    function syncPresetButtonsActiveState() {
+        if (!el.slotPresets) return;
+        var currentStart = el.bookingStartTime ? el.bookingStartTime.value : '';
+        var currentEnd = el.bookingEndTime ? el.bookingEndTime.value : '';
+        Array.prototype.forEach.call(el.slotPresets.querySelectorAll('.slot-preset-btn'), function(btn) {
+            var matches = btn.getAttribute('data-start') === currentStart && btn.getAttribute('data-end') === currentEnd;
+            btn.classList.toggle('is-active', matches && !btn.disabled);
+        });
+    }
+
+    function updateBookingPricePreview() {
+        if (!state.selectedField) return;
+        var start = el.bookingStartTime ? el.bookingStartTime.value : '';
+        var end = el.bookingEndTime ? el.bookingEndTime.value : '';
+        var hours = S.getHoursBetweenTimes(start, end);
+        var total = S.calculateBookingTotal(state.selectedField.pricePerHour, start, end);
+
+        if (el.bookingDurationText) {
+            el.bookingDurationText.textContent = hours > 0
+                ? (Math.round(hours * 100) / 100) + ' giờ × ' + S.formatCurrency(state.selectedField.pricePerHour) + ' đ'
+                : 'Chọn giờ hợp lệ';
+        }
+        if (el.bookingTotalPreview) {
+            el.bookingTotalPreview.textContent = S.formatCurrency(total) + ' đ';
+        }
+    }
+
+    function handleBookingSubmit(e) {
+        e.preventDefault();
+        if (!state.selectedField) return;
+
+        if (!state.selectedField.isAvailable) {
+            showBookingFeedback('Sân này hiện đang tạm ngưng nhận đặt.', true);
+            return;
+        }
+
+        var bookingDate = el.bookingDate ? el.bookingDate.value : '';
+        var startTime = el.bookingStartTime ? el.bookingStartTime.value : '';
+        var endTime = el.bookingEndTime ? el.bookingEndTime.value : '';
+        var phone = el.bookingPhone ? el.bookingPhone.value.trim() : '';
+        var notes = el.bookingNotes ? el.bookingNotes.value.trim() : '';
+        var holdOnly = !!(el.bookingHoldOnly && el.bookingHoldOnly.checked);
+
+        var session = S.loadAuthSession();
+        if (!session.currentUser || !session.token) {
+            state.pendingBookingField = state.selectedField;
+            state.pendingBookingDraft = {
+                bookingDate: bookingDate,
+                startTime: startTime,
+                endTime: endTime,
+                phone: phone,
+                notes: notes,
+                holdOnly: holdOnly
+            };
+            closeModal();
+            S.openAuthModal('login', {
+                message: 'Đăng nhập để hoàn tất yêu cầu đặt sân.'
+            });
+            return;
+        }
+
+        if (!bookingDate || !startTime || !endTime || !phone) {
+            showBookingFeedback('Vui lòng nhập đầy đủ ngày đặt, khung giờ và số điện thoại.', true);
+            return;
+        }
+
+        if (endTime <= startTime) {
+            showBookingFeedback('Giờ kết thúc phải sau giờ bắt đầu.', true);
+            return;
+        }
+
+        if (!/^[0-9+\s().-]{9,15}$/.test(phone)) {
+            showBookingFeedback('Số điện thoại không hợp lệ (cần 9–15 chữ số).', true);
+            return;
+        }
+
+        var activeOnDate = getActiveBookingsOnDate(bookingDate);
+        var conflict = activeOnDate.find(function(b) {
+            return hasTimeOverlap(startTime, endTime, b.startTime, b.endTime);
+        });
+        if (conflict) {
+            showBookingFeedback('Khung giờ này trùng với lịch đã đặt (' + S.formatTimeRange(conflict.startTime, conflict.endTime) + '). Vui lòng chọn giờ khác.', true);
+            return;
+        }
+
+        showBookingFeedback('Đang gửi yêu cầu đặt sân...', false);
+        if (el.submitBookingBtn) el.submitBookingBtn.disabled = true;
+
+        S.apiRequest('/bookings', {
+            method: 'POST',
+            token: session.token,
+            body: JSON.stringify({
+                fieldId: state.selectedField.id,
+                bookingDate: bookingDate,
+                startTime: startTime,
+                endTime: endTime,
+                customerPhone: phone,
+                notes: notes,
+                holdOnly: holdOnly
+            })
+        })
+            .then(function() {
+                S.showToast(holdOnly ? 'Đã giữ chỗ tạm trong 10 phút!' : 'Gửi yêu cầu đặt sân thành công!', 'success');
+                showBookingFeedback('Đã tạo lịch thành công. Bạn có thể theo dõi trong mục Lịch của tôi.', false);
+                window.setTimeout(closeModal, 900);
+            })
+            .catch(function(err) {
+                showBookingFeedback(err.message || 'Không thể tạo booking. Vui lòng thử lại.', true);
+            })
+            .then(function() {
+                if (el.submitBookingBtn && state.selectedField) {
+                    el.submitBookingBtn.disabled = !state.selectedField.isAvailable;
                 }
             });
-
-            setActiveLink(activeSectionId);
-        });
     }
 
-    setActiveLink('home');
-}
-
-// ================================================================
-// UI Helpers
-// ================================================================
-
-function showLoading(show) {
-    if (!elements.loading) {
-        return;
-    }
-
-    elements.loading.classList.toggle('hidden', !show);
-    if (elements.resultSection) {
-        elements.resultSection.classList.toggle('hidden', !!show);
-    }
-    if (elements.statsSection) {
-        elements.statsSection.classList.toggle('hidden', true);
-    }
-    syncStateSectionVisibility();
-}
-
-function showError(message, canRetry) {
-    if (!elements.errorMessage || !elements.errorText) {
-        return;
-    }
-
-    elements.errorText.textContent = message;
-    elements.errorMessage.classList.remove('hidden');
-    setRetryButtonsVisible(!!canRetry);
-    syncStateSectionVisibility();
-}
-
-function hideError() {
-    if (!elements.errorMessage) {
-        return;
-    }
-
-    elements.errorMessage.classList.add('hidden');
-    setRetryButtonsVisible(false);
-    syncStateSectionVisibility();
-}
-
-function closeError() {
-    hideError();
-}
-
-function setRetryButtonsVisible(visible) {
-    if (elements.retryButton) {
-        elements.retryButton.classList.toggle('hidden', !visible);
-    }
-    if (elements.errorRetryButton) {
-        elements.errorRetryButton.classList.toggle('hidden', !visible);
-    }
-}
-
-function showNoResults(show, message) {
-    if (!elements.noResults) {
-        return;
-    }
-
-    elements.noResults.classList.toggle('hidden', !show);
-    if (show && elements.noResultsText && message) {
-        elements.noResultsText.textContent = message;
-    }
-    syncStateSectionVisibility();
-}
-
-function updateStatistics() {
-    var totalFields = state.filteredFields.length;
-    var availableFields = state.filteredFields.filter(function(field) {
-        return field.isAvailable;
-    }).length;
-
-    if (elements.totalFields) {
-        elements.totalFields.textContent = totalFields;
-    }
-
-    if (elements.availableFields) {
-        elements.availableFields.textContent = availableFields;
-    }
-
-    if (elements.resultSection) {
-        elements.resultSection.classList.toggle('hidden', totalFields === 0);
-    }
-
-    if (elements.statsSection) {
-        elements.statsSection.classList.toggle('hidden', totalFields === 0);
-    }
-}
-
-function syncStateSectionVisibility() {
-    if (!elements.stateSection) {
-        return;
-    }
-
-    var hasVisibleLoading = elements.loading && !elements.loading.classList.contains('hidden');
-    var hasVisibleError = elements.errorMessage && !elements.errorMessage.classList.contains('hidden');
-    var hasVisibleEmpty = elements.noResults && !elements.noResults.classList.contains('hidden');
-
-    elements.stateSection.classList.toggle('hidden', !(hasVisibleLoading || hasVisibleError || hasVisibleEmpty));
-}
-
-function syncAuthenticatedUser() {
-    if (!state.authToken) {
-        return;
-    }
-
-    fetch(AUTH_ME_ENDPOINT, {
-        method: 'GET',
-        headers: createAuthHeaders()
-    })
-        .then(handleJsonResponse)
-        .then(function(user) {
-            if (!user) {
-                throw new Error('Không thể tải hồ sơ người dùng.');
-            }
-
-            persistAuthSession(user, state.authToken);
-            renderAuthState();
-        })
-        .catch(function(error) {
-            console.warn('Could not restore authenticated session:', error);
-            clearAuthSession();
-        });
-}
-
-function createAuthHeaders(extraHeaders) {
-    var headers = {
-        Accept: 'application/json'
-    };
-
-    if (state.authToken) {
-        headers.Authorization = 'Bearer ' + state.authToken;
-    }
-
-    if (extraHeaders && typeof extraHeaders === 'object') {
-        Object.keys(extraHeaders).forEach(function(key) {
-            headers[key] = extraHeaders[key];
-        });
-    }
-
-    return headers;
-}
-
-function handleJsonResponse(response) {
-    if (!response.ok) {
-        return response.json()
-            .catch(function() {
-                return {};
-            })
-            .then(function(errorBody) {
-                var error = new Error(errorBody.message || ('HTTP error! status: ' + response.status));
-                error.status = response.status;
-                error.isBackendError = true;
-                throw error;
-            });
-    }
-
-    return response.json();
-}
-
-// ================================================================
-// Utility Functions
-// ================================================================
-
-function trimTrailingSlash(value) {
-    return String(value || '').replace(/\/+$/, '');
-}
-
-function renderLucideIcon(name, className) {
-    var resolvedClassName = className ? ' ' + className : '';
-    return '<i data-lucide="' + escapeHtml(name) + '" class="lucide-icon' + resolvedClassName + '"></i>';
-}
-
-function refreshLucideIcons(root) {
-    if (!window.lucide || typeof window.lucide.createIcons !== 'function') {
-        return;
-    }
-
-    if (root) {
-        window.lucide.createIcons({
-            attrs: {
-                'stroke-width': 1.8
-            },
-            root: root
-        });
-        return;
-    }
-
-    window.lucide.createIcons({
-        attrs: {
-            'stroke-width': 1.8
+    function showBookingFeedback(message, isError) {
+        if (!el.bookingFeedback) return;
+        if (!message) {
+            el.bookingFeedback.textContent = '';
+            el.bookingFeedback.className = 'booking-feedback hidden';
+            return;
         }
-    });
-}
-
-function formatPrice(price) {
-    var numericPrice = Number(price);
-    if (!Number.isFinite(numericPrice)) {
-        numericPrice = 0;
+        el.bookingFeedback.textContent = message;
+        el.bookingFeedback.className = 'booking-feedback ' + (isError ? 'error' : 'success');
     }
 
-    return new Intl.NumberFormat('vi-VN').format(numericPrice);
-}
-
-function escapeHtml(text) {
-    if (text == null) {
-        return '';
+    function restoreBookingDraft(draft) {
+        if (!draft) return;
+        if (el.bookingDate && draft.bookingDate) el.bookingDate.value = draft.bookingDate;
+        if (el.bookingStartTime && draft.startTime) el.bookingStartTime.value = draft.startTime;
+        if (el.bookingEndTime && draft.endTime) el.bookingEndTime.value = draft.endTime;
+        if (el.bookingPhone && draft.phone) el.bookingPhone.value = draft.phone;
+        if (el.bookingNotes && draft.notes) el.bookingNotes.value = draft.notes;
+        if (el.bookingHoldOnly && typeof draft.holdOnly === 'boolean') el.bookingHoldOnly.checked = draft.holdOnly;
+        renderSlotTimeline();
+        updateBookingPricePreview();
     }
 
-    return String(text).replace(/[&<>"']/g, function(character) {
-        var map = {
-            '&': '&amp;',
-            '<': '&lt;',
-            '>': '&gt;',
-            '"': '&quot;',
-            "'": '&#039;'
-        };
-        return map[character];
-    });
-}
+    function handleAuthSuccess() {
+        if (state.pendingBookingField) {
+            var field = state.pendingBookingField;
+            var draft = state.pendingBookingDraft;
+            state.pendingBookingField = null;
+            state.pendingBookingDraft = null;
+            window.setTimeout(function() {
+                openFieldModal(field, { focusBooking: true });
+                restoreBookingDraft(draft);
+            }, 80);
+        }
+    }
 
-function formatDateForInput(date) {
-    var year = date.getFullYear();
-    var month = String(date.getMonth() + 1).padStart(2, '0');
-    var day = String(date.getDate()).padStart(2, '0');
-    return year + '-' + month + '-' + day;
-}
+    function handleAfterLogout() {
+        state.pendingBookingField = null;
+        state.pendingBookingDraft = null;
+    }
 
-function formatDate(dateString) {
-    return new Date(dateString).toLocaleDateString('vi-VN', {
-        year: 'numeric',
-        month: 'long',
-        day: 'numeric'
-    });
-}
+    // ===== Interactive Local Field Finder Assistant =====
 
-// ================================================================
-// Debug Hooks
-// ================================================================
+    function toggleChatbot() {
+        if (!el.chatbotPanel) return;
+        if (state.chatbotOpen) {
+            closeChatbot();
+        } else {
+            state.chatbotOpen = true;
+            el.chatbotPanel.classList.remove('hidden');
+            window.setTimeout(function() {
+                if (el.chatbotInput) el.chatbotInput.focus();
+            }, 20);
+        }
+    }
 
-window.addEventListener('error', function(event) {
-    console.error('Global error caught:', event.error);
-});
+    function closeChatbot() {
+        if (!el.chatbotPanel) return;
+        state.chatbotOpen = false;
+        el.chatbotPanel.classList.add('hidden');
+    }
 
-window.addEventListener('unhandledrejection', function(event) {
-    console.error('Unhandled promise rejection:', event.reason);
-});
+    function handleChatbotSubmit(e) {
+        e.preventDefault();
+        if (!el.chatbotInput) return;
+        var text = el.chatbotInput.value.trim();
+        if (!text) return;
+        el.chatbotInput.value = '';
+        processAssistantQuery(text);
+    }
 
-console.log('SportHub Frontend v1.0 loaded');
+    function processAssistantQuery(query) {
+        appendChatBubble('user', query);
+        var lower = query.toLowerCase();
+
+        if (/hướng dẫn|cách đặt|hủy|huỷ/.test(lower)) {
+            appendChatBubble('bot', 'Để đặt sân: Chọn sân -> Chọn ngày để xem các khung giờ đã có người đặt -> Nhập giờ bắt đầu/kết thúc và SĐT -> Gửi yêu cầu. Bạn có thể sửa hoặc hủy (cần nhập lý do) tại trang "Lịch của tôi".');
+            return;
+        }
+
+        var sportMatch = null;
+        if (/bóng đá|futsal|5v5|7v7/.test(lower)) sportMatch = 'FOOTBALL';
+        else if (/bóng chuyền/.test(lower)) sportMatch = 'VOLLEYBALL';
+        else if (/cầu lông/.test(lower)) sportMatch = 'BADMINTON';
+        else if (/bóng rổ|3v3/.test(lower)) sportMatch = 'BASKETBALL';
+        else if (/tennis/.test(lower)) sportMatch = 'TENNIS';
+
+        var maxBudget = null;
+        var priceRegex = lower.match(/(\d+)\s*(k|nghìn|nghin)/);
+        if (priceRegex) {
+            maxBudget = Number(priceRegex[1]) * 1000;
+        }
+
+        var candidates = state.allFields.filter(function(f) {
+            if (!f.isAvailable) return false;
+            if (sportMatch && f.sportType !== sportMatch) return false;
+            if (maxBudget && f.pricePerHour > maxBudget) return false;
+            if (!sportMatch && !maxBudget) {
+                var blob = (f.name + ' ' + f.location + ' ' + f.amenities + ' ' + S.getSportMeta(f.sportType).label).toLowerCase();
+                return lower.split(/\s+/).some(function(word) {
+                    return word.length >= 2 && blob.indexOf(word) !== -1;
+                });
+            }
+            return true;
+        }).slice(0, 4);
+
+        if (!candidates.length) {
+            appendChatBubble('bot', 'Mình chưa tìm thấy sân khả dụng khớp yêu cầu "' + query + '". Bạn thử chọn môn thể thao hoặc mức giá cao hơn nhé.');
+            return;
+        }
+
+        appendChatSuggestions(
+            'Mình tìm thấy ' + candidates.length + ' sân phù hợp (bấm vào sân để xem lịch trống):',
+            candidates
+        );
+    }
+
+    function appendChatBubble(role, text) {
+        if (!el.chatbotMessages) return;
+        var item = document.createElement('article');
+        item.className = 'chatbot-message ' + (role === 'user' ? 'user' : 'bot');
+        var p = document.createElement('p');
+        p.textContent = text;
+        item.appendChild(p);
+        el.chatbotMessages.appendChild(item);
+        el.chatbotMessages.scrollTop = el.chatbotMessages.scrollHeight;
+    }
+
+    function appendChatSuggestions(introText, fields) {
+        if (!el.chatbotMessages) return;
+        var item = document.createElement('article');
+        item.className = 'chatbot-message bot';
+
+        var p = document.createElement('p');
+        p.textContent = introText;
+        item.appendChild(p);
+
+        var list = document.createElement('div');
+        list.className = 'chatbot-suggestion-list';
+
+        fields.forEach(function(field) {
+            var btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'chatbot-suggestion-btn';
+            btn.innerHTML = '<span>' + S.escapeHtml(field.name) + '</span><strong class="tabular-nums">' + S.formatCurrency(field.pricePerHour) + 'đ</strong>';
+            btn.addEventListener('click', function() {
+                closeChatbot();
+                openFieldModal(field, { focusBooking: true });
+            });
+            list.appendChild(btn);
+        });
+
+        item.appendChild(list);
+        el.chatbotMessages.appendChild(item);
+        el.chatbotMessages.scrollTop = el.chatbotMessages.scrollHeight;
+    }
+
+    // ===== Helpers & UI State =====
+
+    function showLoading(show) {
+        if (el.loading) el.loading.classList.toggle('hidden', !show);
+        if (el.fieldsGrid) el.fieldsGrid.classList.toggle('hidden', !!show);
+        syncStateSectionVisibility();
+    }
+
+    function showError(message) {
+        if (!el.errorMessage || !el.errorText) return;
+        el.errorText.textContent = message;
+        el.errorMessage.classList.remove('hidden');
+        syncStateSectionVisibility();
+    }
+
+    function hideError() {
+        if (!el.errorMessage) return;
+        el.errorMessage.classList.add('hidden');
+        syncStateSectionVisibility();
+    }
+
+    function showNoResults(show) {
+        if (!el.noResults) return;
+        el.noResults.classList.toggle('hidden', !show);
+        syncStateSectionVisibility();
+    }
+
+    function syncStateSectionVisibility() {
+        if (!el.stateSection) return;
+        var visible = (el.loading && !el.loading.classList.contains('hidden')) ||
+            (el.errorMessage && !el.errorMessage.classList.contains('hidden')) ||
+            (el.noResults && !el.noResults.classList.contains('hidden'));
+        el.stateSection.classList.toggle('hidden', !visible);
+    }
+
+    function updateSectionNavigation() {
+        var navLinks = Array.prototype.slice.call(document.querySelectorAll('.nav-links a[href^="#"]'));
+        var sectionIds = ['home', 'fields', 'about', 'contact'];
+        var sections = sectionIds.map(function(id) { return document.getElementById(id); }).filter(Boolean);
+
+        function setActive(id) {
+            navLinks.forEach(function(link) {
+                link.classList.toggle('active', link.getAttribute('href') === '#' + id);
+            });
+        }
+
+        if ('IntersectionObserver' in window) {
+            var observer = new IntersectionObserver(function(entries) {
+                var visible = entries.filter(function(en) { return en.isIntersecting; })
+                    .sort(function(a, b) { return b.intersectionRatio - a.intersectionRatio; })[0];
+                if (visible && visible.target && visible.target.id) {
+                    setActive(visible.target.id);
+                }
+            }, { threshold: [0.25, 0.5], rootMargin: '-15% 0px -55% 0px' });
+
+            sections.forEach(function(sec) { observer.observe(sec); });
+        }
+    }
+})();

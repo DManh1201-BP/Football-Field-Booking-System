@@ -1,0 +1,424 @@
+/* ===== Matchmaking & Live Scoreboard Arena ===== */
+
+.matches-page .page-shell {
+    padding: var(--space-5) 0 var(--space-7);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-5);
+}
+
+.matches-hero {
+    padding: clamp(24px, 3.5vw, 38px);
+    border-radius: var(--radius-xl);
+    background:
+        radial-gradient(ellipse 55% 75% at 88% 18%, rgba(198, 246, 38, 0.16), transparent 65%),
+        var(--bg-surface);
+    border: 1px solid var(--border-strong);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-4);
+    flex-wrap: wrap;
+}
+
+.matches-hero h1 {
+    font-family: var(--font-display);
+    font-size: clamp(2.3rem, 4vw, 3.4rem);
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.01em;
+    line-height: 0.98;
+    color: #ffffff;
+    margin-top: 6px;
+}
+
+.matches-hero h1 em {
+    font-style: normal;
+    color: var(--accent);
+}
+
+.matches-hero p:not(.eyebrow) {
+    color: var(--text-muted);
+    max-width: 580px;
+    margin-top: 10px;
+    font-size: 0.94rem;
+}
+
+.matches-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1.55fr) minmax(320px, 0.85fr);
+    gap: 24px;
+    align-items: start;
+}
+
+.matches-layout > * {
+    min-width: 0;
+}
+
+.matches-leaderboard-aside {
+    position: sticky;
+    top: 90px;
+}
+
+.match-filter-bar {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    padding: 16px;
+    border-radius: var(--radius-lg);
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+}
+
+.matches-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+    gap: 18px;
+    margin-top: 18px;
+}
+
+/* ===== Broadcast Scoreboard Matchup Card ===== */
+
+.match-card {
+    background: var(--bg-surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    box-shadow: var(--shadow-sm);
+    transition: transform var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.match-card:hover {
+    border-color: var(--border-volt);
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-md), 0 0 28px -10px rgba(198, 246, 38, 0.2);
+}
+
+.match-card-head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.match-card-title {
+    font-family: var(--font-display);
+    font-size: 1.45rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.01em;
+    color: #ffffff;
+    line-height: 1.08;
+}
+
+.match-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.match-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 10px;
+    border-radius: var(--radius-full);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--text-secondary);
+}
+
+.match-chip.sport {
+    background: #0b0d09;
+    border-color: var(--border-strong);
+    color: var(--accent);
+}
+
+.match-chip.sport svg {
+    width: 12px;
+    height: 12px;
+}
+
+/* Scoreboard Ticker Duel Box ("EAGLES 17 : 24 PATRIOTS" Style) */
+
+.match-players-box {
+    padding: 16px 14px;
+    border-radius: var(--radius-md);
+    background: #0e110b;
+    border: 1px solid var(--border);
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+    align-items: center;
+    gap: 10px;
+}
+
+.match-player-slot {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    min-width: 0;
+}
+
+.match-player-slot.is-challenger {
+    text-align: right;
+    align-items: flex-end;
+}
+
+.match-player-head {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+    max-width: 100%;
+}
+
+.match-player-slot.is-challenger .match-player-head {
+    flex-direction: row-reverse;
+}
+
+.match-player-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-full);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border-strong);
+    color: var(--accent);
+    font-size: 0.72rem;
+    font-weight: 800;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.match-player-avatar.challenger {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: var(--text-on-volt);
+}
+
+.match-player-avatar.open {
+    background: transparent;
+    border: 1.5px dashed var(--border-strong);
+    color: var(--text-subtle);
+}
+
+.match-player-name {
+    font-family: var(--font-display);
+    font-size: 1.05rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+    color: #ffffff;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.match-player-name.muted {
+    color: var(--text-subtle);
+    font-weight: 700;
+}
+
+.match-player-sub {
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    color: var(--text-muted);
+}
+
+.match-vs-badge {
+    padding: 5px 10px;
+    border-radius: var(--radius-full);
+    border: 1px solid var(--border-strong);
+    background: var(--bg-elevated);
+    font-family: var(--font-display);
+    font-size: 0.9rem;
+    font-weight: 800;
+    letter-spacing: 0.05em;
+    color: var(--accent);
+}
+
+.match-score-pill {
+    padding: 5px 13px;
+    border-radius: var(--radius-full);
+    background: var(--accent);
+    color: var(--text-on-volt);
+    font-family: var(--font-display);
+    font-size: 1.35rem;
+    font-weight: 800;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+}
+
+.match-notes {
+    font-size: 0.84rem;
+    color: var(--text-muted);
+    padding: 8px 12px;
+    border-radius: var(--radius-xs);
+    background: var(--bg-elevated);
+    border-left: 3px solid var(--accent);
+}
+
+.match-card-footer {
+    margin-top: auto;
+    padding-top: 12px;
+    border-top: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+/* ===== Top Players Elo Leaderboard (Volt #1 Podium) ===== */
+
+.leaderboard-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.leaderboard-row {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 12px 14px;
+    border-radius: var(--radius-md);
+    background: var(--bg-elevated);
+    border: 1px solid var(--border);
+    transition: transform var(--transition-fast), border-color var(--transition-fast);
+}
+
+.leaderboard-row:hover {
+    border-color: var(--border-volt);
+    transform: translateX(3px);
+}
+
+/* Rank #1 Lights Up in Signature Electric Volt */
+.leaderboard-row.rank-1 {
+    background: var(--accent);
+    border-color: var(--accent);
+    box-shadow: var(--glow-volt);
+}
+
+.leaderboard-rank {
+    width: 28px;
+    height: 28px;
+    border-radius: var(--radius-full);
+    background: #0b0d09;
+    color: #ffffff;
+    font-family: var(--font-display);
+    font-size: 0.95rem;
+    font-weight: 800;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.leaderboard-row.rank-1 .leaderboard-rank {
+    background: #0b0d09;
+    color: var(--accent);
+}
+
+.leaderboard-row.rank-2 .leaderboard-rank {
+    border: 1px solid rgba(255, 255, 255, 0.35);
+}
+
+.leaderboard-row.rank-3 .leaderboard-rank {
+    border: 1px solid rgba(250, 204, 21, 0.45);
+    color: var(--warning);
+}
+
+.leaderboard-avatar {
+    width: 32px;
+    height: 32px;
+    border-radius: var(--radius-full);
+    background: var(--bg-surface);
+    border: 1px solid var(--border-strong);
+    color: #ffffff;
+    font-size: 0.72rem;
+    font-weight: 800;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.leaderboard-row.rank-1 .leaderboard-avatar {
+    background: #0b0d09;
+    border-color: #0b0d09;
+    color: #ffffff;
+}
+
+.leaderboard-info {
+    flex: 1;
+    min-width: 0;
+}
+
+.leaderboard-info strong {
+    display: block;
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: #ffffff;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.leaderboard-row.rank-1 .leaderboard-info strong {
+    color: var(--text-on-volt);
+    font-weight: 800;
+}
+
+.leaderboard-info span {
+    display: block;
+    font-size: 0.73rem;
+    color: var(--text-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.leaderboard-row.rank-1 .leaderboard-info span {
+    color: rgba(11, 13, 9, 0.72);
+    font-weight: 600;
+}
+
+.leaderboard-elo {
+    font-family: var(--font-display);
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: var(--accent);
+    font-variant-numeric: tabular-nums;
+    flex-shrink: 0;
+}
+
+.leaderboard-row.rank-1 .leaderboard-elo {
+    color: var(--text-on-volt);
+}
+
+@media (max-width: 1024px) {
+    .matches-layout {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .matches-leaderboard-aside {
+        position: static;
+    }
+
+    .match-filter-bar {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 640px) {
+    .match-filter-bar,
+    .matches-grid {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}

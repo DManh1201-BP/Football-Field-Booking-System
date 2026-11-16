@@ -1,9 +1,24 @@
 (function() {
+    'use strict';
+
     function initHomeUi() {
         var select = document.getElementById('sport-filter');
         var resetButton = document.getElementById('reset-btn');
+        var emptyResetButton = document.getElementById('empty-reset-btn');
         var chips = document.querySelectorAll('.sport-chip');
-        var tiles = document.querySelectorAll('.sport-tile');
+        var toggleAdvBtn = document.getElementById('toggle-advanced-filters');
+        var advPanel = document.getElementById('advanced-filters-panel');
+
+        // Inject crisp SVG sport icons into category chips
+        if (window.SportHubShared) {
+            Array.prototype.forEach.call(document.querySelectorAll('[data-sport-svg]'), function(slot) {
+                var sportKey = slot.getAttribute('data-sport-svg');
+                var meta = window.SportHubShared.getSportMeta(sportKey);
+                if (meta && meta.iconSvg) {
+                    slot.innerHTML = meta.iconSvg;
+                }
+            });
+        }
 
         if (!select) {
             return;
@@ -11,7 +26,7 @@
 
         function syncChips() {
             Array.prototype.forEach.call(chips, function(chip) {
-                var isActive = chip.getAttribute('data-sport') === select.value;
+                var isActive = (chip.getAttribute('data-sport') || '') === select.value;
                 chip.classList.toggle('active', isActive);
                 chip.setAttribute('aria-pressed', String(isActive));
             });
@@ -29,21 +44,24 @@
             });
         });
 
-        Array.prototype.forEach.call(tiles, function(tile) {
-            tile.addEventListener('click', function() {
-                setSport(tile.getAttribute('data-sport') || '');
-                var results = document.getElementById('fields');
-                if (results) {
-                    results.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                }
-            });
-        });
-
         select.addEventListener('change', syncChips);
 
         if (resetButton) {
             resetButton.addEventListener('click', function() {
-                setTimeout(syncChips, 0);
+                window.setTimeout(syncChips, 0);
+            });
+        }
+
+        if (emptyResetButton) {
+            emptyResetButton.addEventListener('click', function() {
+                window.setTimeout(syncChips, 0);
+            });
+        }
+
+        if (toggleAdvBtn && advPanel) {
+            toggleAdvBtn.addEventListener('click', function() {
+                var isHidden = advPanel.classList.toggle('hidden');
+                toggleAdvBtn.setAttribute('aria-expanded', String(!isHidden));
             });
         }
 

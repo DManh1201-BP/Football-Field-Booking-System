@@ -1,723 +1,565 @@
-var bookingsConfig = getSportHubConfig();
-var bookingsApiBaseUrl = String(bookingsConfig.apiBaseUrl || 'http://localhost:8081/api').replace(/\/+$/, '');
-var bookingsSessionKey = 'sporthubAuthSession';
+(function() {
+    'use strict';
 
-var bookingsState = {
-    token: '',
-    currentUser: null,
-    bookings: [],
-    editingBooking: null,
-    cancelingBooking: null,
-    lastFocused: null,
-    feedbackTimer: null
-};
+    var S = window.SportHubShared;
 
-var bookingsElements = {};
+    var state = {
+        bookings: [],
+        historyFilter: 'ALL',
+        historyQuery: '',
+        editingBooking: null,
+        editingFieldBookings: [],
+        cancelingBooking: null,
+        lastFocused: null
+    };
 
-document.addEventListener('DOMContentLoaded', initMyBookingsPage);
+    var el = {};
 
-function initMyBookingsPage() {
-    cacheBookingsElements();
-    bindBookingsEvents();
-    refreshBookingsIcons();
-    hydrateBookingsSession();
-}
+    document.addEventListener('DOMContentLoaded', initPage);
 
-function cacheBookingsElements() {
-    bookingsElements.sessionText = document.getElementById('bookings-session-text');
-    bookingsElements.accessAlert = document.getElementById('bookings-access-alert');
-    bookingsElements.accessText = document.getElementById('bookings-access-text');
-    bookingsElements.logoutButton = document.getElementById('bookings-logout-btn');
-    bookingsElements.bookingCount = document.getElementById('customer-booking-count');
-    bookingsElements.confirmedCount = document.getElementById('customer-confirmed-count');
-    bookingsElements.pendingCount = document.getElementById('customer-pending-count');
-    bookingsElements.bookingsBody = document.getElementById('customer-bookings-body');
+    function initPage() {
+        cacheElements();
+        S.initSharedNavbar({
+            onAuthSuccess: verifyAndLoadBookings,
+            onLogout: function() {
+                showUnauthenticated('Bạn đã đăng xuất. Đăng nhập lại để xem lịch đặt sân.');
+            }
+        });
+        bindEvents();
+        verifyAndLoadBookings();
+    }
 
-    bookingsElements.currentList = document.getElementById('current-bookings-list');
-    bookingsElements.currentFeedback = document.getElementById('current-bookings-feedback');
+    function cacheElements() {
+        el.sessionText = document.getElementById('bookings-session-text');
+        el.accessAlert = document.getElementById('bookings-access-alert');
+        el.accessText = document.getElementById('bookings-access-text');
+        el.content = document.getElementById('bookings-content');
+        el.refreshBtn = document.getElementById('refresh-bookings-btn');
 
-    bookingsElements.editModal = document.getElementById('edit-booking-modal');
-    bookingsElements.editForm = document.getElementById('edit-booking-form');
-    bookingsElements.editSummary = document.getElementById('edit-booking-summary');
-    bookingsElements.editDate = document.getElementById('edit-booking-date');
-    bookingsElements.editStart = document.getElementById('edit-booking-start');
-    bookingsElements.editEnd = document.getElementById('edit-booking-end');
-    bookingsElements.editPhone = document.getElementById('edit-booking-phone');
-    bookingsElements.editNotes = document.getElementById('edit-booking-notes');
-    bookingsElements.editFeedback = document.getElementById('edit-booking-feedback');
-    bookingsElements.editSubmit = document.getElementById('edit-booking-submit');
+        el.totalCount = document.getElementById('customer-booking-count');
+        el.upcomingCount = document.getElementById('customer-upcoming-count');
+        el.confirmedCount = document.getElementById('customer-confirmed-count');
+        el.pendingCount = document.getElementById('customer-pending-count');
 
-    bookingsElements.cancelModal = document.getElementById('cancel-booking-modal');
-    bookingsElements.cancelForm = document.getElementById('cancel-booking-form');
-    bookingsElements.cancelSummary = document.getElementById('cancel-booking-summary');
-    bookingsElements.cancelReason = document.getElementById('cancel-booking-reason');
-    bookingsElements.cancelFeedback = document.getElementById('cancel-booking-feedback');
-    bookingsElements.cancelSubmit = document.getElementById('cancel-booking-submit');
-}
+        el.currentList = document.getElementById('current-bookings-list');
+        el.currentFeedback = document.getElementById('current-bookings-feedback');
+        el.bookingsBody = document.getElementById('customer-bookings-body');
+        el.mobileHistoryList = document.getElementById('mobile-history-list');
+        el.historySearchInput = document.getElementById('history-search-input');
 
-function bindBookingsEvents() {
-    if (bookingsElements.logoutButton) {
-        bookingsElements.logoutButton.addEventListener('click', function() {
-            localStorage.removeItem(bookingsSessionKey);
-            window.location.href = 'index.html';
+        el.editModal = document.getElementById('edit-booking-modal');
+        el.editForm = document.getElementById('edit-booking-form');
+        el.editSummary = document.getElementById('edit-booking-summary');
+        el.editSlotConflictBox = document.getElementById('edit-slot-conflict-box');
+        el.editBookedSlotsList = document.getElementById('edit-booked-slots-list');
+        el.editDate = document.getElementById('edit-booking-date');
+        el.editStart = document.getElementById('edit-booking-start');
+        el.editEnd = document.getElementById('edit-booking-end');
+        el.editPhone = document.getElementById('edit-booking-phone');
+        el.editNotes = document.getElementById('edit-booking-notes');
+        el.editDurationText = document.getElementById('edit-duration-text');
+        el.editPricePreview = document.getElementById('edit-price-preview');
+        el.editFeedback = document.getElementById('edit-booking-feedback');
+        el.editSubmit = document.getElementById('edit-booking-submit');
+
+        el.cancelModal = document.getElementById('cancel-booking-modal');
+        el.cancelForm = document.getElementById('cancel-booking-form');
+        el.cancelSummary = document.getElementById('cancel-booking-summary');
+        el.cancelReason = document.getElementById('cancel-booking-reason');
+        el.cancelFeedback = document.getElementById('cancel-booking-feedback');
+        el.cancelSubmit = document.getElementById('cancel-booking-submit');
+    }
+
+    function bindEvents() {
+        if (el.refreshBtn) {
+            el.refreshBtn.addEventListener('click', function() {
+                loadMyBookings(false);
+            });
+        }
+
+        if (el.currentList) {
+            el.currentList.addEventListener('click', handleCurrentListClick);
+        }
+
+        if (el.historySearchInput) {
+            el.historySearchInput.addEventListener('input', function() {
+                state.historyQuery = this.value;
+                renderHistory();
+            });
+        }
+
+        Array.prototype.forEach.call(document.querySelectorAll('[data-history-filter]'), function(tab) {
+            tab.addEventListener('click', function() {
+                state.historyFilter = tab.getAttribute('data-history-filter') || 'ALL';
+                Array.prototype.forEach.call(document.querySelectorAll('[data-history-filter]'), function(t) {
+                    t.classList.toggle('active', t === tab);
+                });
+                renderHistory();
+            });
+        });
+
+        if (el.editForm) el.editForm.addEventListener('submit', handleEditSubmit);
+        if (el.cancelForm) el.cancelForm.addEventListener('submit', handleCancelSubmit);
+
+        if (el.editDate) {
+            el.editDate.addEventListener('change', renderEditBookedSlots);
+        }
+        if (el.editStart) el.editStart.addEventListener('input', updateEditPricePreview);
+        if (el.editEnd) el.editEnd.addEventListener('input', updateEditPricePreview);
+
+        [el.editModal, el.cancelModal].forEach(function(modal) {
+            if (!modal) return;
+            modal.addEventListener('click', function(e) {
+                if (e.target === modal || (e.target.closest && e.target.closest('[data-close-modal]'))) {
+                    closeModal(modal);
+                }
+            });
+        });
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeModal(el.editModal);
+                closeModal(el.cancelModal);
+            }
         });
     }
 
-    if (bookingsElements.currentList) {
-        bookingsElements.currentList.addEventListener('click', handleCurrentListClick);
-    }
-
-    if (bookingsElements.editForm) {
-        bookingsElements.editForm.addEventListener('submit', handleEditSubmit);
-    }
-
-    if (bookingsElements.cancelForm) {
-        bookingsElements.cancelForm.addEventListener('submit', handleCancelSubmit);
-    }
-
-    if (bookingsElements.cancelReason) {
-        bookingsElements.cancelReason.addEventListener('input', function() {
-            hideInlineFeedback(bookingsElements.cancelFeedback);
-        });
-    }
-
-    if (bookingsElements.editForm) {
-        bookingsElements.editForm.addEventListener('input', function() {
-            hideInlineFeedback(bookingsElements.editFeedback);
-        });
-    }
-
-    [bookingsElements.editModal, bookingsElements.cancelModal].forEach(function(modal) {
-        if (!modal) {
+    function verifyAndLoadBookings() {
+        var session = S.loadAuthSession();
+        if (!session.token) {
+            showUnauthenticated('Vui lòng đăng nhập tài khoản để xem và quản lý các lịch đặt sân của bạn.');
             return;
         }
 
-        modal.addEventListener('click', function(event) {
-            if (event.target === modal || (event.target.closest && event.target.closest('[data-close-modal]'))) {
-                closeBookingsModal(modal);
-            }
-        });
-    });
-
-    document.addEventListener('keydown', function(event) {
-        if (event.key === 'Escape') {
-            closeBookingsModal(bookingsElements.editModal);
-            closeBookingsModal(bookingsElements.cancelModal);
-        }
-    });
-}
-
-function hydrateBookingsSession() {
-    var rawSession = localStorage.getItem(bookingsSessionKey);
-
-    if (!rawSession) {
-        return denyBookingsAccess('Không tìm thấy phiên đăng nhập. Vui lòng đăng nhập lại.');
-    }
-
-    try {
-        var parsedSession = JSON.parse(rawSession);
-        bookingsState.token = parsedSession && parsedSession.token ? parsedSession.token : '';
-        bookingsState.currentUser = parsedSession && parsedSession.currentUser ? parsedSession.currentUser : null;
-    } catch (error) {
-        return denyBookingsAccess('Phiên đăng nhập không hợp lệ. Vui lòng đăng nhập lại.');
-    }
-
-    if (!bookingsState.token) {
-        return denyBookingsAccess('Thiếu access token. Vui lòng đăng nhập lại.');
-    }
-
-    verifyCustomerSession();
-}
-
-function verifyCustomerSession() {
-    fetch(bookingsApiBaseUrl + '/auth/me', {
-        method: 'GET',
-        headers: createBookingsHeaders()
-    })
-        .then(handleBookingsJsonResponse)
-        .then(function(user) {
-            if (!user || String(user.role || '').toUpperCase() !== 'CUSTOMER') {
-                throw new Error('Tài khoản hiện tại không phải customer.');
-            }
-
-            bookingsState.currentUser = user;
-            if (bookingsElements.sessionText) {
-                bookingsElements.sessionText.textContent = 'Đang đăng nhập: ' + (user.fullName || user.email);
-            }
-            hideBookingsAccessAlert();
-            loadMyBookings(false);
-        })
-        .catch(function(error) {
-            denyBookingsAccess(error.message || 'Không thể xác minh phiên đăng nhập customer.');
-        });
-}
-
-function loadMyBookings(silent) {
-    if (!bookingsElements.bookingsBody) {
-        return;
-    }
-
-    if (!silent) {
-        bookingsElements.bookingsBody.innerHTML = '<tr><td colspan="6" class="table-empty">Đang tải lịch sử booking...</td></tr>';
-        if (bookingsElements.currentList) {
-            bookingsElements.currentList.innerHTML = '<p class="table-empty">Đang tải booking hiện tại...</p>';
-        }
-    }
-
-    fetch(bookingsApiBaseUrl + '/bookings/me', {
-        method: 'GET',
-        headers: createBookingsHeaders()
-    })
-        .then(handleBookingsJsonResponse)
-        .then(function(data) {
-            bookingsState.bookings = Array.isArray(data) ? data : [];
-            renderBookingsSummary();
-            renderCurrentBookings();
-            renderBookingsTable();
-        })
-        .catch(function(error) {
-            if (silent) {
-                showCurrentFeedback(error.message || 'Không thể tải lại danh sách booking.', true);
-                return;
-            }
-            denyBookingsAccess(error.message || 'Không thể tải lịch sử booking.');
-        });
-}
-
-function renderBookingsSummary() {
-    var list = Array.isArray(bookingsState.bookings) ? bookingsState.bookings : [];
-    var confirmed = list.filter(function(booking) {
-        return normalizeStatus(booking.status) === 'CONFIRMED';
-    }).length;
-    var pending = list.filter(function(booking) {
-        return normalizeStatus(booking.status) === 'PENDING';
-    }).length;
-
-    if (bookingsElements.bookingCount) bookingsElements.bookingCount.textContent = String(list.length);
-    if (bookingsElements.confirmedCount) bookingsElements.confirmedCount.textContent = String(confirmed);
-    if (bookingsElements.pendingCount) bookingsElements.pendingCount.textContent = String(pending);
-}
-
-// ================================================================
-// Booking hiện tại (sửa / hủy)
-// ================================================================
-
-function renderCurrentBookings() {
-    if (!bookingsElements.currentList) {
-        return;
-    }
-
-    var current = (Array.isArray(bookingsState.bookings) ? bookingsState.bookings : [])
-        .filter(isCurrentBooking)
-        .sort(function(a, b) {
-            return getBookingStart(a) - getBookingStart(b);
-        });
-
-    if (!current.length) {
-        bookingsElements.currentList.innerHTML = '<p class="table-empty">Bạn chưa có booking nào sắp tới.</p>';
-        return;
-    }
-
-    bookingsElements.currentList.innerHTML = current.map(function(booking) {
-        var field = booking.field || {};
-        var status = normalizeStatus(booking.status);
-        var id = escapeHtml(booking.id);
-        var noteText = booking.notes ? escapeHtml(booking.notes) : 'Không có ghi chú';
-
-        return [
-            '<article class="current-booking-card ', status === 'CONFIRMED' ? 'is-confirmed' : 'is-pending', '">',
-            '<div class="current-booking-head">',
-            '<h4>', escapeHtml(field.name || 'Sân thể thao'), '</h4>',
-            '<span class="booking-status ', getStatusClass(status), '">', escapeHtml(status), '</span>',
-            '</div>',
-            '<div class="current-booking-meta">',
-            '<span><i data-lucide="calendar" class="field-inline-icon"></i>', escapeHtml(formatDate(booking.bookingDate)), '</span>',
-            '<span><i data-lucide="clock" class="field-inline-icon"></i>', escapeHtml(formatTimeRange(booking.startTime, booking.endTime)), '</span>',
-            '<span><i data-lucide="wallet" class="field-inline-icon"></i>', escapeHtml(formatCurrency(booking.totalPrice || 0)), ' VND</span>',
-            '<span><i data-lucide="sticky-note" class="field-inline-icon"></i>', noteText, '</span>',
-            '</div>',
-            '<div class="current-booking-actions">',
-            '<button class="btn btn-secondary btn-compact" type="button" data-action="edit-booking" data-id="', id, '">Sửa</button>',
-            '<button class="btn btn-secondary btn-compact btn-danger-soft" type="button" data-action="cancel-booking" data-id="', id, '">Hủy booking</button>',
-            '</div>',
-            '</article>'
-        ].join('');
-    }).join('');
-
-    refreshBookingsIcons();
-}
-
-function handleCurrentListClick(event) {
-    var button = event.target.closest ? event.target.closest('[data-action]') : null;
-    if (!button) {
-        return;
-    }
-
-    var booking = findBookingById(button.getAttribute('data-id'));
-    if (!booking) {
-        return;
-    }
-
-    var action = button.getAttribute('data-action');
-    if (action === 'edit-booking') {
-        openEditModal(booking);
-    } else if (action === 'cancel-booking') {
-        openCancelModal(booking);
-    }
-}
-
-function findBookingById(id) {
-    var list = Array.isArray(bookingsState.bookings) ? bookingsState.bookings : [];
-    for (var i = 0; i < list.length; i++) {
-        if (String(list[i].id) === String(id)) {
-            return list[i];
-        }
-    }
-    return null;
-}
-
-function isCurrentBooking(booking) {
-    var status = normalizeStatus(booking.status);
-    if (status !== 'CONFIRMED' && status !== 'PENDING') {
-        return false;
-    }
-
-    var end = getBookingEnd(booking);
-    return !!end && end.getTime() >= Date.now();
-}
-
-function getBookingStart(booking) {
-    var parsed = parseBookingDateTime(booking.bookingDate, booking.startTime, '00:00');
-    return parsed ? parsed.getTime() : 0;
-}
-
-function getBookingEnd(booking) {
-    return parseBookingDateTime(booking.bookingDate, booking.endTime, '23:59');
-}
-
-function parseBookingDateTime(dateValue, timeValue, fallbackTime) {
-    var datePart = String(dateValue || '').slice(0, 10);
-    var timePart = String(timeValue || fallbackTime).slice(0, 5);
-    var parsed = new Date(datePart + 'T' + timePart + ':00');
-    return isNaN(parsed.getTime()) ? null : parsed;
-}
-
-function getBookingSummaryText(booking) {
-    var field = booking.field || {};
-    return (field.name || 'Sân thể thao') + ' · ' + formatDate(booking.bookingDate) + ' · ' + formatTimeRange(booking.startTime, booking.endTime);
-}
-
-function getBookingFieldId(booking) {
-    if (booking.fieldId != null) {
-        return booking.fieldId;
-    }
-    if (booking.field && booking.field.id != null) {
-        return booking.field.id;
-    }
-    return null;
-}
-
-// ---------- Sửa booking ----------
-
-function openEditModal(booking) {
-    bookingsState.editingBooking = booking;
-
-    bookingsElements.editSummary.textContent = getBookingSummaryText(booking);
-    bookingsElements.editDate.min = getTodayString();
-    bookingsElements.editDate.value = String(booking.bookingDate || '').slice(0, 10);
-    bookingsElements.editStart.value = String(booking.startTime || '').slice(0, 5);
-    bookingsElements.editEnd.value = String(booking.endTime || '').slice(0, 5);
-    bookingsElements.editPhone.value = booking.customerPhone || booking.phone ||
-        (bookingsState.currentUser && (bookingsState.currentUser.phone || bookingsState.currentUser.phoneNumber)) || '';
-    bookingsElements.editNotes.value = booking.notes || '';
-
-    hideInlineFeedback(bookingsElements.editFeedback);
-    openBookingsModal(bookingsElements.editModal, bookingsElements.editDate);
-}
-
-function handleEditSubmit(event) {
-    event.preventDefault();
-
-    var booking = bookingsState.editingBooking;
-    if (!booking) {
-        return;
-    }
-
-    var bookingDate = bookingsElements.editDate.value;
-    var startTime = bookingsElements.editStart.value;
-    var endTime = bookingsElements.editEnd.value;
-    var phone = bookingsElements.editPhone.value.trim();
-    var notes = bookingsElements.editNotes.value.trim();
-
-    var validationMessage = validateEditForm(bookingDate, startTime, endTime, phone);
-    if (validationMessage) {
-        showInlineFeedback(bookingsElements.editFeedback, validationMessage, true);
-        return;
-    }
-
-    var payload = {
-        bookingDate: bookingDate,
-        startTime: startTime,
-        endTime: endTime,
-        customerPhone: phone,
-        notes: notes
-    };
-
-    var fieldId = getBookingFieldId(booking);
-    if (fieldId != null) {
-        payload.fieldId = fieldId;
-    }
-
-    showInlineFeedback(bookingsElements.editFeedback, 'Đang lưu thay đổi...', false);
-    bookingsElements.editSubmit.disabled = true;
-
-    fetch(bookingsApiBaseUrl + '/bookings/' + encodeURIComponent(booking.id), {
-        method: 'PUT',
-        headers: createBookingsHeaders({ 'Content-Type': 'application/json' }),
-        body: JSON.stringify(payload)
-    })
-        .then(handleBookingsActionResponse)
-        .then(function() {
-            closeBookingsModal(bookingsElements.editModal);
-            showCurrentFeedback('Đã cập nhật booking thành công.', false);
-            loadMyBookings(true);
-        })
-        .catch(function(error) {
-            showInlineFeedback(bookingsElements.editFeedback, error.message || 'Không thể cập nhật booking.', true);
-        })
-        .then(function() {
-            bookingsElements.editSubmit.disabled = false;
-        });
-}
-
-function validateEditForm(bookingDate, startTime, endTime, phone) {
-    if (!bookingDate || !startTime || !endTime) {
-        return 'Vui lòng nhập đầy đủ ngày và giờ.';
-    }
-
-    if (endTime <= startTime) {
-        return 'Giờ kết thúc phải sau giờ bắt đầu.';
-    }
-
-    var start = new Date(bookingDate + 'T' + startTime + ':00');
-    if (isNaN(start.getTime()) || start.getTime() < Date.now()) {
-        return 'Thời gian bắt đầu phải ở tương lai.';
-    }
-
-    if (!/^[0-9+\s().-]{9,15}$/.test(phone)) {
-        return 'Số điện thoại không hợp lệ.';
-    }
-
-    return '';
-}
-
-// ---------- Hủy booking ----------
-
-function openCancelModal(booking) {
-    bookingsState.cancelingBooking = booking;
-
-    bookingsElements.cancelSummary.textContent = getBookingSummaryText(booking);
-    bookingsElements.cancelReason.value = '';
-
-    hideInlineFeedback(bookingsElements.cancelFeedback);
-    openBookingsModal(bookingsElements.cancelModal, bookingsElements.cancelReason);
-}
-
-function handleCancelSubmit(event) {
-    event.preventDefault();
-
-    var booking = bookingsState.cancelingBooking;
-    if (!booking) {
-        return;
-    }
-
-    var reason = bookingsElements.cancelReason.value.trim();
-    if (reason.length < 5) {
-        showInlineFeedback(bookingsElements.cancelFeedback, 'Vui lòng nhập lý do hủy (ít nhất 5 ký tự).', true);
-        return;
-    }
-
-    showInlineFeedback(bookingsElements.cancelFeedback, 'Đang hủy booking...', false);
-    bookingsElements.cancelSubmit.disabled = true;
-
-    fetch(bookingsApiBaseUrl + '/bookings/' + encodeURIComponent(booking.id) + '/cancel', {
-        method: 'PATCH',
-        headers: createBookingsHeaders({ 'Content-Type': 'application/json' }),
-        body: JSON.stringify({ reason: reason })
-    })
-        .then(handleBookingsActionResponse)
-        .then(function() {
-            closeBookingsModal(bookingsElements.cancelModal);
-            showCurrentFeedback('Đã hủy booking.', false);
-            loadMyBookings(true);
-        })
-        .catch(function(error) {
-            showInlineFeedback(bookingsElements.cancelFeedback, error.message || 'Không thể hủy booking.', true);
-        })
-        .then(function() {
-            bookingsElements.cancelSubmit.disabled = false;
-        });
-}
-
-// ---------- Modal & feedback ----------
-
-function openBookingsModal(modal, focusTarget) {
-    if (!modal) {
-        return;
-    }
-
-    bookingsState.lastFocused = document.activeElement;
-    modal.classList.remove('hidden');
-    modal.setAttribute('aria-hidden', 'false');
-    document.body.classList.add('modal-open');
-
-    window.setTimeout(function() {
-        if (focusTarget) {
-            focusTarget.focus();
-        }
-    }, 30);
-}
-
-function closeBookingsModal(modal) {
-    if (!modal || modal.classList.contains('hidden')) {
-        return;
-    }
-
-    modal.classList.add('hidden');
-    modal.setAttribute('aria-hidden', 'true');
-
-    if (modal === bookingsElements.editModal) {
-        bookingsState.editingBooking = null;
-    }
-    if (modal === bookingsElements.cancelModal) {
-        bookingsState.cancelingBooking = null;
-    }
-
-    var anyOpen = document.querySelector('.modal:not(.hidden)');
-    if (!anyOpen) {
-        document.body.classList.remove('modal-open');
-    }
-
-    if (bookingsState.lastFocused && typeof bookingsState.lastFocused.focus === 'function') {
-        bookingsState.lastFocused.focus();
-    }
-}
-
-function showInlineFeedback(element, message, isError) {
-    if (!element) {
-        return;
-    }
-
-    element.textContent = message;
-    element.className = 'booking-feedback ' + (isError ? 'error' : 'success');
-}
-
-function hideInlineFeedback(element) {
-    if (!element) {
-        return;
-    }
-
-    element.textContent = '';
-    element.className = 'booking-feedback hidden';
-}
-
-function showCurrentFeedback(message, isError) {
-    if (!bookingsElements.currentFeedback) {
-        return;
-    }
-
-    showInlineFeedback(bookingsElements.currentFeedback, message, isError);
-
-    if (bookingsState.feedbackTimer) {
-        window.clearTimeout(bookingsState.feedbackTimer);
-    }
-    bookingsState.feedbackTimer = window.setTimeout(function() {
-        hideInlineFeedback(bookingsElements.currentFeedback);
-    }, 6000);
-}
-
-// ================================================================
-// Lịch sử đặt sân
-// ================================================================
-
-function renderBookingsTable() {
-    if (!bookingsElements.bookingsBody) {
-        return;
-    }
-
-    var list = (Array.isArray(bookingsState.bookings) ? bookingsState.bookings : [])
-        .filter(function(booking) {
-            return !isCurrentBooking(booking);
-        })
-        .sort(function(a, b) {
-            return getBookingStart(b) - getBookingStart(a);
-        });
-
-    if (!list.length) {
-        bookingsElements.bookingsBody.innerHTML = '<tr><td colspan="6" class="table-empty">Chưa có booking nào đã diễn ra hoặc đã hủy.</td></tr>';
-        return;
-    }
-
-    bookingsElements.bookingsBody.innerHTML = list.map(function(booking) {
-        var field = booking.field || {};
-        var status = normalizeStatus(booking.status);
-        return [
-            '<tr>',
-            '<td>', escapeHtml(field.name || 'Sân thể thao'), '</td>',
-            '<td>', escapeHtml(formatDate(booking.bookingDate)), '</td>',
-            '<td>', escapeHtml(formatTimeRange(booking.startTime, booking.endTime)), '</td>',
-            '<td><span class="booking-status ', getStatusClass(status), '">', escapeHtml(status), '</span></td>',
-            '<td>', escapeHtml(formatCurrency(booking.totalPrice || 0)), '</td>',
-            '<td>', escapeHtml(getBookingNote(booking, status)), '</td>',
-            '</tr>'
-        ].join('');
-    }).join('');
-}
-
-function getBookingNote(booking, status) {
-    if (status === 'CANCELLED' && booking.cancelReason) {
-        return 'Lý do hủy: ' + booking.cancelReason;
-    }
-    return booking.notes || 'Không có ghi chú';
-}
-
-function denyBookingsAccess(message) {
-    if (bookingsElements.sessionText) {
-        bookingsElements.sessionText.textContent = 'Chưa thể truy cập lịch sử đặt sân.';
-    }
-    if (bookingsElements.accessText) {
-        bookingsElements.accessText.textContent = message;
-    }
-    if (bookingsElements.accessAlert) {
-        bookingsElements.accessAlert.classList.remove('hidden');
-    }
-}
-
-function hideBookingsAccessAlert() {
-    if (bookingsElements.accessAlert) {
-        bookingsElements.accessAlert.classList.add('hidden');
-    }
-}
-
-function createBookingsHeaders(extraHeaders) {
-    var headers = {
-        Accept: 'application/json',
-        Authorization: 'Bearer ' + bookingsState.token
-    };
-
-    if (extraHeaders) {
-        Object.keys(extraHeaders).forEach(function(key) {
-            headers[key] = extraHeaders[key];
-        });
-    }
-
-    return headers;
-}
-
-function handleBookingsJsonResponse(response) {
-    if (!response.ok) {
-        return response.json()
-            .catch(function() {
-                return {};
-            })
-            .then(function(errorBody) {
-                throw new Error(errorBody.message || ('HTTP error! status: ' + response.status));
-            });
-    }
-
-    return response.json();
-}
-
-// Dùng cho PUT/PATCH: backend có thể trả 204 (không có body)
-function handleBookingsActionResponse(response) {
-    if (!response.ok) {
-        return response.json()
-            .catch(function() {
-                return {};
-            })
-            .then(function(errorBody) {
-                var message = errorBody.message || errorBody.title;
-                if (!message && (response.status === 404 || response.status === 405)) {
-                    message = 'Backend chưa hỗ trợ chức năng này (HTTP ' + response.status + ').';
+        S.apiRequest('/auth/me', { method: 'GET', token: session.token })
+            .then(function(user) {
+                if (!user) throw new Error('Không thể xác minh tài khoản.');
+                S.persistAuthSession(user, session.token);
+                S.updateNavbarAuthUI();
+
+                if (el.sessionText) {
+                    el.sessionText.textContent = 'Tài khoản: ' + (user.fullName || user.email) + ' (' + S.getRoleLabel(user.role) + ')';
                 }
-                throw new Error(message || ('HTTP error! status: ' + response.status));
+                if (el.accessAlert) el.accessAlert.classList.add('hidden');
+                if (el.content) el.content.classList.remove('hidden');
+                loadMyBookings(false);
+            })
+            .catch(function(err) {
+                S.clearAuthSession();
+                S.updateNavbarAuthUI();
+                showUnauthenticated(err.message || 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
             });
     }
 
-    return response.text().then(function(text) {
-        if (!text) {
-            return null;
+    function showUnauthenticated(message) {
+        if (el.sessionText) el.sessionText.textContent = 'Chưa đăng nhập';
+        if (el.accessText) el.accessText.textContent = message;
+        if (el.accessAlert) el.accessAlert.classList.remove('hidden');
+        if (el.content) el.content.classList.add('hidden');
+    }
+
+    function loadMyBookings(silent) {
+        if (!silent && el.bookingsBody) {
+            el.bookingsBody.innerHTML = '<tr><td colspan="6" class="table-empty">Đang tải lịch sử đặt sân...</td></tr>';
         }
-        try {
-            return JSON.parse(text);
-        } catch (error) {
-            return null;
+        if (!silent && el.currentList) {
+            el.currentList.innerHTML = '<p class="table-empty">Đang tải booking sắp tới...</p>';
         }
-    });
-}
 
-function normalizeStatus(status) {
-    var value = String(status || 'PENDING').toUpperCase();
-    if (value === 'DONE' || value === 'APPROVED') {
-        return 'CONFIRMED';
-    }
-    return value;
-}
-
-function getStatusClass(status) {
-    if (status === 'CONFIRMED') {
-        return 'success';
-    }
-    if (status === 'CANCELLED') {
-        return 'error';
-    }
-    return 'pending';
-}
-
-function getTodayString() {
-    var now = new Date();
-    var month = ('0' + (now.getMonth() + 1)).slice(-2);
-    var day = ('0' + now.getDate()).slice(-2);
-    return now.getFullYear() + '-' + month + '-' + day;
-}
-
-function formatCurrency(value) {
-    return new Intl.NumberFormat('vi-VN').format(Number(value || 0));
-}
-
-function formatDate(value) {
-    if (!value) {
-        return '--';
+        S.apiRequest('/bookings/me', { method: 'GET' })
+            .then(function(data) {
+                state.bookings = Array.isArray(data) ? data : [];
+                renderSummary();
+                renderCurrentBookings();
+                renderHistory();
+            })
+            .catch(function(err) {
+                S.showToast(err.message || 'Không thể tải danh sách booking.', 'error');
+            });
     }
 
-    return new Date(value).toLocaleDateString('vi-VN');
-}
+    function isCurrentBooking(booking) {
+        var status = S.normalizeBookingStatus(booking.status);
+        if (status !== 'CONFIRMED' && status !== 'PENDING' && status !== 'HOLD') {
+            return false;
+        }
+        var end = parseBookingDateTime(booking.bookingDate, booking.endTime, '23:59');
+        return !!end && end.getTime() >= Date.now();
+    }
 
-function formatTimeRange(startTime, endTime) {
-    return String(startTime || '--:--').slice(0, 5) + ' - ' + String(endTime || '--:--').slice(0, 5);
-}
+    function parseBookingDateTime(dateVal, timeVal, fallback) {
+        var datePart = String(dateVal || '').slice(0, 10);
+        var timePart = String(timeVal || fallback).slice(0, 5);
+        var d = new Date(datePart + 'T' + timePart + ':00');
+        return isNaN(d.getTime()) ? null : d;
+    }
 
-function escapeHtml(text) {
-    return String(text == null ? '' : text).replace(/[&<>"']/g, function(character) {
-        var map = {
-            '&': '&amp;',
-            '<': '&lt;',
-            '>': '&gt;',
-            '"': '&quot;',
-            "'": '&#039;'
+    function getBookingStartMs(booking) {
+        var d = parseBookingDateTime(booking.bookingDate, booking.startTime, '00:00');
+        return d ? d.getTime() : 0;
+    }
+
+    function renderSummary() {
+        var list = state.bookings;
+        var upcoming = list.filter(isCurrentBooking).length;
+        var confirmed = list.filter(function(b) { return S.normalizeBookingStatus(b.status) === 'CONFIRMED'; }).length;
+        var pending = list.filter(function(b) {
+            var st = S.normalizeBookingStatus(b.status);
+            return st === 'PENDING' || st === 'HOLD';
+        }).length;
+
+        if (el.totalCount) el.totalCount.textContent = String(list.length);
+        if (el.upcomingCount) el.upcomingCount.textContent = String(upcoming);
+        if (el.confirmedCount) el.confirmedCount.textContent = String(confirmed);
+        if (el.pendingCount) el.pendingCount.textContent = String(pending);
+    }
+
+    function renderCurrentBookings() {
+        if (!el.currentList) return;
+
+        var current = state.bookings.filter(isCurrentBooking).sort(function(a, b) {
+            return getBookingStartMs(a) - getBookingStartMs(b);
+        });
+
+        if (!current.length) {
+            el.currentList.innerHTML =
+                '<div class="empty-state">' +
+                '  <span class="empty-state-icon"><i data-lucide="calendar-plus" aria-hidden="true"></i></span>' +
+                '  <h3>Chưa có lịch đặt sân sắp tới</h3>' +
+                '  <p>Chọn sân yêu thích và đặt khung giờ phù hợp cho trận đấu tiếp theo.</p>' +
+                '  <a class="btn btn-primary btn-sm" href="index.html#fields">Tìm sân ngay</a>' +
+                '</div>';
+            S.refreshIcons(el.currentList);
+            return;
+        }
+
+        el.currentList.innerHTML = current.map(function(booking) {
+            var field = booking.field || {};
+            var status = S.normalizeBookingStatus(booking.status);
+            var cardClass = status === 'CONFIRMED' ? 'is-confirmed' : (status === 'HOLD' ? 'is-hold' : 'is-pending');
+            var locationLine = field.location || field.city || 'Chưa cập nhật địa chỉ';
+            var notesLine = booking.notes ? booking.notes : 'Không có ghi chú';
+
+            return '<article class="current-booking-card ' + cardClass + '">' +
+                '  <div class="current-booking-head">' +
+                '    <h4>' + S.escapeHtml(field.name || 'Sân thể thao') + '</h4>' +
+                '    ' + S.renderBookingStatusBadge(status) +
+                '  </div>' +
+                '  <div class="booking-pass-slot">' +
+                '    <span class="booking-pass-datetime tabular-nums"><i data-lucide="calendar-clock" aria-hidden="true"></i>' + S.escapeHtml(S.formatDate(booking.bookingDate)) + ' · ' + S.escapeHtml(S.formatTimeRange(booking.startTime, booking.endTime)) + '</span>' +
+                '    <span class="booking-pass-price tabular-nums">' + S.escapeHtml(S.formatCurrency(booking.totalPrice || 0)) + ' đ</span>' +
+                '  </div>' +
+                '  <div class="current-booking-meta">' +
+                '    <span><i data-lucide="map-pin" aria-hidden="true"></i>' + S.escapeHtml(locationLine) + '</span>' +
+                '    <span><i data-lucide="sticky-note" aria-hidden="true"></i>' + S.escapeHtml(notesLine) + '</span>' +
+                '  </div>' +
+                '  <div class="current-booking-actions">' +
+                '    <button class="btn btn-secondary btn-compact" type="button" data-action="edit-booking" data-id="' + S.escapeHtml(booking.id) + '">' +
+                '      <i data-lucide="pencil" class="btn-icon" aria-hidden="true"></i><span>Đổi giờ</span>' +
+                '    </button>' +
+                '    <button class="btn btn-danger-soft btn-compact" type="button" data-action="cancel-booking" data-id="' + S.escapeHtml(booking.id) + '">' +
+                '      <i data-lucide="x-circle" class="btn-icon" aria-hidden="true"></i><span>Hủy lịch</span>' +
+                '    </button>' +
+                '  </div>' +
+                '</article>';
+        }).join('');
+
+        S.refreshIcons(el.currentList);
+    }
+
+    function renderHistory() {
+        var q = (state.historyQuery || '').trim().toLowerCase();
+        var list = state.bookings.filter(function(b) {
+            return !isCurrentBooking(b);
+        }).filter(function(b) {
+            var status = S.normalizeBookingStatus(b.status);
+            if (state.historyFilter === 'CONFIRMED' && status !== 'CONFIRMED' && status !== 'COMPLETED') return false;
+            if (state.historyFilter === 'CANCELLED' && status !== 'CANCELLED') return false;
+            if (state.historyFilter === 'PAST' && status === 'CANCELLED') return false;
+
+            if (q) {
+                var fieldName = (b.field && b.field.name) || '';
+                var hay = (fieldName + ' ' + (b.notes || '')).toLowerCase();
+                if (hay.indexOf(q) === -1) return false;
+            }
+            return true;
+        }).sort(function(a, b) {
+            return getBookingStartMs(b) - getBookingStartMs(a);
+        });
+
+        if (el.bookingsBody) {
+            if (!list.length) {
+                el.bookingsBody.innerHTML = '<tr><td colspan="6" class="table-empty">Không có lịch sử booking phù hợp bộ lọc.</td></tr>';
+            } else {
+                el.bookingsBody.innerHTML = list.map(function(b) {
+                    var field = b.field || {};
+                    var status = S.normalizeBookingStatus(b.status);
+                    var noteText = (status === 'CANCELLED' && (b.cancellationReason || b.cancelReason))
+                        ? ('Lý do hủy: ' + (b.cancellationReason || b.cancelReason))
+                        : (b.notes || 'Không có ghi chú');
+                    return '<tr>' +
+                        '<td><strong>' + S.escapeHtml(field.name || 'Sân thể thao') + '</strong></td>' +
+                        '<td class="tabular-nums">' + S.escapeHtml(S.formatDate(b.bookingDate)) + '</td>' +
+                        '<td class="tabular-nums">' + S.escapeHtml(S.formatTimeRange(b.startTime, b.endTime)) + '</td>' +
+                        '<td>' + S.renderBookingStatusBadge(status) + '</td>' +
+                        '<td class="tabular-nums"><strong>' + S.escapeHtml(S.formatCurrency(b.totalPrice || 0)) + ' đ</strong></td>' +
+                        '<td>' + S.escapeHtml(noteText) + '</td>' +
+                        '</tr>';
+                }).join('');
+                S.refreshIcons(el.bookingsBody);
+            }
+        }
+
+        if (el.mobileHistoryList) {
+            if (!list.length) {
+                el.mobileHistoryList.innerHTML = '<p class="table-empty">Không có lịch sử booking phù hợp.</p>';
+            } else {
+                el.mobileHistoryList.innerHTML = list.map(function(b) {
+                    var field = b.field || {};
+                    var status = S.normalizeBookingStatus(b.status);
+                    return '<article class="mobile-booking-item">' +
+                        '  <div class="mobile-booking-top">' +
+                        '    <strong>' + S.escapeHtml(field.name || 'Sân thể thao') + '</strong>' +
+                        '    ' + S.renderBookingStatusBadge(status) +
+                        '  </div>' +
+                        '  <div class="secondary-text tabular-nums">' + S.escapeHtml(S.formatDate(b.bookingDate)) + ' · ' + S.escapeHtml(S.formatTimeRange(b.startTime, b.endTime)) + '</div>' +
+                        '  <div class="tabular-nums"><strong>' + S.escapeHtml(S.formatCurrency(b.totalPrice || 0)) + ' đ</strong></div>' +
+                        '</article>';
+                }).join('');
+                S.refreshIcons(el.mobileHistoryList);
+            }
+        }
+    }
+
+    function handleCurrentListClick(e) {
+        var btn = e.target.closest ? e.target.closest('[data-action]') : null;
+        if (!btn) return;
+        var id = btn.getAttribute('data-id');
+        var booking = state.bookings.find(function(b) { return String(b.id) === String(id); });
+        if (!booking) return;
+
+        var action = btn.getAttribute('data-action');
+        if (action === 'edit-booking') {
+            openEditModal(booking);
+        } else if (action === 'cancel-booking') {
+            openCancelModal(booking);
+        }
+    }
+
+    function openEditModal(booking) {
+        state.editingBooking = booking;
+        state.editingFieldBookings = [];
+        var field = booking.field || {};
+
+        if (el.editSummary) {
+            el.editSummary.textContent = (field.name || 'Sân thể thao') + ' · ' + S.formatDate(booking.bookingDate) + ' · ' + S.formatTimeRange(booking.startTime, booking.endTime);
+        }
+        if (el.editDate) {
+            el.editDate.min = S.formatDateForInput(new Date());
+            el.editDate.value = String(booking.bookingDate || '').slice(0, 10);
+        }
+        if (el.editStart) el.editStart.value = S.formatTime(booking.startTime);
+        if (el.editEnd) el.editEnd.value = S.formatTime(booking.endTime);
+        if (el.editPhone) {
+            var session = S.loadAuthSession();
+            el.editPhone.value = booking.customerPhone || (session.currentUser && session.currentUser.phone) || '';
+        }
+        if (el.editNotes) el.editNotes.value = booking.notes || '';
+
+        hideInlineFeedback(el.editFeedback);
+        updateEditPricePreview();
+        openModal(el.editModal, el.editDate);
+
+        var fieldId = field.id || booking.fieldId;
+        if (fieldId) {
+            S.apiRequest('/bookings/field/' + encodeURIComponent(fieldId), { method: 'GET', token: '' })
+                .then(function(list) {
+                    state.editingFieldBookings = Array.isArray(list) ? list : [];
+                    renderEditBookedSlots();
+                })
+                .catch(function() {
+                    state.editingFieldBookings = [];
+                    renderEditBookedSlots();
+                });
+        }
+    }
+
+    function renderEditBookedSlots() {
+        if (!el.editSlotConflictBox || !el.editBookedSlotsList || !state.editingBooking) return;
+        var dateStr = el.editDate ? el.editDate.value : '';
+        var currentId = String(state.editingBooking.id);
+        var others = state.editingFieldBookings.filter(function(b) {
+            if (!b || String(b.id) === currentId) return false;
+            if (String(b.bookingDate || '').slice(0, 10) !== dateStr) return false;
+            return S.normalizeBookingStatus(b.status) !== 'CANCELLED';
+        });
+
+        if (!others.length) {
+            el.editSlotConflictBox.classList.add('hidden');
+            el.editBookedSlotsList.innerHTML = '';
+            return;
+        }
+
+        el.editSlotConflictBox.classList.remove('hidden');
+        el.editBookedSlotsList.innerHTML = others.map(function(b) {
+            return '<span class="booked-slot-chip">' + S.escapeHtml(S.formatTimeRange(b.startTime, b.endTime)) + '</span>';
+        }).join('');
+    }
+
+    function updateEditPricePreview() {
+        if (!state.editingBooking) return;
+        var field = state.editingBooking.field || {};
+        var pricePerHour = Number(field.pricePerHour || 0);
+        var start = el.editStart ? el.editStart.value : '';
+        var end = el.editEnd ? el.editEnd.value : '';
+        var hours = S.getHoursBetweenTimes(start, end);
+        var total = S.calculateBookingTotal(pricePerHour, start, end);
+
+        if (el.editDurationText) {
+            el.editDurationText.textContent = hours > 0
+                ? (Math.round(hours * 100) / 100) + ' giờ × ' + S.formatCurrency(pricePerHour) + ' đ'
+                : 'Giờ chưa hợp lệ';
+        }
+        if (el.editPricePreview) {
+            el.editPricePreview.textContent = S.formatCurrency(total) + ' đ';
+        }
+    }
+
+    function handleEditSubmit(e) {
+        e.preventDefault();
+        var booking = state.editingBooking;
+        if (!booking) return;
+
+        var bookingDate = el.editDate ? el.editDate.value : '';
+        var startTime = el.editStart ? el.editStart.value : '';
+        var endTime = el.editEnd ? el.editEnd.value : '';
+        var phone = el.editPhone ? el.editPhone.value.trim() : '';
+        var notes = el.editNotes ? el.editNotes.value.trim() : '';
+
+        if (!bookingDate || !startTime || !endTime) {
+            showInlineFeedback(el.editFeedback, 'Vui lòng chọn đầy đủ ngày và giờ.', true);
+            return;
+        }
+        if (endTime <= startTime) {
+            showInlineFeedback(el.editFeedback, 'Giờ kết thúc phải sau giờ bắt đầu.', true);
+            return;
+        }
+        var startDt = new Date(bookingDate + 'T' + startTime + ':00');
+        if (isNaN(startDt.getTime()) || startDt.getTime() < Date.now()) {
+            showInlineFeedback(el.editFeedback, 'Thời gian bắt đầu phải ở tương lai.', true);
+            return;
+        }
+        if (!/^[0-9+\s().-]{9,15}$/.test(phone)) {
+            showInlineFeedback(el.editFeedback, 'Số điện thoại không hợp lệ.', true);
+            return;
+        }
+
+        var fieldId = (booking.field && booking.field.id) || booking.fieldId;
+        var payload = {
+            fieldId: fieldId,
+            bookingDate: bookingDate,
+            startTime: startTime,
+            endTime: endTime,
+            customerPhone: phone,
+            notes: notes
         };
-        return map[character];
-    });
-}
 
-function refreshBookingsIcons() {
-    if (!window.lucide || typeof window.lucide.createIcons !== 'function') {
-        return;
+        showInlineFeedback(el.editFeedback, 'Đang lưu thay đổi...', false);
+        if (el.editSubmit) el.editSubmit.disabled = true;
+
+        S.apiRequest('/bookings/' + encodeURIComponent(booking.id), {
+            method: 'PUT',
+            body: JSON.stringify(payload)
+        })
+            .then(function() {
+                closeModal(el.editModal);
+                S.showToast('Đã cập nhật lịch đặt sân thành công.', 'success');
+                loadMyBookings(true);
+            })
+            .catch(function(err) {
+                showInlineFeedback(el.editFeedback, err.message || 'Không thể cập nhật booking.', true);
+            })
+            .then(function() {
+                if (el.editSubmit) el.editSubmit.disabled = false;
+            });
     }
 
-    window.lucide.createIcons({
-        attrs: {
-            'stroke-width': 1.8
+    function openCancelModal(booking) {
+        state.cancelingBooking = booking;
+        var field = booking.field || {};
+        if (el.cancelSummary) {
+            el.cancelSummary.textContent = (field.name || 'Sân thể thao') + ' · ' + S.formatDate(booking.bookingDate) + ' · ' + S.formatTimeRange(booking.startTime, booking.endTime);
         }
-    });
-}
+        if (el.cancelReason) el.cancelReason.value = '';
+        hideInlineFeedback(el.cancelFeedback);
+        openModal(el.cancelModal, el.cancelReason);
+    }
+
+    function handleCancelSubmit(e) {
+        e.preventDefault();
+        var booking = state.cancelingBooking;
+        if (!booking) return;
+
+        var reason = el.cancelReason ? el.cancelReason.value.trim() : '';
+        if (reason.length < 5) {
+            showInlineFeedback(el.cancelFeedback, 'Vui lòng nhập lý do hủy (ít nhất 5 ký tự).', true);
+            return;
+        }
+
+        showInlineFeedback(el.cancelFeedback, 'Đang hủy booking...', false);
+        if (el.cancelSubmit) el.cancelSubmit.disabled = true;
+
+        S.apiRequest('/bookings/' + encodeURIComponent(booking.id) + '/cancel', {
+            method: 'PATCH',
+            body: JSON.stringify({ reason: reason })
+        })
+            .then(function() {
+                closeModal(el.cancelModal);
+                S.showToast('Đã hủy lịch đặt sân.', 'info');
+                loadMyBookings(true);
+            })
+            .catch(function(err) {
+                showInlineFeedback(el.cancelFeedback, err.message || 'Không thể hủy booking.', true);
+            })
+            .then(function() {
+                if (el.cancelSubmit) el.cancelSubmit.disabled = false;
+            });
+    }
+
+    function openModal(modal, focusEl) {
+        if (!modal) return;
+        state.lastFocused = document.activeElement;
+        modal.classList.remove('hidden');
+        modal.setAttribute('aria-hidden', 'false');
+        document.body.classList.add('modal-open');
+        window.setTimeout(function() {
+            if (focusEl) focusEl.focus();
+        }, 20);
+    }
+
+    function closeModal(modal) {
+        if (!modal || modal.classList.contains('hidden')) return;
+        modal.classList.add('hidden');
+        modal.setAttribute('aria-hidden', 'true');
+        if (modal === el.editModal) state.editingBooking = null;
+        if (modal === el.cancelModal) state.cancelingBooking = null;
+        if (!document.querySelector('.modal:not(.hidden)')) {
+            document.body.classList.remove('modal-open');
+        }
+        if (state.lastFocused && typeof state.lastFocused.focus === 'function') {
+            state.lastFocused.focus();
+        }
+    }
+
+    function showInlineFeedback(target, msg, isError) {
+        if (!target) return;
+        target.textContent = msg;
+        target.className = 'booking-feedback ' + (isError ? 'error' : 'info');
+    }
+
+    function hideInlineFeedback(target) {
+        if (!target) return;
+        target.textContent = '';
+        target.className = 'booking-feedback hidden';
+    }
+})();

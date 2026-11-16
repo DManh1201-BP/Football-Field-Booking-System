@@ -28,24 +28,52 @@ public static class DbInitializer
             return;
         }
 
-        var demoAdminPassword = configuration["DemoAdmin:Password"];
-        if (!string.IsNullOrWhiteSpace(demoAdminPassword))
+        var demoAdminEmail = string.IsNullOrWhiteSpace(configuration["DemoAdmin:Email"])
+            ? "admin@sporthub.com"
+            : configuration["DemoAdmin:Email"]!.Trim().ToLowerInvariant();
+        var demoAdminPassword = string.IsNullOrWhiteSpace(configuration["DemoAdmin:Password"])
+            ? "Admin@123"
+            : configuration["DemoAdmin:Password"]!;
+
+        var existingAdmin = await dbContext.Users.FirstOrDefaultAsync(u => u.Email == demoAdminEmail);
+        if (existingAdmin is null)
         {
-            var adminExists = await dbContext.Users.AnyAsync(u => u.Email == "admin@sporthub.com");
-            if (!adminExists)
+            dbContext.Users.Add(new User
             {
-                dbContext.Users.Add(new User
-                {
-                    Email = "admin@sporthub.com",
-                    Password = passwordHasher.HashPassword(demoAdminPassword),
-                    FullName = "Admin SportHub",
-                    Phone = "0900000000",
-                    Address = "Thủ Dầu Một, Bình Dương",
-                    Role = UserRole.ADMIN.ToString(),
-                    IsActive = true
-                });
+                Email = demoAdminEmail,
+                Password = passwordHasher.HashPassword(demoAdminPassword),
+                FullName = "Admin SportHub",
+                Phone = "0900000000",
+                Address = "Thủ Dầu Một, Bình Dương",
+                Role = UserRole.ADMIN.ToString(),
+                IsActive = true
+            });
+            await dbContext.SaveChangesAsync();
+            logger.LogInformation("Seeded initial development admin account ({Email}).", demoAdminEmail);
+        }
+        else
+        {
+            var updated = false;
+            if (existingAdmin.Role != UserRole.ADMIN.ToString())
+            {
+                existingAdmin.Role = UserRole.ADMIN.ToString();
+                updated = true;
+            }
+            if (!existingAdmin.IsActive)
+            {
+                existingAdmin.IsActive = true;
+                updated = true;
+            }
+            if (!passwordHasher.Verify(demoAdminPassword, existingAdmin.Password))
+            {
+                existingAdmin.Password = passwordHasher.HashPassword(demoAdminPassword);
+                updated = true;
+            }
+            if (updated)
+            {
+                existingAdmin.UpdatedAt = DateTime.Now;
                 await dbContext.SaveChangesAsync();
-                logger.LogInformation("Seeded initial development admin account (admin@sporthub.com).");
+                logger.LogInformation("Synchronized development admin account ({Email}).", demoAdminEmail);
             }
         }
 

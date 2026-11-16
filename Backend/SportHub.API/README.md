@@ -72,6 +72,9 @@ Backend/SportHub.API/
    - API mặc định lắng nghe tại: `http://localhost:8081`
    - Swagger UI (Development): `http://localhost:8081/swagger`
    - Health check: `http://localhost:8081/api/health` và `http://localhost:8081/api/fields/health`
+   - Tài khoản Admin mặc định môi trường Development (`SeedSampleData = true`):
+     - **Email:** `admin@sporthub.com`
+     - **Mật khẩu:** `Admin@123`
 
 ## Danh sách Endpoint chính
 

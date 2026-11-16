@@ -14,7 +14,6 @@
 # Local secrets
 .env
 .env.*
-appsettings.Development.json
 appsettings.Local.json
 
 # Uploaded files

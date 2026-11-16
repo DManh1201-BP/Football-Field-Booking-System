@@ -3,108 +3,278 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Lịch sử đặt sân SportHub">
-    <title>Lịch của tôi - SportHub</title>
+    <meta name="description" content="Quản lý và theo dõi lịch đặt sân của bạn trên SportHub">
+    <title>SportHub+ — Lịch Đặt Sân Của Tôi</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23c6f626'/%3E%3Ctext x='6' y='23' font-family='sans-serif' font-style='italic' font-weight='900' font-size='18' fill='%230b0d09'%3ES+%3C/text%3E%3C/svg%3E">
     <link rel="stylesheet" href="css/style.css">
 </head>
-<body class="admin-page customer-page">
-    <nav class="navbar">
-        <div class="container">
-            <div class="navbar-brand">
-                <h1><i data-lucide="calendar-clock" class="brand-mark"></i><span>My Bookings</span></h1>
-                <p class="subtitle">Theo dõi lịch sử đặt sân của bạn</p>
-            </div>
+<body class="customer-page">
+    <!-- Navigation Bar -->
+    <header class="navbar">
+        <div class="container navbar-inner">
+            <a href="index.html" class="navbar-brand" aria-label="Trang chủ SportHub">
+                <span class="brand-wordmark">
+                    <span class="brand-title">Sport<em>Hub</em></span>
+                    <span class="brand-subtitle">Thủ Dầu Một · Courts &amp; Club</span>
+                </span>
+            </a>
+
+            <nav aria-label="Điều hướng chính">
+                <ul class="nav-links">
+                    <li><a href="index.html">Trang chủ</a></li>
+                    <li><a href="index.html#fields">Danh sách sân</a></li>
+                    <li><a href="matches.html">Tìm đối thủ</a></li>
+                    <li><a href="my-bookings.html" class="active">Lịch của tôi</a></li>
+                </ul>
+            </nav>
+
             <div class="nav-actions">
-                <a class="btn btn-secondary nav-action-btn" href="index.html">
-                    <i data-lucide="arrow-left" class="btn-icon"></i>
-                    <span>Về trang chủ</span>
-                </a>
-                <button id="bookings-logout-btn" class="btn btn-primary nav-action-btn" type="button">
+                <div class="user-pill hidden desktop-only" data-user-pill>
+                    <span class="user-avatar" aria-hidden="true">U</span>
+                    <span class="user-meta">
+                        <span class="user-name">Người dùng</span>
+                        <span class="user-role">Thành viên</span>
+                    </span>
+                </div>
+                <button class="btn btn-secondary btn-sm desktop-only" type="button" data-auth-action="login">
+                    <i data-lucide="log-in" class="btn-icon" aria-hidden="true"></i>
+                    <span>Đăng nhập</span>
+                </button>
+                <button class="btn btn-primary btn-sm desktop-only" type="button" data-auth-action="register">
+                    <i data-lucide="user-plus" class="btn-icon" aria-hidden="true"></i>
+                    <span>Đăng ký</span>
+                </button>
+                <button class="btn btn-ghost btn-sm hidden desktop-only" type="button" data-auth-action="logout">
+                    <i data-lucide="log-out" class="btn-icon" aria-hidden="true"></i>
+                    <span>Đăng xuất</span>
+                </button>
+                <button id="mobile-menu-open" class="nav-mobile-toggle" type="button" aria-label="Mở menu điều hướng" aria-controls="mobile-nav-drawer">
+                    <i data-lucide="menu" aria-hidden="true"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Mobile Navigation Drawer -->
+    <div id="mobile-nav-drawer" class="mobile-drawer hidden" aria-hidden="true" role="dialog" aria-modal="true" aria-label="Menu điều hướng">
+        <div class="mobile-drawer-panel">
+            <div class="mobile-drawer-head">
+                <strong>Menu SportHub</strong>
+                <button id="mobile-menu-close" class="icon-btn" type="button" aria-label="Đóng menu">
+                    <i data-lucide="x" aria-hidden="true"></i>
+                </button>
+            </div>
+            <div class="user-pill hidden" data-user-pill>
+                <span class="user-avatar" aria-hidden="true">U</span>
+                <span class="user-meta">
+                    <span class="user-name">Người dùng</span>
+                    <span class="user-role">Thành viên</span>
+                </span>
+            </div>
+            <ul class="mobile-drawer-links">
+                <li><a href="index.html"><i data-lucide="home" class="btn-icon"></i><span>Trang chủ</span></a></li>
+                <li><a href="index.html#fields"><i data-lucide="map-pinned" class="btn-icon"></i><span>Danh sách sân</span></a></li>
+                <li><a href="matches.html"><i data-lucide="swords" class="btn-icon"></i><span>Tìm đối thủ &amp; Elo</span></a></li>
+                <li><a href="my-bookings.html" class="active"><i data-lucide="calendar-clock" class="btn-icon"></i><span>Lịch của tôi</span></a></li>
+            </ul>
+            <div class="mobile-drawer-actions">
+                <button class="btn btn-secondary" type="button" data-auth-action="login">
+                    <i data-lucide="log-in" class="btn-icon"></i>
+                    <span>Đăng nhập</span>
+                </button>
+                <button class="btn btn-primary" type="button" data-auth-action="register">
+                    <i data-lucide="user-plus" class="btn-icon"></i>
+                    <span>Đăng ký</span>
+                </button>
+                <button class="btn btn-danger-soft hidden" type="button" data-auth-action="logout">
                     <i data-lucide="log-out" class="btn-icon"></i>
                     <span>Đăng xuất</span>
                 </button>
             </div>
         </div>
-    </nav>
+    </div>
 
-    <main class="admin-shell">
-        <section class="admin-hero">
-            <div class="container">
-                <p class="eyebrow">Lịch của tôi</p>
-                <h2>Các booking bạn đã tạo</h2>
-                <p id="bookings-session-text" class="section-description">Đang kiểm tra phiên đăng nhập customer...</p>
+    <main class="container page-shell">
+        <section class="page-hero-banner">
+            <div>
+                <p class="eyebrow">Quản lý đặt sân cá nhân</p>
+                <h1>Lịch đặt sân của tôi</h1>
+                <p id="bookings-session-text" class="secondary-text">Đang kiểm tra phiên đăng nhập...</p>
+            </div>
+            <div class="modal-actions">
+                <a class="btn btn-primary btn-sm" href="index.html#fields">
+                    <i data-lucide="plus" class="btn-icon" aria-hidden="true"></i>
+                    <span>Đặt sân mới</span>
+                </a>
+                <button id="refresh-bookings-btn" class="btn btn-secondary btn-sm" type="button">
+                    <i data-lucide="refresh-cw" class="btn-icon" aria-hidden="true"></i>
+                    <span>Làm mới</span>
+                </button>
             </div>
         </section>
 
-        <section class="admin-section">
-            <div class="container">
-                <div id="bookings-access-alert" class="error-alert hidden" role="alert">
-                    <div class="error-copy">
-                        <strong>Không thể truy cập lịch sử đặt sân</strong>
-                        <span id="bookings-access-text">Vui lòng đăng nhập bằng tài khoản customer.</span>
-                    </div>
-                </div>
-
-                <div class="account-panel" id="current-bookings-panel">
-                    <div class="panel-head">
-                        <div>
-                            <h3>Booking hiện tại</h3>
-                            <p>Các booking đang chờ hoặc đã xác nhận và chưa diễn ra. Bạn có thể sửa hoặc hủy (hủy cần ghi lý do).</p>
-                        </div>
-                    </div>
-                    <p id="current-bookings-feedback" class="booking-feedback hidden" role="status"></p>
-                    <div id="current-bookings-list" class="current-booking-grid">
-                        <p class="table-empty">Đang tải booking hiện tại...</p>
-                    </div>
-                </div>
-
-                <div class="account-panel">
-                    <div class="panel-head">
-                        <div>
-                            <h3>Lịch sử đặt sân</h3>
-                            <p>Các booking đã diễn ra hoặc đã hủy, đồng bộ trực tiếp từ backend.</p>
-                        </div>
-                    </div>
-                    <div class="summary-grid">
-                        <div class="summary-card">
-                            <span class="summary-label">Tổng booking</span>
-                            <strong id="customer-booking-count">0</strong>
-                        </div>
-                        <div class="summary-card">
-                            <span class="summary-label">Đã xác nhận</span>
-                            <strong id="customer-confirmed-count">0</strong>
-                        </div>
-                        <div class="summary-card">
-                            <span class="summary-label">Đang chờ</span>
-                            <strong id="customer-pending-count">0</strong>
-                        </div>
-                    </div>
-                    <div class="table-wrap">
-                        <table class="booking-table admin-table">
-                            <thead>
-                                <tr>
-                                    <th>Sân</th>
-                                    <th>Ngày</th>
-                                    <th>Giờ</th>
-                                    <th>Trạng thái</th>
-                                    <th>Tiền</th>
-                                    <th>Ghi chú</th>
-                                </tr>
-                            </thead>
-                            <tbody id="customer-bookings-body"></tbody>
-                        </table>
-                    </div>
-                </div>
+        <!-- Auth Guard Banner -->
+        <div id="bookings-access-alert" class="empty-state hidden" role="alert">
+            <span class="empty-state-icon"><i data-lucide="lock" aria-hidden="true"></i></span>
+            <h3>Bạn chưa đăng nhập</h3>
+            <p id="bookings-access-text">Đăng nhập tài khoản SportHub để xem và chỉnh sửa các lịch đặt sân của bạn.</p>
+            <div class="modal-actions">
+                <button class="btn btn-primary btn-sm" type="button" data-auth-action="login">Đăng nhập ngay</button>
+                <a class="btn btn-secondary btn-sm" href="index.html">Về trang chủ</a>
             </div>
-        </section>
+        </div>
+
+        <div id="bookings-content" class="bookings-stack hidden">
+            <!-- Summary Cards -->
+            <section class="summary-grid" aria-label="Thống kê đặt sân">
+                <div class="summary-card">
+                    <div class="summary-card-head">
+                        <span class="summary-label">Tổng booking</span>
+                        <span class="summary-icon"><i data-lucide="layers" aria-hidden="true"></i></span>
+                    </div>
+                    <strong id="customer-booking-count">0</strong>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-card-head">
+                        <span class="summary-label">Sắp diễn ra</span>
+                        <span class="summary-icon info"><i data-lucide="calendar-clock" aria-hidden="true"></i></span>
+                    </div>
+                    <strong id="customer-upcoming-count">0</strong>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-card-head">
+                        <span class="summary-label">Đã xác nhận</span>
+                        <span class="summary-icon accent"><i data-lucide="check-circle-2" aria-hidden="true"></i></span>
+                    </div>
+                    <strong id="customer-confirmed-count">0</strong>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-card-head">
+                        <span class="summary-label">Chờ xác nhận</span>
+                        <span class="summary-icon warning"><i data-lucide="clock" aria-hidden="true"></i></span>
+                    </div>
+                    <strong id="customer-pending-count">0</strong>
+                </div>
+            </section>
+
+            <!-- Upcoming Bookings -->
+            <section class="account-panel" id="current-bookings-panel">
+                <div class="panel-head">
+                    <div>
+                        <h3>Thẻ đặt sân sắp tới</h3>
+                        <p>Các lịch đang chờ duyệt, đang giữ chỗ hoặc đã xác nhận và chưa diễn ra.</p>
+                    </div>
+                </div>
+                <p id="current-bookings-feedback" class="booking-feedback hidden" role="status"></p>
+                <div id="current-bookings-list" class="current-booking-grid"></div>
+            </section>
+
+            <!-- History -->
+            <section class="account-panel">
+                <div class="panel-head">
+                    <div>
+                        <h3>Lịch sử đặt sân</h3>
+                        <p>Toàn bộ các lịch đã hoàn thành, đã qua thời gian hoặc đã hủy.</p>
+                    </div>
+                </div>
+
+                <div class="toolbar-inline">
+                    <div class="filter-tabs" role="tablist" aria-label="Lọc lịch sử theo trạng thái">
+                        <button class="filter-tab active" type="button" data-history-filter="ALL">Tất cả</button>
+                        <button class="filter-tab" type="button" data-history-filter="CONFIRMED">Đã xác nhận</button>
+                        <button class="filter-tab" type="button" data-history-filter="CANCELLED">Đã hủy</button>
+                        <button class="filter-tab" type="button" data-history-filter="PAST">Đã qua</button>
+                    </div>
+                    <div class="search-inline">
+                        <label class="sr-only" for="history-search-input">Tìm theo tên sân</label>
+                        <input id="history-search-input" type="search" placeholder="Tìm theo tên sân hoặc ghi chú...">
+                    </div>
+                </div>
+
+                <div class="table-wrap history-table-desktop">
+                    <table class="booking-table">
+                        <thead>
+                            <tr>
+                                <th>Sân</th>
+                                <th>Ngày</th>
+                                <th>Khung giờ</th>
+                                <th>Trạng thái</th>
+                                <th>Tổng tiền</th>
+                                <th>Ghi chú</th>
+                            </tr>
+                        </thead>
+                        <tbody id="customer-bookings-body"></tbody>
+                    </table>
+                </div>
+
+                <div id="mobile-history-list" class="mobile-booking-list"></div>
+            </section>
+        </div>
     </main>
 
-    <!-- Modal: cập nhật booking -->
+    <!-- Executive Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-brand-col">
+                    <a href="index.html" class="footer-brand">Sport<em>Hub</em></a>
+                    <p class="footer-tagline">Nền tảng đặt sân thể thao trực tuyến và kết nối cộng đồng thi đấu phong trào theo chuẩn xếp hạng Elo hiện đại.</p>
+                </div>
+                <div class="footer-col">
+                    <h4>Khám phá</h4>
+                    <ul class="footer-col-links">
+                        <li><a href="index.html">Trang chủ</a></li>
+                        <li><a href="index.html#fields">Danh sách sân</a></li>
+                        <li><a href="matches.html">Tìm đối thủ &amp; Elo</a></li>
+                        <li><a href="my-bookings.html">Lịch đặt của tôi</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h4>Quy định đặt lịch</h4>
+                    <ul class="footer-col-links">
+                        <li><span>Giữ chỗ tạm (HOLD): 10 phút</span></li>
+                        <li><span>Đổi giờ miễn phí trước giờ bóng lăn</span></li>
+                        <li><span>Hủy lịch minh bạch kèm lý do</span></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h4>Liên hệ</h4>
+                    <ul class="footer-col-links">
+                        <li><span>Hotline: 0901 234 567</span></li>
+                        <li><span>Email: support@sporthub.com</span></li>
+                        <li><span>Thủ Dầu Một, Bình Dương</span></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-copy">
+                <span>&copy; 2026 SportHub Platform. All rights reserved.</span>
+                <span>Phát triển bởi: Phạm Nguyễn Thành Trung, Võ Ngọc Tân, Nguyễn Tuấn Thiện</span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Edit Booking Modal -->
     <div id="edit-booking-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="edit-booking-title" aria-hidden="true">
-        <div class="modal-content auth-modal-content" tabindex="-1">
-            <button class="close-modal" type="button" data-close-modal aria-label="Đóng cửa sổ cập nhật">&times;</button>
-            <h2 id="edit-booking-title">Cập nhật booking</h2>
-            <p id="edit-booking-summary" class="secondary-text"></p>
+        <div class="modal-content modal-sm" tabindex="-1">
+            <div class="modal-header">
+                <div>
+                    <h2 id="edit-booking-title">Đổi giờ / Cập nhật lịch</h2>
+                    <p id="edit-booking-summary" class="secondary-text"></p>
+                </div>
+                <button class="close-modal" type="button" data-close-modal aria-label="Đóng cửa sổ cập nhật">
+                    <i data-lucide="x" aria-hidden="true"></i>
+                </button>
+            </div>
+
+            <div id="edit-slot-conflict-box" class="slot-timeline-box conflict-box-spaced hidden">
+                <div class="slot-timeline-head">
+                    <span>Khung giờ đã có người đặt trong ngày</span>
+                </div>
+                <div id="edit-booked-slots-list" class="booked-slots-list"></div>
+            </div>
+
             <form id="edit-booking-form" class="booking-form" novalidate>
                 <div class="booking-grid">
                     <label class="form-field">
@@ -126,8 +296,17 @@
                 </div>
                 <label class="form-field">
                     <span>Ghi chú</span>
-                    <textarea id="edit-booking-notes" rows="3" placeholder="Yêu cầu thêm, số lượng người, giờ ưu tiên..."></textarea>
+                    <textarea id="edit-booking-notes" rows="3" placeholder="Yêu cầu thêm, số lượng người..."></textarea>
                 </label>
+
+                <div class="price-estimate-box">
+                    <div class="price-estimate-meta">
+                        <span>Tạm tính sau chỉnh sửa</span>
+                        <span id="edit-duration-text" class="tabular-nums">--</span>
+                    </div>
+                    <strong id="edit-price-preview" class="price-estimate-total tabular-nums">0 đ</strong>
+                </div>
+
                 <div class="modal-actions">
                     <button id="edit-booking-submit" class="btn btn-primary" type="submit">Lưu thay đổi</button>
                     <button class="btn btn-secondary" type="button" data-close-modal>Đóng</button>
@@ -137,20 +316,26 @@
         </div>
     </div>
 
-    <!-- Modal: hủy booking -->
+    <!-- Cancel Booking Modal -->
     <div id="cancel-booking-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="cancel-booking-title" aria-hidden="true">
-        <div class="modal-content auth-modal-content" tabindex="-1">
-            <button class="close-modal" type="button" data-close-modal aria-label="Đóng cửa sổ hủy booking">&times;</button>
-            <h2 id="cancel-booking-title">Hủy booking</h2>
-            <p id="cancel-booking-summary" class="secondary-text"></p>
+        <div class="modal-content modal-sm" tabindex="-1">
+            <div class="modal-header">
+                <div>
+                    <h2 id="cancel-booking-title">Hủy lịch đặt sân</h2>
+                    <p id="cancel-booking-summary" class="secondary-text"></p>
+                </div>
+                <button class="close-modal" type="button" data-close-modal aria-label="Đóng cửa sổ hủy booking">
+                    <i data-lucide="x" aria-hidden="true"></i>
+                </button>
+            </div>
             <form id="cancel-booking-form" class="booking-form" novalidate>
                 <label class="form-field">
-                    <span>Lý do hủy (bắt buộc)</span>
-                    <textarea id="cancel-booking-reason" rows="4" maxlength="300" placeholder="Ví dụ: Bận việc đột xuất, đổi sang sân khác..." required></textarea>
+                    <span>Lý do hủy (bắt buộc, ít nhất 5 ký tự)</span>
+                    <textarea id="cancel-booking-reason" rows="3" maxlength="300" placeholder="Ví dụ: Bận việc đột xuất, đổi sang khung giờ khác..." required></textarea>
                 </label>
                 <div class="modal-actions">
-                    <button id="cancel-booking-submit" class="btn btn-danger" type="submit">Xác nhận hủy</button>
-                    <button class="btn btn-secondary" type="button" data-close-modal>Giữ lại booking</button>
+                    <button id="cancel-booking-submit" class="btn btn-danger" type="submit">Xác nhận hủy lịch</button>
+                    <button class="btn btn-secondary" type="button" data-close-modal>Giữ lại lịch</button>
                 </div>
                 <p id="cancel-booking-feedback" class="booking-feedback hidden" role="alert"></p>
             </form>
@@ -160,6 +345,7 @@
     <script id="sporthub-config" type="application/json">{"apiBaseUrl":"http://localhost:8081/api"}</script>
     <script src="https://unpkg.com/lucide@latest"></script>
     <script src="js/config.js"></script>
+    <script src="js/shared.js"></script>
     <script src="js/my-bookings.js"></script>
 </body>
 </html>

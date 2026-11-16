@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="SportHub - Tìm đối thủ giao hữu và bảng xếp hạng Elo chuyên nghiệp">
+    <title>SportHub+ — Đấu Trường Giao Hữu &amp; Xếp Hạng Elo</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23c6f626'/%3E%3Ctext x='6' y='23' font-family='sans-serif' font-style='italic' font-weight='900' font-size='18' fill='%230b0d09'%3ES+%3C/text%3E%3C/svg%3E">
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="matches-page">
+    <!-- Navigation Bar -->
+    <header class="navbar">
+        <div class="container navbar-inner">
+            <a href="index.html" class="navbar-brand" aria-label="Trang chủ SportHub">
+                <span class="brand-wordmark">
+                    <span class="brand-title">Sport<em>Hub</em></span>
+                    <span class="brand-subtitle">Thủ Dầu Một · Courts &amp; Club</span>
+                </span>
+            </a>
+
+            <nav aria-label="Điều hướng chính">
+                <ul class="nav-links">
+                    <li><a href="index.html">Trang chủ</a></li>
+                    <li><a href="index.html#fields">Danh sách sân</a></li>
+                    <li><a href="matches.html" class="active">Tìm đối thủ</a></li>
+                    <li><a href="my-bookings.html">Lịch của tôi</a></li>
+                </ul>
+            </nav>
+
+            <div class="nav-actions">
+                <div class="user-pill hidden desktop-only" data-user-pill>
+                    <span class="user-avatar" aria-hidden="true">U</span>
+                    <span class="user-meta">
+                        <span class="user-name">Người dùng</span>
+                        <span class="user-role">Thành viên</span>
+                    </span>
+                </div>
+                <button class="btn btn-secondary btn-sm hidden desktop-only" type="button" data-auth-action="dashboard">
+                    <i data-lucide="layout-dashboard" class="btn-icon" aria-hidden="true"></i>
+                    <span>Lịch của tôi</span>
+                </button>
+                <button class="btn btn-secondary btn-sm desktop-only" type="button" data-auth-action="login">
+                    <i data-lucide="log-in" class="btn-icon" aria-hidden="true"></i>
+                    <span>Đăng nhập</span>
+                </button>
+                <button class="btn btn-primary btn-sm desktop-only" type="button" data-auth-action="register">
+                    <i data-lucide="user-plus" class="btn-icon" aria-hidden="true"></i>
+                    <span>Đăng ký</span>
+                </button>
+                <button class="btn btn-ghost btn-sm hidden desktop-only" type="button" data-auth-action="logout">
+                    <i data-lucide="log-out" class="btn-icon" aria-hidden="true"></i>
+                    <span>Đăng xuất</span>
+                </button>
+                <button id="mobile-menu-open" class="nav-mobile-toggle" type="button" aria-label="Mở menu" aria-controls="mobile-nav-drawer">
+                    <i data-lucide="menu" aria-hidden="true"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Mobile Navigation Drawer -->
+    <div id="mobile-nav-drawer" class="mobile-drawer hidden" aria-hidden="true" role="dialog" aria-modal="true" aria-label="Menu điều hướng">
+        <div class="mobile-drawer-panel">
+            <div class="mobile-drawer-head">
+                <strong>Menu SportHub</strong>
+                <button id="mobile-menu-close" class="icon-btn" type="button" aria-label="Đóng menu">
+                    <i data-lucide="x" aria-hidden="true"></i>
+                </button>
+            </div>
+            <div class="user-pill hidden" data-user-pill>
+                <span class="user-avatar" aria-hidden="true">U</span>
+                <span class="user-meta">
+                    <span class="user-name">Người dùng</span>
+                    <span class="user-role">Thành viên</span>
+                </span>
+            </div>
+            <ul class="mobile-drawer-links">
+                <li><a href="index.html"><i data-lucide="home" class="btn-icon"></i><span>Trang chủ</span></a></li>
+                <li><a href="index.html#fields"><i data-lucide="map-pinned" class="btn-icon"></i><span>Danh sách sân</span></a></li>
+                <li><a href="matches.html" class="active"><i data-lucide="swords" class="btn-icon"></i><span>Tìm đối thủ &amp; Elo</span></a></li>
+                <li><a href="my-bookings.html"><i data-lucide="calendar-clock" class="btn-icon"></i><span>Lịch của tôi</span></a></li>
+            </ul>
+            <div class="mobile-drawer-actions">
+                <button class="btn btn-secondary hidden" type="button" data-auth-action="dashboard">
+                    <i data-lucide="layout-dashboard" class="btn-icon"></i>
+                    <span>Lịch của tôi</span>
+                </button>
+                <button class="btn btn-secondary" type="button" data-auth-action="login">
+                    <i data-lucide="log-in" class="btn-icon"></i>
+                    <span>Đăng nhập</span>
+                </button>
+                <button class="btn btn-primary" type="button" data-auth-action="register">
+                    <i data-lucide="user-plus" class="btn-icon"></i>
+                    <span>Đăng ký</span>
+                </button>
+                <button class="btn btn-danger-soft hidden" type="button" data-auth-action="logout">
+                    <i data-lucide="log-out" class="btn-icon"></i>
+                    <span>Đăng xuất</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <main class="container page-shell">
+        <section class="matches-hero">
+            <div>
+                <p class="eyebrow">01 — Đấu trường giao hữu &amp; Xếp hạng</p>
+                <h1>Tìm đối thủ &amp; <em>ghép kèo cùng trình độ</em></h1>
+                <p>Đăng kèo thiếu người, nhận lời thách đấu ngang hạng và ghi nhận tỷ số minh bạch để tích lũy điểm xếp hạng Elo.</p>
+            </div>
+            <button id="open-create-match-btn" class="btn btn-primary" type="button">
+                <i data-lucide="plus" class="btn-icon" aria-hidden="true"></i>
+                <span>Tạo kèo mới</span>
+            </button>
+        </section>
+
+        <div id="matches-preview-banner" class="preview-notice-strip hidden" role="status">
+            <span>CHẾ ĐỘ XEM TRƯỚC · Máy chủ API (localhost:8081) chưa bật — đang hiển thị bảng kèo &amp; Elo mẫu.</span>
+            <button id="matches-reconnect-btn" type="button">Kết nối lại API</button>
+        </div>
+
+        <div class="matches-layout">
+            <!-- Left: Match Board -->
+            <section aria-label="Danh sách kèo đấu">
+                <div class="match-filter-bar">
+                    <label class="form-field">
+                        <span>Môn thể thao</span>
+                        <select id="match-sport-filter">
+                            <option value="">Tất cả môn</option>
+                            <option value="FOOTBALL">Bóng đá</option>
+                            <option value="VOLLEYBALL">Bóng chuyền</option>
+                            <option value="BADMINTON">Cầu lông</option>
+                            <option value="BASKETBALL">Bóng rổ</option>
+                            <option value="TENNIS">Tennis</option>
+                        </select>
+                    </label>
+                    <label class="form-field">
+                        <span>Trình độ</span>
+                        <select id="match-skill-filter">
+                            <option value="">Mọi trình độ</option>
+                            <option value="BEGINNER">Mới chơi</option>
+                            <option value="INTERMEDIATE">Trung bình</option>
+                            <option value="ADVANCED">Nâng cao</option>
+                            <option value="PRO">Bán chuyên</option>
+                        </select>
+                    </label>
+                    <label class="form-field">
+                        <span>Trạng thái</span>
+                        <select id="match-status-filter">
+                            <option value="">Tất cả</option>
+                            <option value="OPEN">Đang tìm đối</option>
+                            <option value="MATCHED">Đã đủ kèo</option>
+                            <option value="COMPLETED">Đã có kết quả</option>
+                        </select>
+                    </label>
+                    <label class="form-field">
+                        <span>Thành phố</span>
+                        <input id="match-city-filter" type="search" placeholder="VD: Thủ Dầu Một">
+                    </label>
+                </div>
+
+                <div id="matches-grid" class="matches-grid"></div>
+            </section>
+
+            <!-- Right: Elo Leaderboard -->
+            <aside class="account-panel matches-leaderboard-aside" aria-label="Bảng xếp hạng Elo">
+                <div class="panel-head">
+                    <div>
+                        <h3>Bảng xếp hạng Elo</h3>
+                        <p>Top người chơi có phong độ thi đấu cao nhất.</p>
+                    </div>
+                    <button id="refresh-matches-btn" class="icon-btn" type="button" aria-label="Làm mới bảng kèo">
+                        <i data-lucide="refresh-cw" aria-hidden="true"></i>
+                    </button>
+                </div>
+                <div id="leaderboard-list" class="leaderboard-list">
+                    <p class="table-empty">Đang tải bảng xếp hạng...</p>
+                </div>
+            </aside>
+        </div>
+    </main>
+
+    <!-- Executive Footer -->
+    <footer class="footer">
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-brand-col">
+                    <a href="index.html" class="footer-brand">Sport<em>Hub</em></a>
+                    <p class="footer-tagline">Nền tảng đặt sân thể thao trực tuyến và kết nối cộng đồng thi đấu phong trào theo chuẩn xếp hạng Elo hiện đại.</p>
+                </div>
+                <div class="footer-col">
+                    <h4>Khám phá</h4>
+                    <ul class="footer-col-links">
+                        <li><a href="index.html">Trang chủ</a></li>
+                        <li><a href="index.html#fields">Danh sách sân</a></li>
+                        <li><a href="matches.html">Tìm đối thủ &amp; Elo</a></li>
+                        <li><a href="my-bookings.html">Lịch đặt của tôi</a></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h4>Hạng mức Elo</h4>
+                    <ul class="footer-col-links">
+                        <li><span>Khởi điểm: 1.000 Elo</span></li>
+                        <li><span>Bán chuyên: 1.200+ Elo</span></li>
+                        <li><span>Cao thủ: 1.400+ Elo</span></li>
+                    </ul>
+                </div>
+                <div class="footer-col">
+                    <h4>Liên hệ</h4>
+                    <ul class="footer-col-links">
+                        <li><span>Hotline: 0901 234 567</span></li>
+                        <li><span>Email: support@sporthub.com</span></li>
+                        <li><span>Thủ Dầu Một, Bình Dương</span></li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-copy">
+                <span>&copy; 2026 SportHub Platform. All rights reserved.</span>
+                <span>Phát triển bởi: Phạm Nguyễn Thành Trung, Võ Ngọc Tân, Nguyễn Tuấn Thiện</span>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Create Match Modal -->
+    <div id="create-match-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="create-match-title" aria-hidden="true">
+        <div class="modal-content modal-sm" tabindex="-1">
+            <div class="modal-header">
+                <div>
+                    <h2 id="create-match-title">Tạo kèo tìm đối thủ</h2>
+                    <p class="secondary-text">Chia sẻ thời gian, địa điểm và trình độ mong muốn.</p>
+                </div>
+                <button class="close-modal" type="button" data-close-match-modal aria-label="Đóng">
+                    <i data-lucide="x" aria-hidden="true"></i>
+                </button>
+            </div>
+            <form id="create-match-form" class="booking-form" novalidate>
+                <label class="form-field">
+                    <span>Tiêu đề kèo *</span>
+                    <input id="match-title" type="text" placeholder="VD: Giao hữu 5v5 vui vẻ tối thứ 6" required>
+                </label>
+                <div class="booking-grid">
+                    <label class="form-field">
+                        <span>Môn thể thao *</span>
+                        <select id="match-sport" required>
+                            <option value="FOOTBALL">Bóng đá</option>
+                            <option value="VOLLEYBALL">Bóng chuyền</option>
+                            <option value="BADMINTON">Cầu lông</option>
+                            <option value="BASKETBALL">Bóng rổ</option>
+                            <option value="TENNIS">Tennis</option>
+                        </select>
+                    </label>
+                    <label class="form-field">
+                        <span>Trình độ</span>
+                        <select id="match-skill">
+                            <option value="BEGINNER">Mới chơi</option>
+                            <option value="INTERMEDIATE" selected>Trung bình</option>
+                            <option value="ADVANCED">Nâng cao</option>
+                            <option value="PRO">Bán chuyên</option>
+                        </select>
+                    </label>
+                    <label class="form-field">
+                        <span>Ngày thi đấu *</span>
+                        <input id="match-date" type="date" required>
+                    </label>
+                    <label class="form-field">
+                        <span>Số người còn thiếu</span>
+                        <input id="match-missing" type="number" min="1" max="30" value="1" required>
+                    </label>
+                    <label class="form-field">
+                        <span>Giờ bắt đầu *</span>
+                        <input id="match-start" type="time" value="18:00" required>
+                    </label>
+                    <label class="form-field">
+                        <span>Giờ kết thúc *</span>
+                        <input id="match-end" type="time" value="19:30" required>
+                    </label>
+                </div>
+                <label class="form-field">
+                    <span>Sân dự kiến (tùy chọn)</span>
+                    <select id="match-field-id">
+                        <option value="">-- Tự nhập địa điểm bên dưới --</option>
+                    </select>
+                </label>
+                <div class="booking-grid">
+                    <label class="form-field">
+                        <span>Thành phố</span>
+                        <input id="match-city" type="text" placeholder="Thủ Dầu Một">
+                    </label>
+                    <label class="form-field">
+                        <span>Địa điểm</span>
+                        <input id="match-location" type="text" placeholder="123 Đường Trường Chinh">
+                    </label>
+                </div>
+                <label class="form-field">
+                    <span>Ghi chú</span>
+                    <textarea id="match-notes" rows="2" placeholder="Áo đội, chia tiền sân 50/50..."></textarea>
+                </label>
+                <div class="modal-actions">
+                    <button id="create-match-submit" class="btn btn-primary" type="submit">Đăng kèo ngay</button>
+                    <button class="btn btn-secondary" type="button" data-close-match-modal>Hủy</button>
+                </div>
+                <p id="create-match-feedback" class="booking-feedback hidden" role="alert"></p>
+            </form>
+        </div>
+    </div>
+
+    <!-- Record Match Result Modal -->
+    <div id="result-match-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="result-match-title" aria-hidden="true">
+        <div class="modal-content modal-sm" tabindex="-1">
+            <div class="modal-header">
+                <div>
+                    <h2 id="result-match-title">Nhập tỷ số trận đấu</h2>
+                    <p id="result-match-summary" class="secondary-text"></p>
+                </div>
+                <button class="close-modal" type="button" data-close-result-modal aria-label="Đóng">
+                    <i data-lucide="x" aria-hidden="true"></i>
+                </button>
+            </div>
+            <form id="result-match-form" class="booking-form" novalidate>
+                <div class="booking-grid">
+                    <label class="form-field">
+                        <span id="result-host-label">Điểm Chủ kèo</span>
+                        <input id="result-host-score" type="number" min="0" max="999" required>
+                    </label>
+                    <label class="form-field">
+                        <span id="result-challenger-label">Điểm Đối thủ</span>
+                        <input id="result-challenger-score" type="number" min="0" max="999" required>
+                    </label>
+                </div>
+                <div class="modal-actions">
+                    <button id="result-match-submit" class="btn btn-primary" type="submit">Lưu tỷ số &amp; cập nhật Elo</button>
+                    <button class="btn btn-secondary" type="button" data-close-result-modal>Đóng</button>
+                </div>
+                <p id="result-match-feedback" class="booking-feedback hidden" role="alert"></p>
+            </form>
+        </div>
+    </div>
+
+    <script id="sporthub-config" type="application/json">{"apiBaseUrl":"http://localhost:8081/api"}</script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="js/config.js"></script>
+    <script src="js/shared.js"></script>
+    <script src="js/matches.js"></script>
+</body>
+</html>
