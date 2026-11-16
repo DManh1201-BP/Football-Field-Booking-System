@@ -1,4 +1,4 @@
-/* ===== Matchmaking & Live Scoreboard Arena ===== */
+/* ===== Matchmaking & Elo Standings ===== */
 
 .matches-page .page-shell {
     padding: var(--space-5) 0 var(--space-7);
@@ -8,11 +8,9 @@
 }
 
 .matches-hero {
-    padding: clamp(24px, 3.5vw, 38px);
+    padding: clamp(24px, 3.2vw, 34px);
     border-radius: var(--radius-xl);
-    background:
-        radial-gradient(ellipse 55% 75% at 88% 18%, rgba(198, 246, 38, 0.16), transparent 65%),
-        var(--bg-surface);
+    background: var(--bg-surface);
     border: 1px solid var(--border-strong);
     display: flex;
     align-items: center;
@@ -22,14 +20,12 @@
 }
 
 .matches-hero h1 {
-    font-family: var(--font-display);
-    font-size: clamp(2.3rem, 4vw, 3.4rem);
+    font-size: clamp(1.65rem, 2.8vw, 2.25rem);
     font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.01em;
-    line-height: 0.98;
+    letter-spacing: -0.03em;
+    line-height: 1.2;
     color: #ffffff;
-    margin-top: 6px;
+    margin-top: 4px;
 }
 
 .matches-hero h1 em {
@@ -39,14 +35,14 @@
 
 .matches-hero p:not(.eyebrow) {
     color: var(--text-muted);
-    max-width: 580px;
-    margin-top: 10px;
-    font-size: 0.94rem;
+    max-width: 560px;
+    margin-top: 8px;
+    font-size: 0.92rem;
 }
 
 .matches-layout {
     display: grid;
-    grid-template-columns: minmax(0, 1.55fr) minmax(320px, 0.85fr);
+    grid-template-columns: minmax(0, 1fr) 340px;
     gap: 24px;
     align-items: start;
 }
@@ -57,7 +53,7 @@
 
 .matches-leaderboard-aside {
     position: sticky;
-    top: 90px;
+    top: 88px;
 }
 
 .match-filter-bar {
@@ -72,12 +68,12 @@
 
 .matches-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(330px, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 18px;
     margin-top: 18px;
 }
 
-/* ===== Broadcast Scoreboard Matchup Card ===== */
+/* ===== Clean Apple-Sports / ESPN Broadcast Match Card ===== */
 
 .match-card {
     background: var(--bg-surface);
@@ -87,92 +83,85 @@
     display: flex;
     flex-direction: column;
     gap: 14px;
-    box-shadow: var(--shadow-sm);
-    transition: transform var(--transition-fast), border-color var(--transition-fast), box-shadow var(--transition-fast);
+    transition: border-color var(--transition-fast), transform var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .match-card:hover {
-    border-color: var(--border-volt);
-    transform: translateY(-4px);
-    box-shadow: var(--shadow-md), 0 0 28px -10px rgba(198, 246, 38, 0.2);
+    border-color: var(--border-hover);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-md);
 }
 
-.match-card-head {
+.match-card-meta-top {
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     justify-content: space-between;
     gap: 10px;
 }
 
-.match-card-title {
-    font-family: var(--font-display);
-    font-size: 1.45rem;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.01em;
-    color: #ffffff;
-    line-height: 1.08;
-}
-
-.match-badges {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px;
-}
-
-.match-chip {
+.match-inline-tags {
     display: inline-flex;
     align-items: center;
-    gap: 5px;
-    padding: 4px 10px;
-    border-radius: var(--radius-full);
-    background: var(--bg-elevated);
-    border: 1px solid var(--border);
-    font-size: 0.72rem;
-    font-weight: 700;
+    gap: 7px;
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--text-muted);
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.match-inline-tags strong {
     color: var(--text-secondary);
+    font-weight: 600;
 }
 
-.match-chip.sport {
-    background: #0b0d09;
-    border-color: var(--border-strong);
+.match-inline-tags svg {
+    width: 14px;
+    height: 14px;
     color: var(--accent);
+    flex-shrink: 0;
 }
 
-.match-chip.sport svg {
-    width: 12px;
-    height: 12px;
+.match-card-title {
+    font-size: 1.06rem;
+    font-weight: 700;
+    letter-spacing: -0.015em;
+    color: #ffffff;
+    line-height: 1.38;
 }
 
-/* Scoreboard Ticker Duel Box ("EAGLES 17 : 24 PATRIOTS" Style) */
+/* Head-to-Head Duel Box with Iconic Volt Score Pill ("3 : 1" / "VS") */
 
 .match-players-box {
-    padding: 16px 14px;
+    padding: 15px 16px;
     border-radius: var(--radius-md);
-    background: #0e110b;
+    background: #0c0e12;
     border: 1px solid var(--border);
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
     align-items: center;
-    gap: 10px;
+    gap: 12px;
 }
 
 .match-player-slot {
     display: flex;
     flex-direction: column;
-    gap: 4px;
+    align-items: flex-start;
+    gap: 6px;
     min-width: 0;
 }
 
 .match-player-slot.is-challenger {
-    text-align: right;
     align-items: flex-end;
+    text-align: right;
 }
 
 .match-player-head {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 9px;
     min-width: 0;
     max-width: 100%;
 }
@@ -185,7 +174,7 @@
     width: 32px;
     height: 32px;
     border-radius: var(--radius-full);
-    background: var(--bg-elevated);
+    background: var(--bg-subtle);
     border: 1px solid var(--border-strong);
     color: var(--accent);
     font-size: 0.72rem;
@@ -209,111 +198,157 @@
 }
 
 .match-player-name {
-    font-family: var(--font-display);
-    font-size: 1.05rem;
-    font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.02em;
+    font-size: 0.9rem;
+    font-weight: 700;
+    line-height: 1.3;
     color: #ffffff;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
     overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    word-break: break-word;
 }
 
 .match-player-name.muted {
     color: var(--text-subtle);
-    font-weight: 700;
+    font-weight: 500;
 }
 
 .match-player-sub {
     font-family: var(--font-mono);
-    font-size: 0.68rem;
+    font-size: 0.72rem;
     color: var(--text-muted);
+    white-space: nowrap;
+}
+
+.match-center-status {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    flex-shrink: 0;
 }
 
 .match-vs-badge {
-    padding: 5px 10px;
+    padding: 5px 11px;
     border-radius: var(--radius-full);
     border: 1px solid var(--border-strong);
     background: var(--bg-elevated);
-    font-family: var(--font-display);
-    font-size: 0.9rem;
-    font-weight: 800;
+    font-family: var(--font-mono);
+    font-size: 0.74rem;
+    font-weight: 700;
     letter-spacing: 0.05em;
     color: var(--accent);
 }
 
 .match-score-pill {
-    padding: 5px 13px;
+    padding: 6px 14px;
     border-radius: var(--radius-full);
     background: var(--accent);
     color: var(--text-on-volt);
-    font-family: var(--font-display);
-    font-size: 1.35rem;
+    font-family: var(--font-mono);
+    font-size: 1.02rem;
     font-weight: 800;
     line-height: 1;
-    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+    box-shadow: 0 0 22px rgba(200, 245, 38, 0.28);
+    white-space: nowrap;
+}
+
+.match-score-caption {
+    font-size: 0.66rem;
+    font-weight: 600;
+    color: var(--text-subtle);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
 }
 
 .match-notes {
-    font-size: 0.84rem;
+    font-size: 0.83rem;
+    line-height: 1.5;
     color: var(--text-muted);
-    padding: 8px 12px;
-    border-radius: var(--radius-xs);
-    background: var(--bg-elevated);
-    border-left: 3px solid var(--accent);
 }
 
 .match-card-footer {
     margin-top: auto;
-    padding-top: 12px;
+    padding-top: 13px;
     border-top: 1px solid var(--border);
     display: flex;
     align-items: center;
-    justify-content: flex-end;
-    gap: 8px;
+    justify-content: space-between;
+    gap: 12px;
 }
 
-/* ===== Top Players Elo Leaderboard (Volt #1 Podium) ===== */
+.match-venue-schedule {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+.match-schedule-time {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+}
+
+.match-schedule-place {
+    font-size: 0.78rem;
+    color: var(--text-muted);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.match-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 9px;
+    border-radius: var(--radius-xs);
+    background: var(--bg-elevated);
+    font-size: 0.74rem;
+    font-weight: 500;
+    color: var(--text-secondary);
+}
+
+/* ===== Clean Elo Standings Board ===== */
 
 .leaderboard-list {
     display: flex;
     flex-direction: column;
-    gap: 8px;
+    gap: 6px;
 }
 
 .leaderboard-row {
     display: flex;
     align-items: center;
     gap: 11px;
-    padding: 12px 14px;
+    padding: 10px 12px;
     border-radius: var(--radius-md);
     background: var(--bg-elevated);
-    border: 1px solid var(--border);
-    transition: transform var(--transition-fast), border-color var(--transition-fast);
+    border: 1px solid transparent;
+    transition: border-color var(--transition-fast), background-color var(--transition-fast);
 }
 
 .leaderboard-row:hover {
-    border-color: var(--border-volt);
-    transform: translateX(3px);
+    border-color: var(--border-strong);
+    background: var(--bg-subtle);
 }
 
-/* Rank #1 Lights Up in Signature Electric Volt */
 .leaderboard-row.rank-1 {
-    background: var(--accent);
-    border-color: var(--accent);
-    box-shadow: var(--glow-volt);
+    border-color: var(--accent-border);
+    background: linear-gradient(90deg, rgba(200, 245, 38, 0.08) 0%, var(--bg-elevated) 100%);
 }
 
 .leaderboard-rank {
-    width: 28px;
-    height: 28px;
+    width: 24px;
+    height: 24px;
     border-radius: var(--radius-full);
-    background: #0b0d09;
-    color: #ffffff;
-    font-family: var(--font-display);
-    font-size: 0.95rem;
-    font-weight: 800;
+    background: var(--bg-subtle);
+    color: var(--text-muted);
+    font-family: var(--font-mono);
+    font-size: 0.74rem;
+    font-weight: 700;
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -321,38 +356,33 @@
 }
 
 .leaderboard-row.rank-1 .leaderboard-rank {
-    background: #0b0d09;
-    color: var(--accent);
+    background: var(--accent);
+    color: var(--text-on-volt);
 }
 
 .leaderboard-row.rank-2 .leaderboard-rank {
-    border: 1px solid rgba(255, 255, 255, 0.35);
+    background: #cbd5e1;
+    color: #090a0c;
 }
 
 .leaderboard-row.rank-3 .leaderboard-rank {
-    border: 1px solid rgba(250, 204, 21, 0.45);
-    color: var(--warning);
+    background: #d97706;
+    color: #ffffff;
 }
 
 .leaderboard-avatar {
-    width: 32px;
-    height: 32px;
+    width: 30px;
+    height: 30px;
     border-radius: var(--radius-full);
     background: var(--bg-surface);
     border: 1px solid var(--border-strong);
-    color: #ffffff;
-    font-size: 0.72rem;
-    font-weight: 800;
+    color: var(--text-secondary);
+    font-size: 0.7rem;
+    font-weight: 700;
     display: inline-flex;
     align-items: center;
     justify-content: center;
     flex-shrink: 0;
-}
-
-.leaderboard-row.rank-1 .leaderboard-avatar {
-    background: #0b0d09;
-    border-color: #0b0d09;
-    color: #ffffff;
 }
 
 .leaderboard-info {
@@ -362,17 +392,12 @@
 
 .leaderboard-info strong {
     display: block;
-    font-size: 0.88rem;
-    font-weight: 700;
+    font-size: 0.87rem;
+    font-weight: 600;
     color: #ffffff;
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-}
-
-.leaderboard-row.rank-1 .leaderboard-info strong {
-    color: var(--text-on-volt);
-    font-weight: 800;
 }
 
 .leaderboard-info span {
@@ -384,25 +409,20 @@
     white-space: nowrap;
 }
 
-.leaderboard-row.rank-1 .leaderboard-info span {
-    color: rgba(11, 13, 9, 0.72);
-    font-weight: 600;
-}
-
 .leaderboard-elo {
-    font-family: var(--font-display);
-    font-size: 1.25rem;
-    font-weight: 800;
-    color: var(--accent);
+    font-family: var(--font-mono);
+    font-size: 0.86rem;
+    font-weight: 700;
+    color: #ffffff;
     font-variant-numeric: tabular-nums;
     flex-shrink: 0;
 }
 
 .leaderboard-row.rank-1 .leaderboard-elo {
-    color: var(--text-on-volt);
+    color: var(--accent);
 }
 
-@media (max-width: 1024px) {
+@media (max-width: 1080px) {
     .matches-layout {
         grid-template-columns: minmax(0, 1fr);
     }
@@ -416,7 +436,7 @@
     }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 720px) {
     .match-filter-bar,
     .matches-grid {
         grid-template-columns: minmax(0, 1fr);

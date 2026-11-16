@@ -14,11 +14,9 @@
 }
 
 .page-hero-banner {
-    padding: clamp(24px, 3.5vw, 36px);
+    padding: clamp(24px, 3.2vw, 34px);
     border-radius: var(--radius-xl);
-    background:
-        radial-gradient(ellipse 55% 75% at 88% 18%, rgba(198, 246, 38, 0.14), transparent 65%),
-        var(--bg-surface);
+    background: var(--bg-surface);
     border: 1px solid var(--border-strong);
     display: flex;
     align-items: center;
@@ -28,17 +26,15 @@
 }
 
 .page-hero-banner h1 {
-    font-family: var(--font-display);
-    font-size: clamp(2.1rem, 3.5vw, 3rem);
+    font-size: clamp(1.6rem, 2.6vw, 2.15rem);
     font-weight: 800;
-    text-transform: uppercase;
-    letter-spacing: 0.01em;
-    line-height: 1;
+    letter-spacing: -0.03em;
+    line-height: 1.2;
     color: #ffffff;
-    margin-top: 6px;
+    margin-top: 4px;
 }
 
-/* ===== Dark Reservation Pass Cards ===== */
+/* ===== Clean Reservation Pass Cards ===== */
 
 .current-booking-grid {
     display: grid;
@@ -56,33 +52,17 @@
     overflow: hidden;
     display: flex;
     flex-direction: column;
-    gap: 14px;
-    padding: 20px 20px 18px 24px;
+    gap: 13px;
+    padding: 20px;
     border-radius: var(--radius-lg);
     background: var(--bg-elevated);
     border: 1px solid var(--border);
-    transition: transform var(--transition-fast), border-color var(--transition-fast);
-}
-
-.current-booking-card::before {
-    content: "";
-    position: absolute;
-    inset: 0 auto 0 0;
-    width: 5px;
-    background: var(--warning);
-}
-
-.current-booking-card.is-confirmed::before {
-    background: var(--accent);
-}
-
-.current-booking-card.is-hold::before {
-    background: var(--info);
+    transition: border-color var(--transition-fast), transform var(--transition-fast);
 }
 
 .current-booking-card:hover {
-    transform: translateY(-3px);
-    border-color: var(--border-volt);
+    transform: translateY(-2px);
+    border-color: var(--border-hover);
 }
 
 .current-booking-head {
@@ -93,12 +73,10 @@
 }
 
 .current-booking-head h4 {
-    font-family: var(--font-display);
-    font-size: 1.4rem;
-    font-weight: 800;
-    text-transform: uppercase;
+    font-size: 1.04rem;
+    font-weight: 700;
     color: #ffffff;
-    line-height: 1.1;
+    line-height: 1.35;
 }
 
 .booking-pass-slot {
@@ -106,11 +84,11 @@
     align-items: center;
     justify-content: space-between;
     gap: 10px;
-    padding: 10px 14px;
+    padding: 10px 13px;
     border-radius: var(--radius-sm);
-    background: #0d100a;
+    background: var(--bg-canvas);
     border: 1px solid var(--border);
-    font-size: 0.85rem;
+    font-size: 0.84rem;
 }
 
 .booking-pass-datetime {
@@ -118,28 +96,27 @@
     align-items: center;
     gap: 7px;
     font-family: var(--font-mono);
-    font-size: 0.8rem;
-    font-weight: 600;
-    color: #ffffff;
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: var(--text-secondary);
 }
 
 .booking-pass-datetime svg {
-    width: 15px;
-    height: 15px;
-    color: var(--accent);
+    width: 14px;
+    height: 14px;
+    color: var(--text-muted);
 }
 
 .booking-pass-price {
-    font-family: var(--font-display);
-    font-size: 1.25rem;
-    font-weight: 800;
+    font-size: 0.94rem;
+    font-weight: 700;
     color: var(--accent);
 }
 
 .current-booking-meta {
     display: grid;
     gap: 6px;
-    font-size: 0.85rem;
+    font-size: 0.84rem;
     color: var(--text-muted);
 }
 
@@ -166,12 +143,12 @@
     gap: 8px;
 }
 
-/* ===== Segmented Volt Filter Tabs ===== */
+/* ===== Segmented Filter Tabs ===== */
 
 .filter-tabs {
     display: inline-flex;
     align-items: center;
-    gap: 4px;
+    gap: 3px;
     padding: 4px;
     border-radius: var(--radius-full);
     background: var(--bg-elevated);
@@ -180,14 +157,14 @@
 }
 
 .filter-tab {
-    min-height: 34px;
-    padding: 5px 14px;
+    min-height: 33px;
+    padding: 5px 13px;
     border-radius: var(--radius-full);
     border: none;
     background: transparent;
     color: var(--text-muted);
     font-size: 0.8rem;
-    font-weight: 700;
+    font-weight: 600;
     cursor: pointer;
     transition: background-color var(--transition-fast), color var(--transition-fast);
 }
@@ -199,7 +176,7 @@
 .filter-tab.active {
     background: var(--accent);
     color: var(--text-on-volt);
-    font-weight: 800;
+    font-weight: 700;
 }
 
 .toolbar-inline {
@@ -218,19 +195,18 @@
 
 .search-inline input {
     width: 100%;
-    min-height: 40px;
-    padding: 8px 16px;
+    min-height: 38px;
+    padding: 8px 15px;
     border: 1px solid var(--border-strong);
     border-radius: var(--radius-full);
     background: var(--bg-elevated);
     color: #ffffff;
-    font-size: 0.86rem;
+    font-size: 0.85rem;
 }
 
 .search-inline input:focus {
     outline: none;
     border-color: var(--accent);
-    box-shadow: var(--ring-volt);
 }
 
 .conflict-box-spaced {
@@ -261,9 +237,8 @@
 }
 
 .mobile-booking-top strong {
-    font-family: var(--font-display);
-    font-size: 1.2rem;
-    text-transform: uppercase;
+    font-size: 0.96rem;
+    font-weight: 700;
     color: #ffffff;
 }
 

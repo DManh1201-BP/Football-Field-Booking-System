@@ -274,9 +274,13 @@
             var canJoin = status === 'OPEN' && (!userId || String(host.id) !== String(userId));
             var canRecordResult = status !== 'COMPLETED' && challenger && userId && (isAdmin || String(host.id) === String(userId));
 
-            var centerBadgeHtml = (status === 'COMPLETED' && m.hostScore != null && m.challengerScore != null)
-                ? '<div class="match-score-pill">' + m.hostScore + ' : ' + m.challengerScore + '</div>'
-                : '<span class="match-vs-badge">VS</span>';
+            var isCompleted = status === 'COMPLETED' && m.hostScore != null && m.challengerScore != null;
+            var centerBadgeHtml = isCompleted
+                ? ('<div class="match-center-status">' +
+                   '  <div class="match-score-pill tabular-nums">' + S.escapeHtml(String(m.hostScore)) + ' : ' + S.escapeHtml(String(m.challengerScore)) + '</div>' +
+                   '  <span class="match-score-caption">Kết quả</span>' +
+                   '</div>')
+                : '<div class="match-center-status"><span class="match-vs-badge">VS</span></div>';
 
             var hostName = host.fullName || 'Chủ kèo';
             var challengerSlotHtml = challenger
@@ -292,31 +296,23 @@
                    '    <span class="match-player-avatar open">?</span>' +
                    '    <span class="match-player-name muted">Chờ đối thủ</span>' +
                    '  </div>' +
-                   '  <span class="match-player-sub">Còn trống slot</span>' +
+                   '  <span class="match-player-sub">Thiếu ' + S.escapeHtml(String(m.missingPlayers || 1)) + ' người</span>' +
                    '</div>');
 
             var actionHtml = '';
             if (canJoin) {
-                actionHtml += '<button class="btn btn-primary btn-sm" type="button" data-match-join="' + S.escapeHtml(m.id) + '"><i data-lucide="swords" class="btn-icon" aria-hidden="true"></i><span>Nhận kèo</span></button>';
+                actionHtml += '<button class="btn btn-primary btn-sm" type="button" data-match-join="' + S.escapeHtml(m.id) + '"><span>Nhận kèo</span></button>';
             }
             if (canRecordResult) {
-                actionHtml += '<button class="btn btn-secondary btn-sm" type="button" data-match-result="' + S.escapeHtml(m.id) + '"><i data-lucide="award" class="btn-icon" aria-hidden="true"></i><span>Nhập tỷ số</span></button>';
+                actionHtml += '<button class="btn btn-secondary btn-sm" type="button" data-match-result="' + S.escapeHtml(m.id) + '"><span>Nhập tỷ số</span></button>';
             }
 
             return '<article class="match-card">' +
-                '  <div class="match-card-head">' +
-                '    <h3 class="match-card-title">' + S.escapeHtml(m.title) + '</h3>' +
+                '  <div class="match-card-meta-top">' +
+                '    <span class="match-inline-tags">' + sportMeta.iconSvg + '<strong>' + S.escapeHtml(sportMeta.label) + '</strong> · ' + S.escapeHtml(skillLabel) + '</span>' +
                 '    ' + S.renderMatchStatusBadge(status) +
                 '  </div>' +
-                '  <div class="match-badges">' +
-                '    <span class="match-chip sport">' + sportMeta.iconSvg + '<span>' + S.escapeHtml(sportMeta.label) + '</span></span>' +
-                '    <span class="match-chip">Trình độ: ' + S.escapeHtml(skillLabel) + '</span>' +
-                '    <span class="match-chip">Thiếu ' + S.escapeHtml(String(m.missingPlayers || 0)) + ' người</span>' +
-                '  </div>' +
-                '  <div class="field-meta-list">' +
-                '    <div class="field-meta-item"><i data-lucide="calendar" aria-hidden="true"></i><span class="tabular-nums">' + S.escapeHtml(S.formatDate(m.matchDate)) + ' · ' + S.escapeHtml(S.formatTimeRange(m.startTime, m.endTime)) + '</span></div>' +
-                '    <div class="field-meta-item"><i data-lucide="map-pin" aria-hidden="true"></i><span>' + S.escapeHtml(locationText) + '</span></div>' +
-                '  </div>' +
+                '  <h3 class="match-card-title">' + S.escapeHtml(m.title) + '</h3>' +
                 '  <div class="match-players-box">' +
                 '    <div class="match-player-slot">' +
                 '      <div class="match-player-head">' +
@@ -329,7 +325,13 @@
                 '    ' + challengerSlotHtml +
                 '  </div>' +
                 (m.notes ? '<p class="match-notes">' + S.escapeHtml(m.notes) + '</p>' : '') +
-                (actionHtml ? '<div class="match-card-footer">' + actionHtml + '</div>' : '') +
+                '  <div class="match-card-footer">' +
+                '    <div class="match-venue-schedule">' +
+                '      <span class="match-schedule-time tabular-nums">' + S.escapeHtml(S.formatDate(m.matchDate)) + ' · ' + S.escapeHtml(S.formatTimeRange(m.startTime, m.endTime)) + '</span>' +
+                '      <span class="match-schedule-place">' + S.escapeHtml(locationText) + '</span>' +
+                '    </div>' +
+                '    ' + (actionHtml || '') +
+                '  </div>' +
                 '</article>';
         }).join('');
 
