@@ -464,6 +464,7 @@
         var actionsHtml = '';
         if (canConfirm) {
             actionsHtml += '<button class="btn btn-primary btn-compact" type="button" data-action="confirm-booking" data-id="' + S.escapeHtml(b.id) + '">Xác nhận</button>';
+            actionsHtml += '<button class="btn btn-danger-soft btn-compact" type="button" data-action="reject-booking" data-id="' + S.escapeHtml(b.id) + '">Từ chối</button>';
         }
         if (canCancel) {
             actionsHtml += '<button class="btn btn-danger-soft btn-compact" type="button" data-action="cancel-booking" data-id="' + S.escapeHtml(b.id) + '">Hủy</button>';
@@ -492,6 +493,27 @@
         Array.prototype.forEach.call(container.querySelectorAll('[data-action="confirm-booking"]'), function(btn) {
             btn.addEventListener('click', function() {
                 confirmBooking(btn.getAttribute('data-id'), btn);
+            });
+        });
+
+        Array.prototype.forEach.call(container.querySelectorAll('[data-action="reject-booking"]'), function(btn) {
+            btn.addEventListener('click', function() {
+                var reason = window.prompt('Nhập lý do từ chối booking:');
+                if (reason === null) return;
+                if (reason.trim().length < 5) {
+                    S.showToast('Lý do cần có ít nhất 5 ký tự.', 'error');
+                    return;
+                }
+                btn.disabled = true;
+                S.apiRequest('/admin/bookings/' + encodeURIComponent(btn.getAttribute('data-id')) + '/reject', {
+                    method: 'PATCH', body: JSON.stringify({ reason: reason.trim() })
+                }).then(function() {
+                    S.showToast('Đã từ chối booking và gửi thông báo cho khách.', 'success');
+                    loadAdminData();
+                }).catch(function(err) {
+                    S.showToast(err.message || 'Không thể từ chối booking.', 'error');
+                    btn.disabled = false;
+                });
             });
         });
 

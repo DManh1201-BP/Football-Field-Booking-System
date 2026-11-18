@@ -17,6 +17,10 @@ Thư mục này chứa schema SQL Server của SportHub 2.0. Theo architecture b
 3. Nếu SQL Server dùng instance khác `localhost`, sửa giá trị `Server=` trong `Backend/SportHub.API/appsettings.json`. Ví dụ với SQL Server Express: `Server=.\SQLEXPRESS`.
 4. Không sử dụng dữ liệu mẫu hoặc giá trị `PasswordHash` placeholder trong môi trường production.
 
+### Nâng cấp database đã tồn tại
+
+Nếu database `SportHubDb` đã được tạo trước khi có tính năng thông báo, không chạy lại toàn bộ schema. Mở `migrations/20261119_add_notifications.sql` trong SSMS, chọn đúng database `SportHubDb` và chạy một lần để tạo bảng `notifications` cùng index. Script có kiểm tra tồn tại nên có thể chạy lại an toàn.
+
 ## Kết nối API
 
 Connection string mặc định trong `appsettings.json` dùng Windows Authentication:

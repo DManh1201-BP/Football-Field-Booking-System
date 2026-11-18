@@ -15,22 +15,26 @@ public class BookingService : IBookingService
     private readonly IBookingRepository _bookingRepository;
     private readonly IFieldRepository _fieldRepository;
     private readonly IUserRepository _userRepository;
+    private readonly NotificationService _notifications;
 
     public BookingService(
         SportHubDbContext dbContext,
         IBookingRepository bookingRepository,
         IFieldRepository fieldRepository,
-        IUserRepository userRepository)
+        IUserRepository userRepository,
+        NotificationService notifications)
     {
         _dbContext = dbContext;
         _bookingRepository = bookingRepository;
         _fieldRepository = fieldRepository;
         _userRepository = userRepository;
+        _notifications = notifications;
     }
 
     public async Task<List<BookingResponseDto>> GetAllBookingsAsync(CancellationToken cancellationToken = default)
     {
         await _bookingRepository.ReleaseExpiredHoldsAsync(cancellationToken);
+        await _bookingRepository.CompleteElapsedBookingsAsync(cancellationToken);
         var bookings = await _bookingRepository.GetAllOrderedAsync(cancellationToken);
         return bookings.Select(BookingResponseDto.FromEntity).ToList();
     }
@@ -38,6 +42,7 @@ public class BookingService : IBookingService
     public async Task<List<BookingResponseDto>> GetBookingsByFieldAsync(long fieldId, CancellationToken cancellationToken = default)
     {
         await _bookingRepository.ReleaseExpiredHoldsAsync(cancellationToken);
+        await _bookingRepository.CompleteElapsedBookingsAsync(cancellationToken);
         var bookings = await _bookingRepository.GetByFieldIdAsync(fieldId, cancellationToken);
         return bookings.Select(BookingResponseDto.FromEntity).ToList();
     }
@@ -51,6 +56,7 @@ public class BookingService : IBookingService
     public async Task<List<BookingResponseDto>> GetBookingsByUserAsync(long userId, CancellationToken cancellationToken = default)
     {
         await _bookingRepository.ReleaseExpiredHoldsAsync(cancellationToken);
+        await _bookingRepository.CompleteElapsedBookingsAsync(cancellationToken);
         var bookings = await _bookingRepository.GetByUserIdAsync(userId, cancellationToken);
         return bookings.Select(BookingResponseDto.FromEntity).ToList();
     }
@@ -73,6 +79,10 @@ public class BookingService : IBookingService
         if (bookingDate < DateOnly.FromDateTime(DateTime.Today))
         {
             throw new ArgumentException("Booking date must be today or later");
+        }
+        if (bookingDate == DateOnly.FromDateTime(DateTime.Today) && endTime <= TimeOnly.FromDateTime(DateTime.Now))
+        {
+            throw new ArgumentException("Selected time slot has already ended");
         }
 
         await using var transaction = await _dbContext.Database.BeginTransactionAsync(
@@ -195,6 +205,10 @@ public class BookingService : IBookingService
         {
             throw new ArgumentException("Booking date must be today or later");
         }
+        if (bookingDate == DateOnly.FromDateTime(DateTime.Today) && endTime <= TimeOnly.FromDateTime(DateTime.Now))
+        {
+            throw new ArgumentException("Selected time slot has already ended");
+        }
 
         await using var transaction = await _dbContext.Database.BeginTransactionAsync(
             IsolationLevel.Serializable,
@@ -223,6 +237,8 @@ public class BookingService : IBookingService
             throw new ArgumentException("Selected time slot is already booked");
         }
 
+        var scheduleChanged = booking.FieldId != field.Id || booking.BookingDate != bookingDate ||
+            booking.StartTime != startTime || booking.EndTime != endTime;
         booking.FieldId = field.Id;
         booking.Field = field;
         booking.BookingDate = bookingDate;
@@ -235,6 +251,9 @@ public class BookingService : IBookingService
 
         var updated = await _bookingRepository.UpdateAsync(booking, cancellationToken);
         await transaction.CommitAsync(cancellationToken);
+        if (scheduleChanged)
+            await _notifications.CreateAsync(booking.UserId, booking.Id,
+                $"Booking #{booking.Id} đã được thay đổi sang {bookingDate:dd/MM/yyyy}, {startTime:HH:mm}-{endTime:HH:mm}.", cancellationToken);
 
         return BookingResponseDto.FromEntity(updated);
     }

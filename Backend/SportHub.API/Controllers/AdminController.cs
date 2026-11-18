@@ -39,4 +39,11 @@ public class AdminController : ControllerBase
         var confirmed = await _adminService.ConfirmBookingAsync(bookingId, cancellationToken);
         return Ok(confirmed);
     }
+
+    [HttpPatch("bookings/{bookingId:long}/reject")]
+    public async Task<ActionResult<BookingResponseDto>> RejectBooking(long bookingId, [FromBody] BookingCancelDto request, CancellationToken cancellationToken)
+    {
+        var rejected = await _adminService.RejectBookingAsync(bookingId, request?.Reason, cancellationToken);
+        return Ok(rejected);
+    }
 }

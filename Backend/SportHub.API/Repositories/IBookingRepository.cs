@@ -17,6 +17,7 @@ public interface IBookingRepository
         long? excludeBookingId = null,
         CancellationToken cancellationToken = default);
     Task<int> ReleaseExpiredHoldsAsync(CancellationToken cancellationToken = default);
+    Task<int> CompleteElapsedBookingsAsync(CancellationToken cancellationToken = default);
     Task<Booking> AddAsync(Booking booking, CancellationToken cancellationToken = default);
     Task<Booking> UpdateAsync(Booking booking, CancellationToken cancellationToken = default);
 }
