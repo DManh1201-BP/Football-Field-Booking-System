@@ -34,6 +34,7 @@
         el.accessAlert = document.getElementById('bookings-access-alert');
         el.accessText = document.getElementById('bookings-access-text');
         el.content = document.getElementById('bookings-content');
+        el.notifications = document.getElementById('customer-notifications');
         el.refreshBtn = document.getElementById('refresh-bookings-btn');
 
         el.totalCount = document.getElementById('customer-booking-count');
@@ -74,12 +75,24 @@
         if (el.refreshBtn) {
             el.refreshBtn.addEventListener('click', function() {
                 loadMyBookings(false);
+                loadNotifications();
             });
         }
 
         if (el.currentList) {
             el.currentList.addEventListener('click', handleCurrentListClick);
         }
+
+        if (el.notifications) el.notifications.addEventListener('click', function(e) {
+            var button = e.target.closest('[data-notification-read]');
+            if (!button) return;
+            button.disabled = true;
+            S.apiRequest('/notifications/' + encodeURIComponent(button.getAttribute('data-notification-read')) + '/read', { method: 'PATCH' })
+                .then(loadNotifications).catch(function(err) {
+                    S.showToast(err.message || 'Không thể cập nhật thông báo.', 'error');
+                    button.disabled = false;
+                });
+        });
 
         if (el.historySearchInput) {
             el.historySearchInput.addEventListener('input', function() {
@@ -143,12 +156,30 @@
                 if (el.accessAlert) el.accessAlert.classList.add('hidden');
                 if (el.content) el.content.classList.remove('hidden');
                 loadMyBookings(false);
+                loadNotifications();
             })
             .catch(function(err) {
                 S.clearAuthSession();
                 S.updateNavbarAuthUI();
                 showUnauthenticated(err.message || 'Phiên đăng nhập đã hết hạn. Vui lòng đăng nhập lại.');
             });
+    }
+
+    function loadNotifications() {
+        if (!el.notifications) return;
+        S.apiRequest('/notifications/me', { method: 'GET' }).then(function(items) {
+            var list = Array.isArray(items) ? items : [];
+            if (!list.length) {
+                el.notifications.innerHTML = '<p class="table-empty">Bạn chưa có thông báo nào.</p>';
+                return;
+            }
+            el.notifications.innerHTML = list.map(function(item) {
+                return '<article class="notification-item ' + (item.isRead ? '' : 'is-unread') + '"><div><p>' + S.escapeHtml(item.message) + '</p><small>' + S.escapeHtml(S.formatDate(item.createdAt)) + '</small></div>' +
+                    (item.isRead ? '<span class="secondary-text">Đã đọc</span>' : '<button class="btn btn-secondary btn-sm" type="button" data-notification-read="' + S.escapeHtml(item.id) + '">Đánh dấu đã đọc</button>') + '</article>';
+            }).join('');
+        }).catch(function(err) {
+            el.notifications.innerHTML = '<p class="booking-feedback error">' + S.escapeHtml(err.message || 'Không thể tải thông báo.') + '</p>';
+        });
     }
 
     function showUnauthenticated(message) {

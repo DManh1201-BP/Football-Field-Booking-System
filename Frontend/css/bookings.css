@@ -42,6 +42,13 @@
     gap: 18px;
 }
 
+.notification-list { display: grid; gap: 10px; }
+.notification-item { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 16px; border: 1px solid var(--border, #333); border-radius: 12px; }
+.notification-item.is-unread { border-color: var(--accent, #c6f626); background: rgba(198, 246, 38, .06); }
+.notification-item p { margin: 0 0 5px; }
+.notification-item small { color: var(--text-muted, #9ca3af); }
+@media (max-width: 640px) { .notification-item { align-items: flex-start; flex-direction: column; } }
+
 .current-booking-grid > .empty-state,
 .current-booking-grid > .table-empty {
     grid-column: 1 / -1;
