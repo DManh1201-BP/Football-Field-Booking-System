@@ -7,4 +7,5 @@ public interface IAdminService
     Task<List<BookingResponseDto>> GetAllBookingsAsync(CancellationToken cancellationToken = default);
     Task<AdminRevenueSummaryResponseDto> GetRevenueSummaryAsync(CancellationToken cancellationToken = default);
     Task<BookingResponseDto> ConfirmBookingAsync(long bookingId, CancellationToken cancellationToken = default);
+    Task<BookingResponseDto> RejectBookingAsync(long bookingId, string? reason, CancellationToken cancellationToken = default);
 }

@@ -114,6 +114,18 @@ public class BookingRepository : IBookingRepository
         return await _dbContext.SaveChangesAsync(cancellationToken);
     }
 
+    public async Task<int> CompleteElapsedBookingsAsync(CancellationToken cancellationToken = default)
+    {
+        var now = DateTime.Now;
+        var elapsed = await _dbContext.Bookings.Where(b =>
+            (b.Status == "CONFIRMED" || b.Status == "PENDING") &&
+            (b.BookingDate < DateOnly.FromDateTime(now) ||
+             (b.BookingDate == DateOnly.FromDateTime(now) && b.EndTime <= TimeOnly.FromDateTime(now))))
+            .ToListAsync(cancellationToken);
+        foreach (var booking in elapsed) booking.Status = "COMPLETED";
+        return elapsed.Count == 0 ? 0 : await _dbContext.SaveChangesAsync(cancellationToken);
+    }
+
     public async Task<Booking> AddAsync(Booking booking, CancellationToken cancellationToken = default)
     {
         _dbContext.Bookings.Add(booking);

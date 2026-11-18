@@ -77,6 +77,7 @@ builder.Services.AddScoped<IFieldService, FieldService>();
 builder.Services.AddScoped<IBookingService, BookingService>();
 builder.Services.AddScoped<IAdminService, AdminService>();
 builder.Services.AddScoped<IMatchService, MatchService>();
+builder.Services.AddScoped<NotificationService>();
 
 // 4. Controllers, JSON Serialization & Unified Validation Error Contract
 builder.Services
