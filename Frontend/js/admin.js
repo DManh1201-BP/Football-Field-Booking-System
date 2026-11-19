@@ -9,7 +9,6 @@
         fields: [],
         users: [],
         bookings: [],
-        revenueSummary: null,
         activeTab: 'overview',
         bookingStatusFilter: 'ALL',
         bookingSearch: '',
@@ -44,6 +43,7 @@
         el.profileName = document.getElementById('admin-profile-name');
         el.profileRole = document.getElementById('admin-profile-role');
         el.sessionText = document.getElementById('admin-session-text');
+        el.bannerTitle = document.getElementById('admin-banner-title');
         el.pendingBadge = document.getElementById('admin-pending-badge');
         el.tabBookingsBtn = document.getElementById('admin-tab-bookings-btn');
         el.tabUsersBtn = document.getElementById('admin-tab-users-btn');
@@ -52,14 +52,17 @@
 
         el.kpiGrid = document.getElementById('admin-kpi-grid');
         el.analyticsGrid = document.getElementById('admin-analytics-grid');
-        el.overviewPendingPanel = document.getElementById('overview-pending-panel');
-        el.revenue = document.getElementById('dashboard-revenue');
+        el.adminOverviewNote = document.getElementById('admin-overview-note');
+        el.ownerDashboard = document.getElementById('owner-dashboard');
+        el.adminPlayers = document.getElementById('dashboard-players');
+        el.adminOwners = document.getElementById('dashboard-owners');
         el.bookings = document.getElementById('dashboard-bookings');
         el.pending = document.getElementById('dashboard-pending');
-        el.confirmed = document.getElementById('dashboard-confirmed');
         el.chartStatusBars = document.getElementById('chart-status-bars');
-        el.chartSportBars = document.getElementById('chart-sport-bars');
-        el.overviewPendingBody = document.getElementById('overview-pending-body');
+        el.ownerRevenueTotal = document.getElementById('owner-revenue-total');
+        el.ownerCompletedCount = document.getElementById('owner-completed-count');
+        el.ownerFieldCount = document.getElementById('owner-field-count');
+        el.ownerIncomeChart = document.getElementById('owner-income-chart');
 
         el.bookingSearch = document.getElementById('admin-booking-search');
         el.bookingsBody = document.getElementById('bookings-table-body');
@@ -264,6 +267,7 @@
                 if (el.workspace) el.workspace.classList.remove('hidden');
                 if (el.profileName) el.profileName.textContent = user.fullName || user.email;
                 if (el.profileRole) el.profileRole.textContent = S.getRoleLabel(role);
+                if (el.bannerTitle) el.bannerTitle.textContent = role === 'ADMIN' ? 'Tổng quan hệ thống' : 'Tổng quan chủ sân';
                 if (el.sessionText) {
                     el.sessionText.textContent = 'Đang đăng nhập: ' + (user.fullName || user.email) + ' · Quyền ' + S.getRoleLabel(role);
                 }
@@ -283,19 +287,18 @@
         if (el.tabBookingsBtn) el.tabBookingsBtn.classList.remove('hidden');
         if (el.kpiGrid) el.kpiGrid.classList.toggle('hidden', !isAdmin);
         if (el.analyticsGrid) el.analyticsGrid.classList.toggle('hidden', !isAdmin);
-        if (el.overviewPendingPanel) el.overviewPendingPanel.classList.toggle('hidden', !isAdmin);
+        if (el.adminOverviewNote) el.adminOverviewNote.classList.toggle('hidden', !isAdmin);
+        if (el.ownerDashboard) el.ownerDashboard.classList.toggle('hidden', isAdmin);
 
         if (!isAdmin) {
-            var overview = document.getElementById('admin-panel-overview');
-            if (overview) overview.classList.add('hidden');
             var bookingsLabel = el.tabBookingsBtn && el.tabBookingsBtn.querySelector('.admin-nav-tab-left span:last-child');
             if (bookingsLabel) bookingsLabel.textContent = 'Booking sân của tôi';
             var panelTitle = document.querySelector('#admin-panel-bookings .panel-head h3');
             var panelDescription = document.querySelector('#admin-panel-bookings .panel-head p');
             if (panelTitle) panelTitle.textContent = 'Booking tại sân của tôi';
             if (panelDescription) panelDescription.textContent = 'Xem yêu cầu đặt sân và xác nhận hoặc từ chối booking thuộc các sân bạn sở hữu.';
-            switchTab('bookings');
         }
+        switchTab('overview');
     }
 
     function denyAccess(message) {
@@ -331,7 +334,6 @@
         var requests = [S.apiRequest('/fields', { method: 'GET' })];
 
         if (isAdmin) {
-            requests.push(S.apiRequest('/admin/revenue/summary', { method: 'GET' }));
             requests.push(S.apiRequest('/admin/bookings', { method: 'GET' }));
             requests.push(S.apiRequest('/admin/users', { method: 'GET' }));
         } else {
@@ -346,17 +348,16 @@
                     : allFields.filter(function(f) { return String(f.ownerId) === String(state.currentUser.id); });
 
                 if (isAdmin) {
-                    state.revenueSummary = results[1] || {};
-                    state.bookings = Array.isArray(results[2]) ? results[2] : [];
-                    state.users = Array.isArray(results[3]) ? results[3] : [];
+                    state.bookings = Array.isArray(results[1]) ? results[1] : [];
+                    state.users = Array.isArray(results[2]) ? results[2] : [];
                     renderSummary();
                     renderAnalyticsCharts();
-                    renderOverviewPending();
                     renderBookingsTable();
                     renderUsersTable();
                     populateOwnerSelect();
                 } else {
                     state.bookings = Array.isArray(results[1]) ? results[1] : [];
+                    renderOwnerDashboard();
                     renderBookingsTable();
                 }
                 renderFieldsTable();
@@ -367,35 +368,41 @@
     }
 
     function renderSummary() {
-        var summary = state.revenueSummary || {};
-        var pendingCount = summary.pendingBookings != null
-            ? summary.pendingBookings
-            : state.bookings.filter(function(b) { return S.normalizeBookingStatus(b.status) === 'PENDING'; }).length;
+        var activePlayers = state.users.filter(function(user) {
+            return user.isActive && S.normalizeRole(user.role) === 'CUSTOMER';
+        }).length;
+        var activeOwners = state.users.filter(function(user) {
+            return user.isActive && S.normalizeRole(user.role) === 'OWNER';
+        }).length;
+        var pendingCount = state.bookings.filter(function(b) {
+            var status = S.normalizeBookingStatus(b.status);
+            return status === 'PENDING' || status === 'HOLD';
+        }).length;
 
-        if (el.revenue) el.revenue.textContent = S.formatCurrency(summary.totalRevenue || 0) + ' đ';
-        if (el.bookings) el.bookings.textContent = String(summary.totalBookings || 0);
+        if (el.adminPlayers) el.adminPlayers.textContent = String(activePlayers);
+        if (el.adminOwners) el.adminOwners.textContent = String(activeOwners);
+        if (el.bookings) el.bookings.textContent = String(state.bookings.length);
         if (el.pending) el.pending.textContent = String(pendingCount);
-        if (el.confirmed) el.confirmed.textContent = String(summary.confirmedBookings || 0);
         if (el.pendingBadge) el.pendingBadge.textContent = String(pendingCount);
     }
 
     function renderAnalyticsCharts() {
         if (el.chartStatusBars) {
-            var counts = { CONFIRMED: 0, PENDING: 0, HOLD: 0, CANCELLED: 0 };
+            var counts = { PENDING: 0, HOLD: 0, CONFIRMED: 0, COMPLETED: 0, CANCELLED: 0 };
             state.bookings.forEach(function(b) {
                 var st = S.normalizeBookingStatus(b.status);
-                if (st === 'COMPLETED') st = 'CONFIRMED';
                 if (Object.prototype.hasOwnProperty.call(counts, st)) counts[st] += 1;
             });
-            var total = Math.max(1, state.bookings.length);
+            var total = state.bookings.length;
             var statusRows = [
-                { label: 'Đã xác nhận', value: counts.CONFIRMED, cls: '' },
-                { label: 'Chờ duyệt', value: counts.PENDING, cls: 'warning' },
+                { label: 'Chờ xác nhận', value: counts.PENDING, cls: 'warning' },
                 { label: 'Đang giữ chỗ', value: counts.HOLD, cls: 'info' },
+                { label: 'Đã xác nhận', value: counts.CONFIRMED, cls: '' },
+                { label: 'Hoàn thành', value: counts.COMPLETED, cls: '' },
                 { label: 'Đã hủy', value: counts.CANCELLED, cls: 'danger' }
             ];
             el.chartStatusBars.innerHTML = statusRows.map(function(row) {
-                var pct = Math.round((row.value / total) * 100);
+                var pct = total ? Math.round((row.value / total) * 100) : 0;
                 return '<div class="chart-bar-row">' +
                     '  <span class="chart-bar-label">' + S.escapeHtml(row.label) + '</span>' +
                     '  <div class="chart-bar-track"><div class="chart-bar-fill ' + row.cls + '" style="width:' + pct + '%;"></div></div>' +
@@ -403,49 +410,53 @@
                     '</div>';
             }).join('');
         }
+    }
 
-        if (el.chartSportBars) {
-            var revBySport = {};
-            state.bookings.forEach(function(b) {
-                if (S.normalizeBookingStatus(b.status) === 'CANCELLED') return;
-                var sport = (b.field && b.field.sportType) || 'OTHER';
-                revBySport[sport] = (revBySport[sport] || 0) + Number(b.totalPrice || 0);
+    function renderOwnerDashboard() {
+        var months = [];
+        var today = new Date();
+        var firstMonth = new Date(today.getFullYear(), today.getMonth() - 11, 1);
+        for (var i = 0; i < 12; i += 1) {
+            var date = new Date(firstMonth.getFullYear(), firstMonth.getMonth() + i, 1);
+            months.push({
+                key: date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0'),
+                label: date.toLocaleDateString('vi-VN', { month: 'short' }).replace('.', ''),
+                value: 0
             });
-            var entries = Object.keys(revBySport).map(function(k) {
-                return { sport: k, label: S.getSportMeta(k).label, value: revBySport[k] };
-            }).sort(function(a, b) { return b.value - a.value; });
+        }
 
-            if (!entries.length) {
-                el.chartSportBars.innerHTML = '<p class="secondary-text">Chưa có dữ liệu doanh thu theo môn.</p>';
+        var byMonth = {};
+        months.forEach(function(month) { byMonth[month.key] = month; });
+        state.bookings.forEach(function(booking) {
+            if (S.normalizeBookingStatus(booking.status) !== 'COMPLETED') return;
+            var key = String(booking.bookingDate || '').slice(0, 7);
+            if (byMonth[key]) byMonth[key].value += Number(booking.totalPrice || 0);
+        });
+
+        var total = months.reduce(function(sum, month) { return sum + month.value; }, 0);
+        var completedCount = state.bookings.filter(function(booking) {
+            return S.normalizeBookingStatus(booking.status) === 'COMPLETED';
+        }).length;
+        if (el.ownerRevenueTotal) el.ownerRevenueTotal.textContent = S.formatCurrency(total) + ' đ';
+        if (el.ownerCompletedCount) el.ownerCompletedCount.textContent = String(completedCount);
+        if (el.ownerFieldCount) el.ownerFieldCount.textContent = String(state.fields.length);
+
+        if (el.ownerIncomeChart) {
+            var maxValue = Math.max.apply(Math, months.map(function(month) { return month.value; }).concat([1]));
+            if (!total) {
+                el.ownerIncomeChart.innerHTML = '<p class="secondary-text owner-chart-empty">Chưa có booking hoàn thành trong khoảng thời gian này.</p>';
             } else {
-                var maxRev = Math.max(1, entries[0].value);
-                el.chartSportBars.innerHTML = entries.map(function(entry) {
-                    var pct = Math.round((entry.value / maxRev) * 100);
-                    return '<div class="chart-bar-row">' +
-                        '  <span class="chart-bar-label">' + S.escapeHtml(entry.label) + '</span>' +
-                        '  <div class="chart-bar-track"><div class="chart-bar-fill" style="width:' + pct + '%;"></div></div>' +
-                        '  <span class="chart-bar-value">' + S.formatCurrency(entry.value) + ' đ</span>' +
-                        '</div>';
+                el.ownerIncomeChart.innerHTML = months.map(function(month) {
+                    var height = month.value ? Math.max(4, Math.round((month.value / maxValue) * 100)) : 0;
+                    var title = month.label + ': ' + S.formatCurrency(month.value) + ' đ';
+                    return '<div class="owner-income-column" title="' + S.escapeHtml(title) + '">' +
+                        '<span class="owner-income-value">' + (month.value ? S.escapeHtml(S.formatCurrency(month.value)) : '') + '</span>' +
+                        '<div class="owner-income-track"><div class="owner-income-bar" style="height:' + height + '%"></div></div>' +
+                        '<span class="owner-income-month">' + S.escapeHtml(month.label) + '</span>' +
+                    '</div>';
                 }).join('');
             }
         }
-    }
-
-    function renderOverviewPending() {
-        if (!el.overviewPendingBody) return;
-        var pendingList = state.bookings.filter(function(b) {
-            var st = S.normalizeBookingStatus(b.status);
-            return st === 'PENDING' || st === 'HOLD';
-        }).slice(0, 5);
-
-        if (!pendingList.length) {
-            el.overviewPendingBody.innerHTML = '<tr><td colspan="7" class="table-empty">Không có booking nào đang chờ duyệt.</td></tr>';
-            return;
-        }
-
-        el.overviewPendingBody.innerHTML = pendingList.map(buildBookingRowHtml).join('');
-        bindBookingRowActions(el.overviewPendingBody);
-        S.refreshIcons(el.overviewPendingBody);
     }
 
     function renderBookingsTable() {
