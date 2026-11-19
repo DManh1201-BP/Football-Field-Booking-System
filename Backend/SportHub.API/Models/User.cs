@@ -56,4 +56,7 @@ public class User
 
     [JsonIgnore]
     public ICollection<Booking> Bookings { get; set; } = new List<Booking>();
+
+    [JsonIgnore]
+    public ICollection<Notification> Notifications { get; set; } = new List<Notification>();
 }

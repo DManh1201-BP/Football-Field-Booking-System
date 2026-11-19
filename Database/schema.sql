@@ -96,6 +96,22 @@ CREATE TABLE dbo.matches
 );
 GO
 
+CREATE TABLE dbo.notifications
+(
+	id BIGINT IDENTITY(1,1) NOT NULL CONSTRAINT PK_notifications PRIMARY KEY,
+	user_id BIGINT NOT NULL,
+	booking_id BIGINT NULL,
+	message NVARCHAR(500) NOT NULL,
+	is_read BIT NOT NULL CONSTRAINT DF_notifications_is_read DEFAULT 0,
+	created_at DATETIME2 NOT NULL CONSTRAINT DF_notifications_created_at DEFAULT GETDATE(),
+	CONSTRAINT FK_notifications_user FOREIGN KEY (user_id) REFERENCES dbo.users(id) ON DELETE CASCADE,
+	CONSTRAINT FK_notifications_booking FOREIGN KEY (booking_id) REFERENCES dbo.bookings(id) ON DELETE SET NULL
+);
+GO
+
+CREATE INDEX IX_notifications_user_read_created ON dbo.notifications(user_id, is_read, created_at DESC);
+GO
+
 CREATE INDEX IX_fields_search ON dbo.fields(sport_type, city, is_available);
 CREATE INDEX IX_bookings_schedule ON dbo.bookings(field_id, booking_date, start_time, end_time, status);
 CREATE INDEX IX_bookings_user ON dbo.bookings(user_id, booking_date DESC);

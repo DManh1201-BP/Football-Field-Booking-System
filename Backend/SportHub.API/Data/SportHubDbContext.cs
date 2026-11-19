@@ -13,6 +13,7 @@ public class SportHubDbContext : DbContext
     public DbSet<Field> Fields => Set<Field>();
     public DbSet<Booking> Bookings => Set<Booking>();
     public DbSet<Match> Matches => Set<Match>();
+    public DbSet<Notification> Notifications => Set<Notification>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -109,6 +110,15 @@ public class SportHubDbContext : DbContext
                 .HasForeignKey(m => m.FieldId)
                 .OnDelete(DeleteBehavior.SetNull)
                 .HasConstraintName("fk_matches_field");
+        });
+
+        modelBuilder.Entity<Notification>(entity =>
+        {
+            entity.HasIndex(n => new { n.UserId, n.IsRead, n.CreatedAt });
+            entity.HasOne(n => n.User).WithMany(u => u.Notifications)
+                .HasForeignKey(n => n.UserId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(n => n.Booking).WithMany()
+                .HasForeignKey(n => n.BookingId).OnDelete(DeleteBehavior.SetNull);
         });
     }
 
