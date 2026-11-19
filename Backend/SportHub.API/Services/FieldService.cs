@@ -130,6 +130,10 @@ public class FieldService : IFieldService
         {
             field.OwnerId = dto.OwnerId.Value;
         }
+        if (isAdmin && dto.ClearOwner)
+        {
+            field.OwnerId = null;
+        }
 
         var updated = await _fieldRepository.UpdateAsync(field, cancellationToken);
         return FieldDto.FromEntity(updated);

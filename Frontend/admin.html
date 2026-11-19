@@ -117,6 +117,9 @@
                         <button class="admin-nav-tab" type="button" data-admin-tab="fields" role="tab" aria-selected="false">
                             <span class="admin-nav-tab-left"><i data-lucide="map-pinned" aria-hidden="true"></i><span>Quản lý sân</span></span>
                         </button>
+                        <button id="admin-tab-users-btn" class="admin-nav-tab hidden" type="button" data-admin-tab="users" role="tab" aria-selected="false">
+                            <span class="admin-nav-tab-left"><i data-lucide="users-round" aria-hidden="true"></i><span>Tài khoản &amp; phân quyền</span></span>
+                        </button>
                     </div>
                     <button id="admin-refresh-btn" class="btn btn-secondary btn-sm" type="button">
                         <i data-lucide="refresh-cw" class="btn-icon" aria-hidden="true"></i>
@@ -136,6 +139,12 @@
                             <i data-lucide="plus" class="btn-icon" aria-hidden="true"></i>
                             <span>Thêm sân mới</span>
                         </button>
+                    </section>
+                    <section id="admin-panel-users" class="admin-tab-panel hidden">
+                        <div class="account-panel">
+                            <div class="panel-head"><div><h3>Tài khoản &amp; phân quyền</h3><p>Gán role CUSTOMER, OWNER hoặc ADMIN. Sau khi đổi role, người dùng cần đăng nhập lại để nhận quyền mới.</p></div></div>
+                            <div class="table-wrap"><table class="booking-table"><thead><tr><th>Người dùng</th><th>Email</th><th>Điện thoại</th><th>Role</th><th>Thao tác</th></tr></thead><tbody id="admin-users-body"></tbody></table></div>
+                        </div>
                     </section>
 
                     <!-- Tab 1: Overview -->
@@ -375,6 +384,10 @@
                                 <span>Đang mở đặt sân</span>
                             </label>
                         </div>
+                        <label id="field-owner-field" class="form-field form-field-wide hidden">
+                            <span>Chủ sân (OWNER)</span>
+                            <select id="field-owner-id"><option value="">Chưa gán chủ sân</option></select>
+                        </label>
                         <div class="form-field form-field-wide">
                             <label for="field-amenities">Tiện ích (ngăn cách bởi dấu phẩy)</label>
                             <input id="field-amenities" type="text" placeholder="Đèn LED, Bãi giữ xe, Nước uống">

@@ -7,6 +7,7 @@
         currentUser: null,
         role: null,
         fields: [],
+        users: [],
         bookings: [],
         revenueSummary: null,
         activeTab: 'overview',
@@ -45,6 +46,8 @@
         el.sessionText = document.getElementById('admin-session-text');
         el.pendingBadge = document.getElementById('admin-pending-badge');
         el.tabBookingsBtn = document.getElementById('admin-tab-bookings-btn');
+        el.tabUsersBtn = document.getElementById('admin-tab-users-btn');
+        el.usersBody = document.getElementById('admin-users-body');
         el.refreshBtn = document.getElementById('admin-refresh-btn');
 
         el.kpiGrid = document.getElementById('admin-kpi-grid');
@@ -67,6 +70,8 @@
         el.fieldSearch = document.getElementById('admin-field-search');
         el.fieldSportFilter = document.getElementById('admin-field-sport-filter');
         el.fieldsBody = document.getElementById('fields-table-body');
+        el.fieldOwnerField = document.getElementById('field-owner-field');
+        el.fieldOwnerId = document.getElementById('field-owner-id');
 
         el.openCreateFieldBtn = document.getElementById('open-create-field-btn');
         el.fieldsTabAddBtn = document.getElementById('fields-tab-add-btn');
@@ -117,6 +122,24 @@
         if (el.refreshBtn) {
             el.refreshBtn.addEventListener('click', loadAdminData);
         }
+
+        if (el.usersBody) el.usersBody.addEventListener('click', function(e) {
+            var button = e.target.closest('[data-user-role-save]');
+            if (!button) return;
+            var id = button.getAttribute('data-user-role-save');
+            var select = el.usersBody.querySelector('[data-user-role="' + id + '"]');
+            if (!select) return;
+            button.disabled = true;
+            S.apiRequest('/admin/users/' + encodeURIComponent(id) + '/role', {
+                method: 'PATCH', body: JSON.stringify({ role: select.value })
+            }).then(function() {
+                S.showToast('Role đã cập nhật. Người dùng cần đăng nhập lại để nhận quyền mới.', 'success');
+                loadAdminData();
+            }).catch(function(err) {
+                S.showToast(err.message || 'Không thể cập nhật role.', 'error');
+                button.disabled = false;
+            });
+        });
 
         Array.prototype.forEach.call(document.querySelectorAll('[data-booking-status]'), function(btn) {
             btn.addEventListener('click', function() {
@@ -255,6 +278,8 @@
 
     function configureRoleVisibility(role) {
         var isAdmin = role === 'ADMIN';
+        if (el.tabUsersBtn) el.tabUsersBtn.classList.toggle('hidden', !isAdmin);
+        if (el.fieldOwnerField) el.fieldOwnerField.classList.toggle('hidden', !isAdmin);
         if (el.tabBookingsBtn) el.tabBookingsBtn.classList.remove('hidden');
         if (el.kpiGrid) el.kpiGrid.classList.toggle('hidden', !isAdmin);
         if (el.analyticsGrid) el.analyticsGrid.classList.toggle('hidden', !isAdmin);
@@ -290,7 +315,8 @@
         var panels = {
             overview: document.getElementById('admin-panel-overview'),
             bookings: document.getElementById('admin-panel-bookings'),
-            fields: document.getElementById('admin-panel-fields')
+            fields: document.getElementById('admin-panel-fields'),
+            users: document.getElementById('admin-panel-users')
         };
 
         Object.keys(panels).forEach(function(key) {
@@ -307,6 +333,7 @@
         if (isAdmin) {
             requests.push(S.apiRequest('/admin/revenue/summary', { method: 'GET' }));
             requests.push(S.apiRequest('/admin/bookings', { method: 'GET' }));
+            requests.push(S.apiRequest('/admin/users', { method: 'GET' }));
         } else {
             requests.push(S.apiRequest('/owner/bookings', { method: 'GET' }));
         }
@@ -321,10 +348,13 @@
                 if (isAdmin) {
                     state.revenueSummary = results[1] || {};
                     state.bookings = Array.isArray(results[2]) ? results[2] : [];
+                    state.users = Array.isArray(results[3]) ? results[3] : [];
                     renderSummary();
                     renderAnalyticsCharts();
                     renderOverviewPending();
                     renderBookingsTable();
+                    renderUsersTable();
+                    populateOwnerSelect();
                 } else {
                     state.bookings = Array.isArray(results[1]) ? results[1] : [];
                     renderBookingsTable();
@@ -672,6 +702,34 @@
         S.refreshIcons(el.fieldsBody);
     }
 
+    function renderUsersTable() {
+        if (!el.usersBody) return;
+        if (!state.users.length) {
+            el.usersBody.innerHTML = '<tr><td colspan="5" class="table-empty">Chưa có tài khoản.</td></tr>';
+            return;
+        }
+        el.usersBody.innerHTML = state.users.map(function(user) {
+            var isSelf = state.currentUser && String(user.id) === String(state.currentUser.id);
+            var options = ['CUSTOMER', 'OWNER', 'ADMIN'].map(function(role) {
+                return '<option value="' + role + '" ' + (user.role === role ? 'selected' : '') + '>' + role + '</option>';
+            }).join('');
+            return '<tr><td><strong>' + S.escapeHtml(user.fullName) + '</strong></td>' +
+                '<td>' + S.escapeHtml(user.email) + '</td><td>' + S.escapeHtml(user.phone || '—') + '</td>' +
+                '<td><select class="admin-sport-select" data-user-role="' + S.escapeHtml(user.id) + '" ' + (isSelf ? 'disabled' : '') + '>' + options + '</select></td>' +
+                '<td><button class="btn btn-primary btn-compact" type="button" data-user-role-save="' + S.escapeHtml(user.id) + '" ' + (isSelf ? 'disabled title="Không thể đổi role của chính mình"' : '') + '>Lưu role</button></td></tr>';
+        }).join('');
+    }
+
+    function populateOwnerSelect() {
+        if (!el.fieldOwnerId) return;
+        var owners = state.users.filter(function(user) { return user.role === 'OWNER'; });
+        var selected = el.fieldOwnerId.value;
+        el.fieldOwnerId.innerHTML = '<option value="">Chưa gán chủ sân</option>' + owners.map(function(owner) {
+            return '<option value="' + S.escapeHtml(owner.id) + '">' + S.escapeHtml(owner.fullName + ' · ' + owner.email) + '</option>';
+        }).join('');
+        if (selected) el.fieldOwnerId.value = selected;
+    }
+
     function openCreateFieldDrawer() {
         resetFieldForm();
         if (el.drawerTitle) el.drawerTitle.textContent = 'Thêm sân mới';
@@ -697,6 +755,7 @@
         if (el.fieldImageFile) el.fieldImageFile.value = '';
         if (el.fieldDescription) el.fieldDescription.value = field.description || '';
         if (el.fieldAvailable) el.fieldAvailable.checked = field.isAvailable !== false;
+        if (el.fieldOwnerId) el.fieldOwnerId.value = field.ownerId == null ? '' : String(field.ownerId);
 
         syncAmenityPresetButtons();
         renderImagePreview(field.imageUrl || '');
@@ -727,6 +786,7 @@
         if (el.fieldId) el.fieldId.value = '';
         if (el.fieldSport) el.fieldSport.value = 'FOOTBALL';
         if (el.fieldAvailable) el.fieldAvailable.checked = true;
+        if (el.fieldOwnerId) el.fieldOwnerId.value = '';
         if (el.fieldImageFile) el.fieldImageFile.value = '';
         syncAmenityPresetButtons();
         renderImagePreview('');
@@ -814,6 +874,11 @@
             description: valueOf(el.fieldDescription) || null,
             isAvailable: !!(el.fieldAvailable && el.fieldAvailable.checked)
         };
+        if (state.role === 'ADMIN') {
+            var selectedOwnerId = valueOf(el.fieldOwnerId);
+            if (selectedOwnerId) payload.ownerId = Number(selectedOwnerId);
+            else if (state.editingFieldId) payload.clearOwner = true;
+        }
 
         var fieldId = state.editingFieldId;
         var method = fieldId ? 'PUT' : 'POST';

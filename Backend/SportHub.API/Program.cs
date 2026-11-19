@@ -8,6 +8,7 @@ using Microsoft.OpenApi.Models;
 using SportHub.API.Data;
 using SportHub.API.DTOs;
 using SportHub.API.Middleware;
+using SportHub.API.Models;
 using SportHub.API.Repositories;
 using SportHub.API.Services;
 
@@ -49,6 +50,32 @@ builder.Services
     })
     .AddJwtBearer(options =>
     {
+        options.Events = new JwtBearerEvents
+        {
+            OnTokenValidated = async context =>
+            {
+                var idValue = context.Principal?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                var tokenRole = context.Principal?.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+                if (!long.TryParse(idValue, out var userId) || string.IsNullOrWhiteSpace(tokenRole))
+                {
+                    context.Fail("Token identity is invalid.");
+                    return;
+                }
+
+                var db = context.HttpContext.RequestServices.GetRequiredService<SportHubDbContext>();
+                var user = await db.Users.AsNoTracking()
+                    .Where(u => u.Id == userId)
+                    .Select(u => new { u.Role, u.IsActive })
+                    .FirstOrDefaultAsync(context.HttpContext.RequestAborted);
+                if (user is null || !user.IsActive ||
+                    !string.Equals(UserRoleExtensions.NormalizeRole(user.Role),
+                        UserRoleExtensions.NormalizeRole(tokenRole), StringComparison.OrdinalIgnoreCase))
+                {
+                    context.Fail("User is inactive or the role in this token is outdated. Please sign in again.");
+                }
+            }
+        };
+
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
