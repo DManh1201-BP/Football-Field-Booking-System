@@ -83,6 +83,8 @@ Backend/SportHub.API/
 | Auth | `POST /api/auth/register` | Public | Đăng ký tài khoản mới & cấp JWT |
 | Auth | `POST /api/auth/login` | Public | Đăng nhập & cấp JWT |
 | Auth | `GET /api/auth/me` | Authenticated | Lấy hồ sơ người dùng hiện tại |
+| Auth | `PUT /api/auth/me/profile` | Authenticated | Cập nhật tên, điện thoại, địa chỉ và bio của tài khoản hiện tại |
+| Auth | `POST /api/auth/me/avatar` | Authenticated | Upload ảnh đại diện JPG/PNG/WebP, tối đa 2 MB |
 | Fields | `GET /api/fields` | Public | Danh sách tất cả sân |
 | Fields | `GET /api/fields/available` | Public | Danh sách sân đang mở đặt |
 | Fields | `GET /api/fields/{id}` | Public | Chi tiết sân theo ID |
@@ -105,6 +107,8 @@ Backend/SportHub.API/
 | Admin users | `PATCH /api/admin/users/{id}/role` | `ADMIN` | Đổi role `CUSTOMER`, `OWNER` hoặc `ADMIN`; người dùng cần đăng nhập lại |
 | Admin | `PATCH /api/admin/bookings/{bookingId}/confirm` | `ADMIN` | Xác nhận booking |
 | Admin | `PATCH /api/admin/bookings/{bookingId}/reject` | `ADMIN` | Từ chối booking đang chờ và gửi thông báo cho người đặt |
+
+Các cột `bio` và `avatar_url` được thêm tự động khi khởi chạy môi trường Development. Với môi trường khác, chạy `Database/migrations/20261119_add_user_profile_fields.sql` một lần trước khi chạy phiên bản mới.
 | Owner | `GET /api/owner/bookings` | `OWNER` | Xem booking thuộc các sân do chủ sân sở hữu |
 | Owner | `PATCH /api/owner/bookings/{bookingId}/confirm` | `OWNER` | Xác nhận booking của sân mình; backend kiểm tra xung đột |
 | Owner | `PATCH /api/owner/bookings/{bookingId}/reject` | `OWNER` | Từ chối booking của sân mình và gửi thông báo cho người đặt |

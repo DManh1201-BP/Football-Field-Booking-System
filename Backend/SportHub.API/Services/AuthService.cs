@@ -84,4 +84,43 @@ public class AuthService : IAuthService
 
         return UserProfileResponseDto.FromUser(user);
     }
+
+    public async Task<UserProfileResponseDto> UpdateProfileAsync(
+        long userId,
+        UpdateUserProfileRequestDto request,
+        CancellationToken cancellationToken = default)
+    {
+        var user = await _userRepository.GetByIdAsync(userId, cancellationToken)
+            ?? throw new KeyNotFoundException($"User not found: {userId}");
+
+        var fullName = request.FullName.Trim();
+        if (string.IsNullOrWhiteSpace(fullName))
+        {
+            throw new ArgumentException("Full name is required");
+        }
+
+        user.FullName = fullName;
+        user.Phone = NormalizeOptional(request.Phone);
+        user.Address = NormalizeOptional(request.Address);
+        user.Bio = NormalizeOptional(request.Bio);
+
+        var savedUser = await _userRepository.UpdateAsync(user, cancellationToken);
+        return UserProfileResponseDto.FromUser(savedUser);
+    }
+
+    public async Task<UserProfileResponseDto> UpdateAvatarAsync(
+        long userId,
+        string avatarUrl,
+        CancellationToken cancellationToken = default)
+    {
+        var user = await _userRepository.GetByIdAsync(userId, cancellationToken)
+            ?? throw new KeyNotFoundException($"User not found: {userId}");
+
+        user.AvatarUrl = avatarUrl;
+        var savedUser = await _userRepository.UpdateAsync(user, cancellationToken);
+        return UserProfileResponseDto.FromUser(savedUser);
+    }
+
+    private static string? NormalizeOptional(string? value) =>
+        string.IsNullOrWhiteSpace(value) ? null : value.Trim();
 }

@@ -35,6 +35,14 @@ public class User
     [Column("address")]
     public string? Address { get; set; }
 
+    [MaxLength(500)]
+    [Column("bio")]
+    public string? Bio { get; set; }
+
+    [MaxLength(500)]
+    [Column("avatar_url")]
+    public string? AvatarUrl { get; set; }
+
     [MaxLength(20)]
     [Column("role")]
     public string Role { get; set; } = UserRole.CUSTOMER.ToString();

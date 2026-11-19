@@ -56,6 +56,7 @@ URL này được cấu hình trong `window.SPORTHUB_CONFIG` ở mỗi trang HTM
 ## API chính đang sử dụng
 
 - `POST /api/auth/register`, `POST /api/auth/login`, `GET /api/auth/me`
+- `PUT /api/auth/me/profile`, `POST /api/auth/me/avatar` để chỉnh sửa hồ sơ và ảnh đại diện
 - `GET /api/fields`
 - `POST /api/bookings`
 - `PUT /api/bookings/{id}` để cập nhật booking chưa hoàn tất/hủy

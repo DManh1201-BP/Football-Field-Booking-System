@@ -22,6 +22,15 @@ public static class DbInitializer
             await dbContext.Database.EnsureCreatedAsync();
         }
 
+        // EnsureCreated does not alter tables in an existing database. Keep these
+        // additive profile columns compatible with installations created earlier.
+        await dbContext.Database.ExecuteSqlRawAsync("""
+            IF OBJECT_ID(N'dbo.users', N'U') IS NOT NULL AND COL_LENGTH(N'dbo.users', N'bio') IS NULL
+                ALTER TABLE dbo.users ADD bio NVARCHAR(500) NULL;
+            IF OBJECT_ID(N'dbo.users', N'U') IS NOT NULL AND COL_LENGTH(N'dbo.users', N'avatar_url') IS NULL
+                ALTER TABLE dbo.users ADD avatar_url NVARCHAR(500) NULL;
+            """);
+
         var shouldSeed = configuration.GetValue<bool>("SeedSampleData");
         if (!shouldSeed)
         {

@@ -119,6 +119,8 @@
             email: String(user.email || '').trim().toLowerCase(),
             phone: user.phone || '',
             address: user.address || '',
+            bio: user.bio || '',
+            avatarUrl: user.avatarUrl || '',
             role: normalizeRole(user.role),
             eloRating: Number(user.eloRating || 1000)
         };
@@ -835,16 +837,162 @@
 
         Array.prototype.forEach.call(userPills, function(pill) {
             pill.classList.toggle('hidden', !isAuth);
+            var editButton = pill.nextElementSibling;
+            if (editButton && editButton.hasAttribute('data-profile-edit')) {
+                editButton.classList.toggle('hidden', !isAuth);
+            }
             if (isAuth && session.currentUser) {
                 var fullName = session.currentUser.fullName || 'Người dùng';
                 var initials = fullName.trim().split(/\s+/).slice(-2).map(function(w) { return w.charAt(0).toUpperCase(); }).join('') || 'U';
                 var avatarEl = pill.querySelector('.user-avatar');
                 var nameEl = pill.querySelector('.user-name');
                 var roleEl = pill.querySelector('.user-role');
-                if (avatarEl) avatarEl.textContent = initials;
+                if (avatarEl) {
+                    avatarEl.textContent = initials;
+                    avatarEl.style.backgroundImage = '';
+                    avatarEl.classList.remove('has-image');
+                    if (session.currentUser.avatarUrl) {
+                        var avatarImage = document.createElement('img');
+                        avatarImage.src = resolveMediaUrl(session.currentUser.avatarUrl);
+                        avatarImage.alt = '';
+                        avatarImage.onload = function() {
+                            avatarEl.textContent = '';
+                            avatarEl.appendChild(avatarImage);
+                            avatarEl.classList.add('has-image');
+                        };
+                    }
+                }
                 if (nameEl) nameEl.textContent = fullName;
                 if (roleEl) roleEl.textContent = getRoleLabel(role);
             }
+        });
+    }
+
+    function ensureProfileModalDom() {
+        if (document.getElementById('profile-edit-modal')) return;
+        var modal = document.createElement('div');
+        modal.id = 'profile-edit-modal';
+        modal.className = 'modal hidden';
+        modal.setAttribute('role', 'dialog');
+        modal.setAttribute('aria-modal', 'true');
+        modal.setAttribute('aria-labelledby', 'profile-edit-title');
+        modal.innerHTML =
+            '<div class="modal-content profile-modal-content" tabindex="-1">' +
+            '  <div class="modal-header"><div><span class="auth-brand-badge"><i data-lucide="user-round" aria-hidden="true"></i><span>SportHub Account</span></span><h2 id="profile-edit-title">Chỉnh sửa hồ sơ</h2><p class="secondary-text">Cập nhật thông tin cá nhân hiển thị trên SportHub.</p></div><button class="close-modal" type="button" data-profile-close aria-label="Đóng"><i data-lucide="x" aria-hidden="true"></i></button></div>' +
+            '  <form id="profile-edit-form" class="profile-edit-form">' +
+            '    <label class="profile-avatar-picker"><span id="profile-avatar-preview" class="profile-avatar-preview">U</span><span><strong>Ảnh đại diện</strong><small>JPG, PNG hoặc WebP · tối đa 2 MB</small><input id="profile-avatar-file" type="file" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"></span></label>' +
+            '    <div class="profile-form-grid">' +
+            '      <label class="form-field"><span>Họ và tên</span><input id="profile-full-name" type="text" maxlength="100" required></label>' +
+            '      <label class="form-field"><span>Email</span><input id="profile-email" type="email" disabled></label>' +
+            '      <label class="form-field"><span>Số điện thoại</span><input id="profile-phone" type="tel" maxlength="20"></label>' +
+            '      <label class="form-field"><span>Địa chỉ</span><input id="profile-address" type="text" maxlength="255"></label>' +
+            '      <label class="form-field profile-bio-field"><span>Giới thiệu</span><textarea id="profile-bio" maxlength="500" rows="3" placeholder="Viết vài dòng giới thiệu về bạn"></textarea><small class="secondary-text">Tối đa 500 ký tự</small></label>' +
+            '    </div>' +
+            '    <p id="profile-edit-feedback" class="booking-feedback hidden" role="status"></p>' +
+            '    <div class="modal-actions"><button id="profile-save-btn" class="btn btn-primary" type="submit">Lưu thay đổi</button><button class="btn btn-secondary" type="button" data-profile-close>Đóng</button></div>' +
+            '  </form>' +
+            '</div>';
+        document.body.appendChild(modal);
+        refreshIcons(modal);
+    }
+
+    function showProfileFeedback(message, isError) {
+        var feedback = document.getElementById('profile-edit-feedback');
+        if (!feedback) return;
+        feedback.textContent = message || '';
+        feedback.className = message ? 'booking-feedback ' + (isError ? 'error' : 'info') : 'booking-feedback hidden';
+    }
+
+    function showProfileAvatarPreview(url, fallbackName) {
+        var preview = document.getElementById('profile-avatar-preview');
+        if (!preview) return;
+        preview.textContent = String(fallbackName || 'U').trim().split(/\s+/).slice(-2).map(function(part) { return part.charAt(0).toUpperCase(); }).join('') || 'U';
+        preview.style.backgroundImage = '';
+        if (url) {
+            preview.style.backgroundImage = 'url("' + String(url).replace(/["\\]/g, '') + '")';
+            preview.classList.add('has-image');
+        } else {
+            preview.classList.remove('has-image');
+        }
+    }
+
+    function openProfileModal() {
+        var session = loadAuthSession();
+        if (!session.token || !session.currentUser) return;
+        ensureProfileModalDom();
+        var user = session.currentUser;
+        document.getElementById('profile-full-name').value = user.fullName || '';
+        document.getElementById('profile-email').value = user.email || '';
+        document.getElementById('profile-phone').value = user.phone || '';
+        document.getElementById('profile-address').value = user.address || '';
+        document.getElementById('profile-bio').value = user.bio || '';
+        document.getElementById('profile-avatar-file').value = '';
+        showProfileAvatarPreview(user.avatarUrl ? resolveMediaUrl(user.avatarUrl) : '', user.fullName);
+        showProfileFeedback('');
+        var modal = document.getElementById('profile-edit-modal');
+        modal.classList.remove('hidden');
+        modal.setAttribute('aria-hidden', 'false');
+        document.body.classList.add('modal-open');
+        document.getElementById('profile-full-name').focus();
+    }
+
+    function closeProfileModal() {
+        var modal = document.getElementById('profile-edit-modal');
+        if (!modal) return;
+        modal.classList.add('hidden');
+        modal.setAttribute('aria-hidden', 'true');
+        if (!document.querySelector('.modal:not(.hidden)')) document.body.classList.remove('modal-open');
+    }
+
+    function bindProfileModalEventsOnce() {
+        var form = document.getElementById('profile-edit-form');
+        if (!form || form.dataset.bound === 'true') return;
+        form.dataset.bound = 'true';
+        var fileInput = document.getElementById('profile-avatar-file');
+        fileInput.addEventListener('change', function() {
+            var file = fileInput.files && fileInput.files[0];
+            if (!file) return;
+            if (file.size > 2 * 1024 * 1024) {
+                fileInput.value = '';
+                showProfileFeedback('Ảnh đại diện không được vượt quá 2 MB.', true);
+                return;
+            }
+            showProfileAvatarPreview(URL.createObjectURL(file), document.getElementById('profile-full-name').value);
+        });
+
+        form.addEventListener('submit', function(event) {
+            event.preventDefault();
+            var session = loadAuthSession();
+            if (!session.token) return;
+            var saveButton = document.getElementById('profile-save-btn');
+            saveButton.disabled = true;
+            showProfileFeedback('Đang lưu hồ sơ…');
+            apiRequest('/auth/me/profile', {
+                method: 'PUT',
+                body: JSON.stringify({
+                    fullName: document.getElementById('profile-full-name').value.trim(),
+                    phone: document.getElementById('profile-phone').value.trim(),
+                    address: document.getElementById('profile-address').value.trim(),
+                    bio: document.getElementById('profile-bio').value.trim()
+                })
+            }).then(function(user) {
+                persistAuthSession(user, session.token);
+                updateNavbarAuthUI();
+                var file = fileInput.files && fileInput.files[0];
+                if (!file) return user;
+                var body = new FormData();
+                body.append('file', file);
+                return apiRequest('/auth/me/avatar', { method: 'POST', body: body, isFormData: true });
+            }).then(function(user) {
+                persistAuthSession(user, session.token);
+                updateNavbarAuthUI();
+                closeProfileModal();
+                showToast('Hồ sơ đã được cập nhật.', 'success');
+            }).catch(function(error) {
+                showProfileFeedback(error.message || 'Không thể cập nhật hồ sơ.', true);
+            }).then(function() {
+                saveButton.disabled = false;
+            });
         });
     }
 
@@ -854,7 +1002,21 @@
         authModalCallbacks.onLogout = opts.onLogout || null;
 
         ensureAuthModalDom();
+        ensureProfileModalDom();
         bindAuthModalEventsOnce();
+        bindProfileModalEventsOnce();
+        Array.prototype.forEach.call(document.querySelectorAll('[data-user-pill]'), function(pill) {
+            if (pill.nextElementSibling && pill.nextElementSibling.hasAttribute('data-profile-edit')) return;
+            var button = document.createElement('button');
+            button.type = 'button';
+            button.className = 'profile-edit-trigger hidden';
+            button.setAttribute('data-profile-edit', '');
+            button.setAttribute('aria-label', 'Chỉnh sửa hồ sơ');
+            button.title = 'Chỉnh sửa hồ sơ';
+            button.innerHTML = '<i data-lucide="user-round-pen" aria-hidden="true"></i>';
+            pill.insertAdjacentElement('afterend', button);
+            refreshIcons(button);
+        });
         updateNavbarAuthUI();
 
         var navbar = document.querySelector('.navbar');
@@ -899,6 +1061,20 @@
         }
 
         document.addEventListener('click', function(e) {
+            var profileTrigger = e.target.closest ? e.target.closest('[data-profile-edit]') : null;
+            if (profileTrigger) {
+                openProfileModal();
+                return;
+            }
+            if (e.target.closest && e.target.closest('[data-profile-close]')) {
+                closeProfileModal();
+                return;
+            }
+            var profileModal = document.getElementById('profile-edit-modal');
+            if (profileModal && e.target === profileModal) {
+                closeProfileModal();
+                return;
+            }
             var authTrigger = e.target.closest ? e.target.closest('[data-auth-action]') : null;
             if (!authTrigger) return;
             var action = authTrigger.getAttribute('data-auth-action');

@@ -13,6 +13,8 @@ CREATE TABLE dbo.users
 	full_name NVARCHAR(100) NOT NULL,
 	phone NVARCHAR(20) NULL,
 	address NVARCHAR(255) NULL,
+	bio NVARCHAR(500) NULL,
+	avatar_url NVARCHAR(500) NULL,
 	role NVARCHAR(20) NOT NULL CONSTRAINT DF_users_role DEFAULT N'CUSTOMER',
 	is_active BIT NOT NULL CONSTRAINT DF_users_is_active DEFAULT 1,
 	elo_rating INT NOT NULL CONSTRAINT DF_users_elo_rating DEFAULT 1000,

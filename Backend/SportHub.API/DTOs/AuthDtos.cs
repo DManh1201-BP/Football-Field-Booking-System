@@ -41,6 +41,8 @@ public class UserProfileResponseDto
     public string FullName { get; set; } = string.Empty;
     public string? Phone { get; set; }
     public string? Address { get; set; }
+    public string? Bio { get; set; }
+    public string? AvatarUrl { get; set; }
     public string Role { get; set; } = string.Empty;
     public int EloRating { get; set; }
 
@@ -53,10 +55,28 @@ public class UserProfileResponseDto
             FullName = user.FullName,
             Phone = user.Phone,
             Address = user.Address,
+            Bio = user.Bio,
+            AvatarUrl = user.AvatarUrl,
             Role = UserRoleExtensions.NormalizeRole(user.Role),
             EloRating = user.EloRating
         };
     }
+}
+
+public class UpdateUserProfileRequestDto
+{
+    [Required(ErrorMessage = "Full name is required")]
+    [MaxLength(100, ErrorMessage = "Full name must be at most 100 characters")]
+    public string FullName { get; set; } = string.Empty;
+
+    [MaxLength(20, ErrorMessage = "Phone must be at most 20 characters")]
+    public string? Phone { get; set; }
+
+    [MaxLength(255, ErrorMessage = "Address must be at most 255 characters")]
+    public string? Address { get; set; }
+
+    [MaxLength(500, ErrorMessage = "Bio must be at most 500 characters")]
+    public string? Bio { get; set; }
 }
 
 public class AuthResponseDto
