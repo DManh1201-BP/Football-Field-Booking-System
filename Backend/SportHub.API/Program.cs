@@ -54,10 +54,14 @@ builder.Services
         {
             OnTokenValidated = async context =>
             {
-                var idValue = context.Principal?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-                var tokenRole = context.Principal?.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value;
+                var idValue = context.Principal?.FindFirst("userId")?.Value
+                    ?? context.Principal?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                var tokenRole = context.Principal?.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value
+                    ?? context.Principal?.FindFirst("role")?.Value;
                 if (!long.TryParse(idValue, out var userId) || string.IsNullOrWhiteSpace(tokenRole))
                 {
+                    context.HttpContext.RequestServices.GetRequiredService<ILoggerFactory>()
+                        .CreateLogger("JwtBearer").LogWarning("Rejected JWT: required user ID or role claim is missing.");
                     context.Fail("Token identity is invalid.");
                     return;
                 }
@@ -71,8 +75,17 @@ builder.Services
                     !string.Equals(UserRoleExtensions.NormalizeRole(user.Role),
                         UserRoleExtensions.NormalizeRole(tokenRole), StringComparison.OrdinalIgnoreCase))
                 {
+                    context.HttpContext.RequestServices.GetRequiredService<ILoggerFactory>()
+                        .CreateLogger("JwtBearer").LogWarning(
+                            "Rejected JWT role for user {UserId}: account missing/inactive or token role differs from current account role.", userId);
                     context.Fail("User is inactive or the role in this token is outdated. Please sign in again.");
                 }
+            },
+            OnAuthenticationFailed = context =>
+            {
+                context.HttpContext.RequestServices.GetRequiredService<ILoggerFactory>()
+                    .CreateLogger("JwtBearer").LogWarning(context.Exception, "JWT authentication failed.");
+                return Task.CompletedTask;
             }
         };
 
