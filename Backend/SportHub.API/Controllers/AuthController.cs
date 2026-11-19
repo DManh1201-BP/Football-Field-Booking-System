@@ -11,11 +11,44 @@ public class AuthController : ControllerBase
 {
     private readonly IAuthService _authService;
     private readonly IWebHostEnvironment _environment;
+    private readonly GoogleSettings _googleSettings;
 
-    public AuthController(IAuthService authService, IWebHostEnvironment environment)
+    public AuthController(IAuthService authService, IWebHostEnvironment environment, GoogleSettings googleSettings)
     {
         _authService = authService;
         _environment = environment;
+        _googleSettings = googleSettings;
+    }
+
+    [HttpGet("google/config")]
+    [AllowAnonymous]
+    public IActionResult GoogleConfig() => Ok(new
+    {
+        enabled = !string.IsNullOrWhiteSpace(_googleSettings.ClientId),
+        clientId = _googleSettings.ClientId
+    });
+
+    [HttpPost("google")]
+    [AllowAnonymous]
+    public async Task<ActionResult<AuthResponseDto>> GoogleLogin(
+        [FromBody] GoogleAuthRequestDto request,
+        CancellationToken cancellationToken)
+    {
+        if (string.IsNullOrWhiteSpace(_googleSettings.ClientId))
+        {
+            return StatusCode(StatusCodes.Status503ServiceUnavailable,
+                new { message = "Đăng nhập Google chưa được cấu hình trên máy chủ." });
+        }
+
+        try
+        {
+            var response = await _authService.LoginWithGoogleAsync(request.IdToken, cancellationToken);
+            return Ok(response);
+        }
+        catch (GoogleAuthenticationException ex)
+        {
+            return Unauthorized(new { message = ex.Message });
+        }
     }
 
     [HttpPost("register")]

@@ -60,9 +60,8 @@ Backend/SportHub.API/
 
 ## Cấu hình bảo mật & Khởi chạy
 
-1. **Cấu hình User Secrets (không lưu secret trong Git):
-
-2. **Khởi chạy dự án:**
+1. Cấu hình connection string và JWT key bằng User Secrets hoặc biến môi trường; không lưu thông tin thật trong Git.
+2. Khởi chạy dự án:
 
    ```powershell
    dotnet restore
@@ -76,12 +75,30 @@ Backend/SportHub.API/
      - **Email:** `admin@sporthub.com`
      - **Mật khẩu:** `Admin@123`
 
+### Đăng nhập/đăng ký bằng Google
+
+SportHub dùng Google Identity Services ở frontend, xác minh ID token ở backend và sau đó vẫn cấp JWT SportHub. Tài khoản đăng ký mới qua Google được tạo với role `CUSTOMER`; tài khoản trùng email chỉ tự liên kết khi Google là nguồn xác minh email có thẩm quyền (Gmail hoặc Google Workspace). Backend lưu Google `sub` vào `users.google_sub` để nhận diện tài khoản ổn định.
+
+1. Tạo OAuth Client ID loại **Web application** trong Google Cloud Console. Thêm origin của frontend đang chạy, thường là `http://127.0.0.1:5500` và `http://localhost:5500`.
+2. Trong thư mục `Backend/SportHub.API`, lưu Client ID vào User Secrets:
+
+   ```powershell
+   dotnet user-secrets set "Google:ClientId" "YOUR_CLIENT_ID.apps.googleusercontent.com"
+   ```
+
+3. Với database đã tồn tại, chạy `Database/migrations/20261120_add_google_auth.sql` trong SSMS trên đúng database `SportHubDb`. Nếu khởi tạo database mới từ `Database/schema.sql`, cột và chỉ mục này đã có sẵn.
+4. Khởi động lại API và tải lại trang frontend. Nút Google xuất hiện trong tab đăng nhập và đăng ký khi backend có Client ID.
+
+Client ID là giá trị công khai được gửi tới trình duyệt; không dùng OAuth client secret ở frontend.
+
 ## Danh sách Endpoint chính
 
 | Nhóm | Method & Route | Quyền truy cập | Mô tả |
 |---|---|---|---|
 | Auth | `POST /api/auth/register` | Public | Đăng ký tài khoản mới & cấp JWT |
 | Auth | `POST /api/auth/login` | Public | Đăng nhập & cấp JWT |
+| Auth | `GET /api/auth/google/config` | Public | Trả trạng thái cấu hình và Google Web Client ID công khai cho nút Google |
+| Auth | `POST /api/auth/google` | Public | Xác minh Google ID token, đăng ký/đăng nhập và cấp JWT SportHub |
 | Auth | `GET /api/auth/me` | Authenticated | Lấy hồ sơ người dùng hiện tại |
 | Auth | `PUT /api/auth/me/profile` | Authenticated | Cập nhật tên, điện thoại, địa chỉ và bio của tài khoản hiện tại |
 | Auth | `POST /api/auth/me/avatar` | Authenticated | Upload ảnh đại diện JPG/PNG/WebP, tối đa 2 MB |

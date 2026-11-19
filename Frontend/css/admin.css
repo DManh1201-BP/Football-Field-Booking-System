@@ -33,6 +33,21 @@
     gap: 5px;
 }
 
+.admin-profile-avatar {
+    width: 84px;
+    height: 84px;
+    margin-bottom: 5px;
+    font-size: 1.35rem;
+}
+
+.admin-sidebar-profile .dashboard-profile-bio {
+    margin-top: 3px;
+}
+
+.admin-sidebar-profile .dashboard-profile-edit {
+    width: 100%;
+}
+
 .admin-sidebar-profile strong {
     font-size: 0.92rem;
     font-weight: 700;

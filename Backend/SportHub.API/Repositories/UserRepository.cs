@@ -26,6 +26,9 @@ public class UserRepository : IUserRepository
             .FirstOrDefaultAsync(u => u.Email.ToLower() == normalizedEmail, cancellationToken);
     }
 
+    public Task<User?> GetByGoogleSubjectAsync(string googleSubject, CancellationToken cancellationToken = default) =>
+        _dbContext.Users.FirstOrDefaultAsync(u => u.GoogleSubject == googleSubject, cancellationToken);
+
     public Task<List<User>> GetAllAsync(CancellationToken cancellationToken = default) =>
         _dbContext.Users.AsNoTracking().OrderBy(u => u.FullName).ToListAsync(cancellationToken);
 

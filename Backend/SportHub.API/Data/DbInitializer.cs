@@ -11,6 +11,8 @@ public static class DbInitializer
         using var scope = services.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<SportHubDbContext>();
         var passwordHasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher>();
+        var connection = dbContext.Database.GetDbConnection();
+        logger.LogInformation("SportHub database target: {DataSource} / {Database}", connection.DataSource, connection.Database);
 
         var pendingMigrations = await dbContext.Database.GetPendingMigrationsAsync();
         if (pendingMigrations.Any())
@@ -22,14 +24,8 @@ public static class DbInitializer
             await dbContext.Database.EnsureCreatedAsync();
         }
 
-        // EnsureCreated does not alter tables in an existing database. Keep these
-        // additive profile columns compatible with installations created earlier.
-        await dbContext.Database.ExecuteSqlRawAsync("""
-            IF OBJECT_ID(N'dbo.users', N'U') IS NOT NULL AND COL_LENGTH(N'dbo.users', N'bio') IS NULL
-                ALTER TABLE dbo.users ADD bio NVARCHAR(500) NULL;
-            IF OBJECT_ID(N'dbo.users', N'U') IS NOT NULL AND COL_LENGTH(N'dbo.users', N'avatar_url') IS NULL
-                ALTER TABLE dbo.users ADD avatar_url NVARCHAR(500) NULL;
-            """);
+        // EnsureCreated only creates schema for a brand-new database. Existing databases
+        // are upgraded with the versioned SQL migration run separately by a DB owner.
 
         var shouldSeed = configuration.GetValue<bool>("SeedSampleData");
         if (!shouldSeed)

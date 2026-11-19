@@ -126,7 +126,17 @@
             </div>
         </div>
 
-        <div id="bookings-content" class="bookings-stack hidden">
+        <div id="bookings-content" class="customer-dashboard-layout hidden">
+            <aside class="customer-profile-sidebar" aria-label="Hồ sơ người dùng">
+                <div class="dashboard-profile-avatar" data-profile-avatar aria-hidden="true">U</div>
+                <h2 data-profile-name>Người dùng</h2>
+                <span class="dashboard-profile-role" data-profile-role>Thành viên</span>
+                <p class="dashboard-profile-bio" data-profile-bio>Chưa có giới thiệu.</p>
+                <button class="btn btn-secondary btn-sm dashboard-profile-edit" type="button" data-profile-edit>Chỉnh sửa hồ sơ</button>
+                <a class="btn btn-ghost btn-sm dashboard-social-link" href="community.html"><i data-lucide="users-round" class="btn-icon" aria-hidden="true"></i>Kết nối &amp; tin nhắn</a>
+            </aside>
+
+            <div class="bookings-stack customer-dashboard-main">
             <!-- Summary Cards -->
             <section class="summary-grid" aria-label="Thống kê đặt sân">
                 <div class="summary-card">
@@ -174,7 +184,7 @@
                 <div class="activity-calendar-scroll">
                     <div class="activity-calendar" aria-label="Lịch hoạt động thể thao trong 52 tuần gần nhất">
                         <div id="activity-month-labels" class="activity-month-labels" aria-hidden="true"></div>
-                        <div class="activity-weekday-labels" aria-hidden="true"><span></span><span>T2</span><span></span><span>T4</span><span></span><span>T6</span><span></span></div>
+                        <div class="activity-weekday-labels" aria-hidden="true"><span>Thứ Hai</span><span>Thứ Ba</span><span>Thứ Tư</span><span>Thứ Năm</span><span>Thứ Sáu</span><span>Thứ Bảy</span><span>Chủ Nhật</span></div>
                         <div id="activity-grid" class="activity-grid" role="img" aria-label="Biểu đồ ngày chơi thể thao"></div>
                     </div>
                 </div>
@@ -238,6 +248,7 @@
 
                 <div id="mobile-history-list" class="mobile-booking-list"></div>
             </section>
+            </div>
         </div>
     </main>
 

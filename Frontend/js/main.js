@@ -108,6 +108,8 @@
         el.modalStatus = document.getElementById('modal-field-status');
         el.modalDescription = document.getElementById('modal-field-description');
         el.modalAmenities = document.getElementById('modal-field-amenities');
+        el.modalOwnerRow = document.getElementById('modal-field-owner-row');
+        el.modalOwnerLink = document.getElementById('modal-field-owner-link');
 
         el.slotStatusSummary = document.getElementById('slot-status-summary');
         el.slotPresets = document.getElementById('slot-presets');
@@ -632,6 +634,12 @@
             el.modalAmenities.innerHTML = tags.map(function(tag) {
                 return '<span class="amenity-tag">' + S.escapeHtml(tag) + '</span>';
             }).join('');
+        }
+        if (el.modalOwnerRow && el.modalOwnerLink) {
+            var session = S.loadAuthSession();
+            var canViewOwner = !!(field.ownerId && session.token);
+            el.modalOwnerRow.classList.toggle('hidden', !canViewOwner);
+            if (canViewOwner) el.modalOwnerLink.href = 'profile.html?id=' + encodeURIComponent(field.ownerId);
         }
 
         prepareBookingForm(field);

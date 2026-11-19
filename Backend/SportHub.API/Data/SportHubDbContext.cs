@@ -14,6 +14,9 @@ public class SportHubDbContext : DbContext
     public DbSet<Booking> Bookings => Set<Booking>();
     public DbSet<Match> Matches => Set<Match>();
     public DbSet<Notification> Notifications => Set<Notification>();
+    public DbSet<FriendRequest> FriendRequests => Set<FriendRequest>();
+    public DbSet<Conversation> Conversations => Set<Conversation>();
+    public DbSet<ChatMessage> ChatMessages => Set<ChatMessage>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -24,6 +27,11 @@ public class SportHubDbContext : DbContext
             entity.HasIndex(u => u.Email)
                 .IsUnique()
                 .HasDatabaseName("ux_users_email");
+
+            entity.HasIndex(u => u.GoogleSubject)
+                .IsUnique()
+                .HasFilter("[google_sub] IS NOT NULL")
+                .HasDatabaseName("ux_users_google_sub");
 
             entity.Property(u => u.Role)
                 .HasDefaultValue("CUSTOMER");
@@ -115,10 +123,32 @@ public class SportHubDbContext : DbContext
         modelBuilder.Entity<Notification>(entity =>
         {
             entity.HasIndex(n => new { n.UserId, n.IsRead, n.CreatedAt });
+            entity.Property(n => n.Category).HasMaxLength(30).HasDefaultValue("BOOKING");
             entity.HasOne(n => n.User).WithMany(u => u.Notifications)
                 .HasForeignKey(n => n.UserId).OnDelete(DeleteBehavior.Cascade);
             entity.HasOne(n => n.Booking).WithMany()
                 .HasForeignKey(n => n.BookingId).OnDelete(DeleteBehavior.SetNull);
+        });
+
+        modelBuilder.Entity<FriendRequest>(entity =>
+        {
+            entity.HasIndex(r => new { r.FromUserId, r.ToUserId, r.Status });
+            entity.HasOne<User>().WithMany().HasForeignKey(r => r.FromUserId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<User>().WithMany().HasForeignKey(r => r.ToUserId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<Conversation>(entity =>
+        {
+            entity.HasIndex(c => new { c.ParticipantOneId, c.ParticipantTwoId }).IsUnique();
+            entity.HasOne<User>().WithMany().HasForeignKey(c => c.ParticipantOneId).OnDelete(DeleteBehavior.Restrict);
+            entity.HasOne<User>().WithMany().HasForeignKey(c => c.ParticipantTwoId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<ChatMessage>(entity =>
+        {
+            entity.HasIndex(m => new { m.ConversationId, m.Id });
+            entity.HasOne<Conversation>().WithMany(c => c.Messages).HasForeignKey(m => m.ConversationId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne<User>().WithMany().HasForeignKey(m => m.SenderUserId).OnDelete(DeleteBehavior.Restrict);
         });
     }
 

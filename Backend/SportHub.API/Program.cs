@@ -112,6 +112,9 @@ builder.Services.AddScoped<IMatchRepository, MatchRepository>();
 
 builder.Services.AddSingleton<IPasswordHasher, LegacyAwarePasswordHasher>();
 builder.Services.AddSingleton<IJwtService, JwtService>();
+var googleSettings = builder.Configuration.GetSection("Google").Get<GoogleSettings>() ?? new GoogleSettings();
+builder.Services.AddSingleton(googleSettings);
+builder.Services.AddSingleton<IGoogleIdTokenValidator, GoogleIdTokenValidator>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IFieldService, FieldService>();
 builder.Services.AddScoped<IBookingService, BookingService>();
@@ -119,6 +122,7 @@ builder.Services.AddScoped<IAdminService, AdminService>();
 builder.Services.AddScoped<IMatchService, MatchService>();
 builder.Services.AddScoped<NotificationService>();
 builder.Services.AddScoped<FieldOwnerBookingService>();
+builder.Services.AddScoped<SocialService>();
 
 // 4. Controllers, JSON Serialization & Unified Validation Error Contract
 builder.Services

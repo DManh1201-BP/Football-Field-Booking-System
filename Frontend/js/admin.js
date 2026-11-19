@@ -514,6 +514,9 @@
         var canConfirm = status === 'PENDING' || status === 'HOLD';
         var canCancel = state.role === 'ADMIN' && status !== 'CANCELLED' && status !== 'COMPLETED';
         var customerName = user.fullName || user.email || 'Khách';
+        var customerNameMarkup = state.role === 'OWNER' && user.id
+            ? '<a class="social-profile-link" href="profile.html?id=' + encodeURIComponent(user.id) + '">' + S.escapeHtml(customerName) + '</a>'
+            : S.escapeHtml(customerName);
 
         var actionsHtml = '';
         if (canConfirm) {
@@ -530,7 +533,7 @@
         return '<tr>' +
             '<td><div class="admin-customer-cell">' +
             '  <span class="admin-customer-avatar">' + S.escapeHtml(getInitials(customerName)) + '</span>' +
-            '  <div><strong>' + S.escapeHtml(customerName) + '</strong>' +
+            '  <div><strong>' + customerNameMarkup + '</strong>' +
             (b.customerPhone ? '<div class="admin-subtext tabular-nums">' + S.escapeHtml(b.customerPhone) + '</div>' : '') +
             '  </div>' +
             '</div></td>' +
@@ -724,7 +727,10 @@
             var options = ['CUSTOMER', 'OWNER', 'ADMIN'].map(function(role) {
                 return '<option value="' + role + '" ' + (user.role === role ? 'selected' : '') + '>' + role + '</option>';
             }).join('');
-            return '<tr><td><strong>' + S.escapeHtml(user.fullName) + '</strong></td>' +
+            var userName = user.role === 'OWNER'
+                ? '<a class="social-profile-link" href="profile.html?id=' + encodeURIComponent(user.id) + '">' + S.escapeHtml(user.fullName) + '</a>'
+                : S.escapeHtml(user.fullName);
+            return '<tr><td><strong>' + userName + '</strong></td>' +
                 '<td>' + S.escapeHtml(user.email) + '</td><td>' + S.escapeHtml(user.phone || '—') + '</td>' +
                 '<td><select class="admin-sport-select" data-user-role="' + S.escapeHtml(user.id) + '" ' + (isSelf ? 'disabled' : '') + '>' + options + '</select></td>' +
                 '<td><button class="btn btn-primary btn-compact" type="button" data-user-role-save="' + S.escapeHtml(user.id) + '" ' + (isSelf ? 'disabled title="Không thể đổi role của chính mình"' : '') + '>Lưu role</button></td></tr>';

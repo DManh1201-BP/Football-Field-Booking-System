@@ -22,6 +22,11 @@ public class User
     [Column("password")]
     public string Password { get; set; } = string.Empty;
 
+    [MaxLength(255)]
+    [JsonIgnore]
+    [Column("google_sub")]
+    public string? GoogleSubject { get; set; }
+
     [Required]
     [MaxLength(100)]
     [Column("full_name")]

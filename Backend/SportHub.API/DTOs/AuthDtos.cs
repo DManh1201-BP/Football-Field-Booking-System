@@ -13,6 +13,13 @@ public class LoginRequestDto
     public string Password { get; set; } = string.Empty;
 }
 
+public class GoogleAuthRequestDto
+{
+    [Required(ErrorMessage = "Google credential is required")]
+    [MaxLength(12000, ErrorMessage = "Google credential is too long")]
+    public string IdToken { get; set; } = string.Empty;
+}
+
 public class RegisterRequestDto
 {
     [Required(ErrorMessage = "Email is required")]
@@ -68,9 +75,6 @@ public class UpdateUserProfileRequestDto
     [Required(ErrorMessage = "Full name is required")]
     [MaxLength(100, ErrorMessage = "Full name must be at most 100 characters")]
     public string FullName { get; set; } = string.Empty;
-
-    [MaxLength(20, ErrorMessage = "Phone must be at most 20 characters")]
-    public string? Phone { get; set; }
 
     [MaxLength(255, ErrorMessage = "Address must be at most 255 characters")]
     public string? Address { get; set; }
