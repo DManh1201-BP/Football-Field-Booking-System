@@ -81,6 +81,7 @@ public class FieldCreateDto
     public bool? IsAvailable { get; set; } = true;
 
     public long? OwnerId { get; set; }
+
 }
 
 public class FieldUpdateDto
@@ -116,6 +117,8 @@ public class FieldUpdateDto
     public bool? IsAvailable { get; set; }
 
     public long? OwnerId { get; set; }
+
+    public bool ClearOwner { get; set; }
 }
 
 public class FieldSearchQueryDto

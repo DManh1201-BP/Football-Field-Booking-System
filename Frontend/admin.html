@@ -103,8 +103,11 @@
             <div id="admin-workspace" class="admin-workspace hidden">
                 <aside class="admin-sidebar" aria-label="Điều hướng phân khu quản trị">
                     <div class="admin-sidebar-profile">
+                        <div class="admin-profile-avatar dashboard-profile-avatar" data-profile-avatar aria-hidden="true">U</div>
                         <strong id="admin-profile-name">Quản trị viên</strong>
                         <span id="admin-profile-role">ADMIN</span>
+                        <p class="dashboard-profile-bio" data-profile-bio>Chưa có giới thiệu.</p>
+                        <button class="btn btn-secondary btn-sm dashboard-profile-edit" type="button" data-profile-edit>Chỉnh sửa hồ sơ</button>
                     </div>
                     <div class="admin-nav-tabs" role="tablist">
                         <button class="admin-nav-tab active" type="button" data-admin-tab="overview" role="tab" aria-selected="true">
@@ -116,6 +119,10 @@
                         </button>
                         <button class="admin-nav-tab" type="button" data-admin-tab="fields" role="tab" aria-selected="false">
                             <span class="admin-nav-tab-left"><i data-lucide="map-pinned" aria-hidden="true"></i><span>Quản lý sân</span></span>
+                        </button>
+                        <a class="admin-nav-tab" href="community.html"><span class="admin-nav-tab-left"><i data-lucide="messages-square" aria-hidden="true"></i><span>Kết nối &amp; tin nhắn</span></span></a>
+                        <button id="admin-tab-users-btn" class="admin-nav-tab hidden" type="button" data-admin-tab="users" role="tab" aria-selected="false">
+                            <span class="admin-nav-tab-left"><i data-lucide="users-round" aria-hidden="true"></i><span>Tài khoản &amp; phân quyền</span></span>
                         </button>
                     </div>
                     <button id="admin-refresh-btn" class="btn btn-secondary btn-sm" type="button">
@@ -129,7 +136,7 @@
                     <section class="admin-banner">
                         <div>
                             <p class="eyebrow">Bảng điều hành</p>
-                            <h1>Quản trị sân &amp; lịch đặt</h1>
+                            <h1 id="admin-banner-title">Quản trị sân &amp; lịch đặt</h1>
                             <p id="admin-session-text">Đang đồng bộ dữ liệu quản trị...</p>
                         </div>
                         <button id="open-create-field-btn" class="btn btn-primary btn-sm" type="button">
@@ -137,16 +144,30 @@
                             <span>Thêm sân mới</span>
                         </button>
                     </section>
+                    <section id="admin-panel-users" class="admin-tab-panel hidden">
+                        <div class="account-panel">
+                            <div class="panel-head"><div><h3>Tài khoản &amp; phân quyền</h3><p>Gán role CUSTOMER, OWNER hoặc ADMIN. Sau khi đổi role, người dùng cần đăng nhập lại để nhận quyền mới.</p></div></div>
+                            <div class="table-wrap"><table class="booking-table"><thead><tr><th>Người dùng</th><th>Email</th><th>Điện thoại</th><th>Role</th><th>Thao tác</th></tr></thead><tbody id="admin-users-body"></tbody></table></div>
+                        </div>
+                    </section>
 
                     <!-- Tab 1: Overview -->
                     <section id="admin-panel-overview" class="admin-tab-panel admin-panel-stack">
+                        <p id="admin-overview-note" class="admin-overview-note secondary-text">Số player và owner là tài khoản đang được kích hoạt; biểu đồ bên dưới tổng hợp mọi trạng thái booking.</p>
                         <div id="admin-kpi-grid" class="summary-grid">
                             <div class="summary-card">
                                 <div class="summary-card-head">
-                                    <span class="summary-label">Doanh thu</span>
-                                    <span class="summary-icon accent"><i data-lucide="banknote" aria-hidden="true"></i></span>
+                                    <span class="summary-label">Tài khoản player hoạt động</span>
+                                    <span class="summary-icon info"><i data-lucide="users-round" aria-hidden="true"></i></span>
                                 </div>
-                                <strong id="dashboard-revenue">0 đ</strong>
+                                <strong id="dashboard-players">0</strong>
+                            </div>
+                            <div class="summary-card">
+                                <div class="summary-card-head">
+                                    <span class="summary-label">Tài khoản owner hoạt động</span>
+                                    <span class="summary-icon accent"><i data-lucide="shield-user" aria-hidden="true"></i></span>
+                                </div>
+                                <strong id="dashboard-owners">0</strong>
                             </div>
                             <div class="summary-card">
                                 <div class="summary-card-head">
@@ -157,21 +178,14 @@
                             </div>
                             <div class="summary-card">
                                 <div class="summary-card-head">
-                                    <span class="summary-label">Chờ xác nhận</span>
+                                    <span class="summary-label">Cần xử lý</span>
                                     <span class="summary-icon warning"><i data-lucide="clock" aria-hidden="true"></i></span>
                                 </div>
                                 <strong id="dashboard-pending">0</strong>
                             </div>
-                            <div class="summary-card">
-                                <div class="summary-card-head">
-                                    <span class="summary-label">Đã xác nhận</span>
-                                    <span class="summary-icon info"><i data-lucide="check-circle-2" aria-hidden="true"></i></span>
-                                </div>
-                                <strong id="dashboard-confirmed">0</strong>
-                            </div>
                         </div>
 
-                        <div id="admin-analytics-grid" class="analytics-grid">
+                        <div id="admin-analytics-grid" class="analytics-grid admin-status-analytics">
                             <div class="chart-card">
                                 <div class="panel-head">
                                     <div>
@@ -181,41 +195,27 @@
                                 </div>
                                 <div id="chart-status-bars" class="chart-bars"></div>
                             </div>
-                            <div class="chart-card">
-                                <div class="panel-head">
-                                    <div>
-                                        <h3>Doanh thu theo môn thể thao</h3>
-                                        <p>Tính trên các booking hợp lệ chưa bị hủy.</p>
-                                    </div>
-                                </div>
-                                <div id="chart-sport-bars" class="chart-bars"></div>
-                            </div>
                         </div>
 
-                        <div id="overview-pending-panel" class="account-panel">
-                            <div class="panel-head">
-                                <div>
-                                    <h3>Booking chờ duyệt gần nhất</h3>
-                                    <p>Xác nhận nhanh các yêu cầu đang chờ xử lý.</p>
+                        <div id="owner-dashboard" class="owner-dashboard hidden">
+                            <section class="summary-grid" aria-label="Tổng quan chủ sân">
+                                <div class="summary-card">
+                                    <div class="summary-card-head"><span class="summary-label">Doanh thu 12 tháng</span><span class="summary-icon accent"><i data-lucide="banknote" aria-hidden="true"></i></span></div>
+                                    <strong id="owner-revenue-total">0 đ</strong>
                                 </div>
-                                <button class="btn btn-secondary btn-sm" type="button" data-switch-tab="bookings">Xem tất cả</button>
-                            </div>
-                            <div class="table-wrap">
-                                <table class="booking-table">
-                                    <thead>
-                                        <tr>
-                                            <th>Khách hàng</th>
-                                            <th>Sân</th>
-                                            <th>Ngày</th>
-                                            <th>Giờ</th>
-                                            <th>Trạng thái</th>
-                                            <th>Tiền</th>
-                                            <th>Hành động</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody id="overview-pending-body"></tbody>
-                                </table>
-                            </div>
+                                <div class="summary-card">
+                                    <div class="summary-card-head"><span class="summary-label">Booking hoàn thành</span><span class="summary-icon info"><i data-lucide="circle-check" aria-hidden="true"></i></span></div>
+                                    <strong id="owner-completed-count">0</strong>
+                                </div>
+                                <div class="summary-card">
+                                    <div class="summary-card-head"><span class="summary-label">Sân đang quản lý</span><span class="summary-icon"><i data-lucide="map-pinned" aria-hidden="true"></i></span></div>
+                                    <strong id="owner-field-count">0</strong>
+                                </div>
+                            </section>
+                            <section class="chart-card owner-income-card" aria-labelledby="owner-income-title">
+                                <div class="panel-head"><div><h3 id="owner-income-title">Doanh thu theo tháng</h3><p>Doanh thu ghi nhận từ booking đã hoàn thành trong 12 tháng gần nhất.</p></div></div>
+                                <div id="owner-income-chart" class="owner-income-chart" role="img" aria-label="Biểu đồ doanh thu theo tháng"></div>
+                            </section>
                         </div>
                     </section>
 
@@ -375,6 +375,10 @@
                                 <span>Đang mở đặt sân</span>
                             </label>
                         </div>
+                        <label id="field-owner-field" class="form-field form-field-wide hidden">
+                            <span>Chủ sân (OWNER)</span>
+                            <select id="field-owner-id"><option value="">Chưa gán chủ sân</option></select>
+                        </label>
                         <div class="form-field form-field-wide">
                             <label for="field-amenities">Tiện ích (ngăn cách bởi dấu phẩy)</label>
                             <input id="field-amenities" type="text" placeholder="Đèn LED, Bãi giữ xe, Nước uống">

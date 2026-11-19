@@ -22,6 +22,11 @@ public class User
     [Column("password")]
     public string Password { get; set; } = string.Empty;
 
+    [MaxLength(255)]
+    [JsonIgnore]
+    [Column("google_sub")]
+    public string? GoogleSubject { get; set; }
+
     [Required]
     [MaxLength(100)]
     [Column("full_name")]
@@ -34,6 +39,14 @@ public class User
     [MaxLength(255)]
     [Column("address")]
     public string? Address { get; set; }
+
+    [MaxLength(500)]
+    [Column("bio")]
+    public string? Bio { get; set; }
+
+    [MaxLength(500)]
+    [Column("avatar_url")]
+    public string? AvatarUrl { get; set; }
 
     [MaxLength(20)]
     [Column("role")]

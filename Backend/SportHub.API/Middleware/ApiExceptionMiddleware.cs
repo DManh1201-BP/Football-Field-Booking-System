@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Data.SqlClient;
 using SportHub.API.DTOs;
 
 namespace SportHub.API.Middleware;
@@ -47,8 +48,22 @@ public class ApiExceptionMiddleware
                 "Conflict",
                 "Selected time slot was modified concurrently. Please refresh and try again.");
         }
+        catch (SqlException ex) when (IsSchemaError(ex.Number))
+        {
+            _logger.LogError(ex, "Database schema or permissions are not ready on {Path}", context.Request.Path);
+            await WriteErrorResponseAsync(context, HttpStatusCode.InternalServerError, "Database schema update required",
+                "Database schema is outdated or the API account cannot access the required table/columns. Run Database/migrations/20261119_add_social_features.sql in SSMS using a database owner account, against the same database shown in the API startup log.");
+        }
         catch (DbUpdateException ex)
         {
+            if (ex.GetBaseException() is SqlException sqlException && IsSchemaError(sqlException.Number))
+            {
+                _logger.LogError(ex, "Database schema or permissions are not ready on {Path}", context.Request.Path);
+                await WriteErrorResponseAsync(context, HttpStatusCode.InternalServerError, "Database schema update required",
+                    "Database schema is outdated or the API account cannot access the required table/columns. Run Database/migrations/20261119_add_social_features.sql in SSMS using a database owner account, against the same database shown in the API startup log.");
+                return;
+            }
+
             var innerMessage = ex.InnerException?.Message ?? ex.Message;
             var message = innerMessage.Contains("fk_owner", StringComparison.OrdinalIgnoreCase)
                 ? "Owner ID không hợp lệ. Hãy dùng ID của tài khoản hiện có."
@@ -56,6 +71,11 @@ public class ApiExceptionMiddleware
 
             _logger.LogWarning(ex, "Database update error on {Path}", context.Request.Path);
             await WriteErrorResponseAsync(context, HttpStatusCode.BadRequest, "Bad Request", message);
+        }
+        catch (SqlException ex)
+        {
+            _logger.LogError(ex, "Database error on {Method} {Path}", context.Request.Method, context.Request.Path);
+            await WriteErrorResponseAsync(context, HttpStatusCode.InternalServerError, "Database error", "A database operation failed. Check the backend log for details.");
         }
         catch (Exception ex)
         {
@@ -67,6 +87,8 @@ public class ApiExceptionMiddleware
                 "Unexpected server error");
         }
     }
+
+    private static bool IsSchemaError(int number) => number is 207 or 208 or 1088;
 
     private static async Task WriteErrorResponseAsync(
         HttpContext context,

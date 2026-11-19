@@ -2,6 +2,7 @@
     'use strict';
 
     var AUTH_SESSION_STORAGE_KEY = 'sporthubAuthSession';
+    var notificationBadgeTimer = null;
 
     var SPORT_TYPES = {
         FOOTBALL: {
@@ -119,6 +120,8 @@
             email: String(user.email || '').trim().toLowerCase(),
             phone: user.phone || '',
             address: user.address || '',
+            bio: user.bio || '',
+            avatarUrl: user.avatarUrl || '',
             role: normalizeRole(user.role),
             eloRating: Number(user.eloRating || 1000)
         };
@@ -556,6 +559,7 @@
 
     var authModalCallbacks = { onSuccess: null, onLogout: null };
     var authModalState = { tab: 'login', message: '', prevFocus: null };
+    var googleAuthState = { configPromise: null, scriptPromise: null, enabled: false, initialized: false };
 
     function ensureAuthModalDom() {
         if (document.getElementById('auth-modal')) {
@@ -591,6 +595,10 @@
             '      <label class="form-field"><span>Xác nhận mật khẩu</span><input id="register-confirm-password" type="password" autocomplete="new-password" placeholder="Nhập lại mật khẩu" required></label>' +
             '      <button class="btn btn-primary auth-submit" type="submit">Tạo tài khoản</button>' +
             '    </form>' +
+            '    <div id="google-auth-section" class="google-auth-section hidden">' +
+            '      <div class="auth-divider"><span>hoặc tiếp tục với</span></div>' +
+            '      <div id="google-signin-button" class="google-signin-button"></div>' +
+            '    </div>' +
             '    <p id="auth-feedback" class="booking-feedback hidden" role="status"></p>' +
             '  </div>' +
             '</div>';
@@ -637,6 +645,7 @@
                 : 'Đăng nhập để đặt sân, theo dõi lịch hoặc tham gia tìm đối thủ.';
         }
         showAuthFeedback('', false);
+        renderGoogleSignInButton();
     }
 
     function openAuthModal(tab, options) {
@@ -661,6 +670,7 @@
             modal.setAttribute('aria-hidden', 'false');
         }
         document.body.classList.add('modal-open');
+        initializeGoogleSignIn();
 
         global.setTimeout(function() {
             var target = authModalState.tab === 'register'
@@ -668,6 +678,105 @@
                 : document.getElementById('login-email');
             if (target) target.focus();
         }, 20);
+    }
+
+    function loadGoogleIdentityServices() {
+        if (global.google && global.google.accounts && global.google.accounts.id) {
+            return Promise.resolve();
+        }
+        if (googleAuthState.scriptPromise) {
+            return googleAuthState.scriptPromise;
+        }
+
+        googleAuthState.scriptPromise = new Promise(function(resolve, reject) {
+            var script = document.createElement('script');
+            script.src = 'https://accounts.google.com/gsi/client?hl=vi';
+            script.async = true;
+            script.defer = true;
+            script.referrerPolicy = 'strict-origin-when-cross-origin';
+            script.onload = resolve;
+            script.onerror = function() { reject(new Error('Không tải được dịch vụ đăng nhập Google.')); };
+            document.head.appendChild(script);
+        });
+        return googleAuthState.scriptPromise;
+    }
+
+    function initializeGoogleSignIn() {
+        var section = document.getElementById('google-auth-section');
+        if (!section) return;
+
+        if (!googleAuthState.configPromise) {
+            googleAuthState.configPromise = apiRequest('/auth/google/config', { token: '' });
+        }
+
+        googleAuthState.configPromise.then(function(config) {
+            if (!config || !config.enabled || !config.clientId) {
+                section.classList.add('hidden');
+                return;
+            }
+
+            googleAuthState.enabled = true;
+            section.classList.remove('hidden');
+            return loadGoogleIdentityServices().then(function() {
+                if (!googleAuthState.initialized) {
+                    global.google.accounts.id.initialize({
+                        client_id: config.clientId,
+                        callback: handleGoogleCredential
+                    });
+                    googleAuthState.initialized = true;
+                }
+                renderGoogleSignInButton();
+            });
+        }).catch(function() {
+            section.classList.add('hidden');
+        });
+    }
+
+    function renderGoogleSignInButton() {
+        var host = document.getElementById('google-signin-button');
+        if (!host || !googleAuthState.enabled || !googleAuthState.initialized ||
+            !global.google || !global.google.accounts || !global.google.accounts.id) {
+            return;
+        }
+
+        host.textContent = '';
+        global.google.accounts.id.renderButton(host, {
+            type: 'standard',
+            theme: 'outline',
+            size: 'large',
+            text: authModalState.tab === 'register' ? 'signup_with' : 'signin_with',
+            shape: 'rectangular',
+            logo_alignment: 'left',
+            width: Math.max(220, Math.floor(host.clientWidth || 360))
+        });
+    }
+
+    function handleGoogleCredential(response) {
+        if (!response || !response.credential) {
+            showAuthFeedback('Google không trả về thông tin xác thực. Vui lòng thử lại.', true);
+            return;
+        }
+
+        showAuthFeedback('Đang xác thực tài khoản Google...', false);
+        apiRequest('/auth/google', {
+            method: 'POST',
+            token: '',
+            body: JSON.stringify({ idToken: response.credential })
+        }).then(function(data) {
+            if (!data || !data.token || !data.user) {
+                throw new Error('Phản hồi đăng nhập Google không hợp lệ.');
+            }
+
+            var session = persistAuthSession(data.user, data.token);
+            closeAuthModal();
+            showToast('Đăng nhập Google thành công. Xin chào ' + session.currentUser.fullName + '!', 'success');
+            updateNavbarAuthUI();
+            if (typeof authModalCallbacks.onSuccess === 'function') {
+                authModalCallbacks.onSuccess(session);
+            }
+        }).catch(function(err) {
+            showAuthFeedback(err.message || 'Không thể xác thực tài khoản Google.', true);
+        });
     }
 
     function closeAuthModal() {
@@ -841,10 +950,216 @@
                 var avatarEl = pill.querySelector('.user-avatar');
                 var nameEl = pill.querySelector('.user-name');
                 var roleEl = pill.querySelector('.user-role');
-                if (avatarEl) avatarEl.textContent = initials;
+                if (avatarEl) {
+                    avatarEl.textContent = initials;
+                    avatarEl.style.backgroundImage = '';
+                    avatarEl.classList.remove('has-image');
+                    if (session.currentUser.avatarUrl) {
+                        var avatarImage = document.createElement('img');
+                        avatarImage.src = resolveMediaUrl(session.currentUser.avatarUrl);
+                        avatarImage.alt = '';
+                        avatarImage.onload = function() {
+                            avatarEl.textContent = '';
+                            avatarEl.appendChild(avatarImage);
+                            avatarEl.classList.add('has-image');
+                        };
+                    }
+                }
                 if (nameEl) nameEl.textContent = fullName;
                 if (roleEl) roleEl.textContent = getRoleLabel(role);
             }
+        });
+
+        Array.prototype.forEach.call(document.querySelectorAll('[data-profile-avatar]'), function(avatarEl) {
+            var user = session.currentUser;
+            var fullName = user && user.fullName ? user.fullName : 'Người dùng';
+            var initials = fullName.trim().split(/\s+/).slice(-2).map(function(part) { return part.charAt(0).toUpperCase(); }).join('') || 'U';
+            avatarEl.textContent = initials;
+            avatarEl.style.backgroundImage = '';
+            avatarEl.classList.remove('has-image');
+            if (user && user.avatarUrl) {
+                avatarEl.style.backgroundImage = 'url("' + resolveMediaUrl(user.avatarUrl).replace(/["\\]/g, '') + '")';
+                avatarEl.textContent = '';
+                avatarEl.classList.add('has-image');
+            }
+        });
+
+        Array.prototype.forEach.call(document.querySelectorAll('[data-profile-name]'), function(el) {
+            el.textContent = isAuth && session.currentUser ? session.currentUser.fullName : 'Người dùng';
+        });
+        Array.prototype.forEach.call(document.querySelectorAll('[data-profile-role]'), function(el) {
+            el.textContent = isAuth ? getRoleLabel(role) : 'Thành viên';
+        });
+        Array.prototype.forEach.call(document.querySelectorAll('[data-profile-bio]'), function(el) {
+            el.textContent = isAuth && session.currentUser && session.currentUser.bio ? session.currentUser.bio : 'Chưa có giới thiệu.';
+        });
+
+        ensureNotificationLinks(isAuth);
+    }
+
+    function ensureNotificationLinks(isAuth) {
+        Array.prototype.forEach.call(document.querySelectorAll('.nav-actions'), function(actions) {
+            var link = actions.querySelector('[data-notification-link]');
+            if (!link) {
+                link = document.createElement('a');
+                link.className = 'btn btn-ghost btn-sm notification-nav-link';
+                link.href = 'notifications.html';
+                link.setAttribute('data-notification-link', '');
+                link.setAttribute('aria-label', 'Thông báo');
+                link.innerHTML = '<span class="notification-nav-icon"><i data-lucide="bell" aria-hidden="true"></i><span class="notification-nav-count hidden" data-notification-count></span></span><span class="notification-nav-label">Thông báo</span>';
+                actions.insertBefore(link, actions.firstChild);
+                refreshIcons(link);
+            }
+            link.classList.toggle('hidden', !isAuth);
+        });
+
+        if (isAuth) {
+            refreshNotificationBadge();
+            if (!notificationBadgeTimer) {
+                notificationBadgeTimer = global.setInterval(refreshNotificationBadge, 45000);
+            }
+        } else if (notificationBadgeTimer) {
+            global.clearInterval(notificationBadgeTimer);
+            notificationBadgeTimer = null;
+        }
+    }
+
+    function refreshNotificationBadge() {
+        var session = loadAuthSession();
+        if (!session.token) return;
+        apiRequest('/notifications/unread-count').then(function(result) {
+            var count = Math.max(0, Number(result && result.count) || 0);
+            Array.prototype.forEach.call(document.querySelectorAll('[data-notification-count]'), function(badge) {
+                badge.textContent = count > 99 ? '99+' : String(count);
+                badge.classList.toggle('hidden', count === 0);
+            });
+        }).catch(function() {});
+    }
+
+    function ensureProfileModalDom() {
+        if (document.getElementById('profile-edit-modal')) return;
+        var modal = document.createElement('div');
+        modal.id = 'profile-edit-modal';
+        modal.className = 'modal hidden';
+        modal.setAttribute('role', 'dialog');
+        modal.setAttribute('aria-modal', 'true');
+        modal.setAttribute('aria-labelledby', 'profile-edit-title');
+        modal.innerHTML =
+            '<div class="modal-content profile-modal-content" tabindex="-1">' +
+            '  <div class="modal-header"><div><span class="auth-brand-badge"><i data-lucide="user-round" aria-hidden="true"></i><span>SportHub Account</span></span><h2 id="profile-edit-title">Chỉnh sửa hồ sơ</h2><p class="secondary-text">Cập nhật thông tin cá nhân hiển thị trên SportHub.</p></div><button class="close-modal" type="button" data-profile-close aria-label="Đóng"><i data-lucide="x" aria-hidden="true"></i></button></div>' +
+            '  <form id="profile-edit-form" class="profile-edit-form">' +
+            '    <label class="profile-avatar-picker"><span id="profile-avatar-preview" class="profile-avatar-preview">U</span><span><strong>Ảnh đại diện</strong><small>JPG, PNG hoặc WebP · tối đa 2 MB</small><input id="profile-avatar-file" type="file" accept="image/jpeg,image/png,image/webp,.jpg,.jpeg,.png,.webp"></span></label>' +
+            '    <div class="profile-form-grid">' +
+            '      <label class="form-field"><span>Họ và tên</span><input id="profile-full-name" type="text" maxlength="100" required></label>' +
+            '      <label class="form-field"><span>Email</span><input id="profile-email" type="email" disabled></label>' +
+            '      <label class="form-field"><span>Số điện thoại</span><input id="profile-phone" type="tel" disabled><small class="secondary-text">Không thể thay đổi số điện thoại tại đây.</small></label>' +
+            '      <label class="form-field"><span>Địa chỉ</span><input id="profile-address" type="text" maxlength="255"></label>' +
+            '      <label class="form-field profile-bio-field"><span>Giới thiệu</span><textarea id="profile-bio" maxlength="500" rows="3" placeholder="Viết vài dòng giới thiệu về bạn"></textarea><small class="secondary-text">Tối đa 500 ký tự</small></label>' +
+            '    </div>' +
+            '    <p id="profile-edit-feedback" class="booking-feedback hidden" role="status"></p>' +
+            '    <div class="modal-actions"><button id="profile-save-btn" class="btn btn-primary" type="submit">Lưu thay đổi</button><button class="btn btn-secondary" type="button" data-profile-close>Đóng</button></div>' +
+            '  </form>' +
+            '</div>';
+        document.body.appendChild(modal);
+        refreshIcons(modal);
+    }
+
+    function showProfileFeedback(message, isError) {
+        var feedback = document.getElementById('profile-edit-feedback');
+        if (!feedback) return;
+        feedback.textContent = message || '';
+        feedback.className = message ? 'booking-feedback ' + (isError ? 'error' : 'info') : 'booking-feedback hidden';
+    }
+
+    function showProfileAvatarPreview(url, fallbackName) {
+        var preview = document.getElementById('profile-avatar-preview');
+        if (!preview) return;
+        preview.textContent = String(fallbackName || 'U').trim().split(/\s+/).slice(-2).map(function(part) { return part.charAt(0).toUpperCase(); }).join('') || 'U';
+        preview.style.backgroundImage = '';
+        if (url) {
+            preview.style.backgroundImage = 'url("' + String(url).replace(/["\\]/g, '') + '")';
+            preview.classList.add('has-image');
+        } else {
+            preview.classList.remove('has-image');
+        }
+    }
+
+    function openProfileModal() {
+        var session = loadAuthSession();
+        if (!session.token || !session.currentUser) return;
+        ensureProfileModalDom();
+        var user = session.currentUser;
+        document.getElementById('profile-full-name').value = user.fullName || '';
+        document.getElementById('profile-email').value = user.email || '';
+        document.getElementById('profile-phone').value = user.phone || '';
+        document.getElementById('profile-address').value = user.address || '';
+        document.getElementById('profile-bio').value = user.bio || '';
+        document.getElementById('profile-avatar-file').value = '';
+        showProfileAvatarPreview(user.avatarUrl ? resolveMediaUrl(user.avatarUrl) : '', user.fullName);
+        showProfileFeedback('');
+        var modal = document.getElementById('profile-edit-modal');
+        modal.classList.remove('hidden');
+        modal.setAttribute('aria-hidden', 'false');
+        document.body.classList.add('modal-open');
+        document.getElementById('profile-full-name').focus();
+    }
+
+    function closeProfileModal() {
+        var modal = document.getElementById('profile-edit-modal');
+        if (!modal) return;
+        modal.classList.add('hidden');
+        modal.setAttribute('aria-hidden', 'true');
+        if (!document.querySelector('.modal:not(.hidden)')) document.body.classList.remove('modal-open');
+    }
+
+    function bindProfileModalEventsOnce() {
+        var form = document.getElementById('profile-edit-form');
+        if (!form || form.dataset.bound === 'true') return;
+        form.dataset.bound = 'true';
+        var fileInput = document.getElementById('profile-avatar-file');
+        fileInput.addEventListener('change', function() {
+            var file = fileInput.files && fileInput.files[0];
+            if (!file) return;
+            if (file.size > 2 * 1024 * 1024) {
+                fileInput.value = '';
+                showProfileFeedback('Ảnh đại diện không được vượt quá 2 MB.', true);
+                return;
+            }
+            showProfileAvatarPreview(URL.createObjectURL(file), document.getElementById('profile-full-name').value);
+        });
+
+        form.addEventListener('submit', function(event) {
+            event.preventDefault();
+            var session = loadAuthSession();
+            if (!session.token) return;
+            var saveButton = document.getElementById('profile-save-btn');
+            saveButton.disabled = true;
+            showProfileFeedback('Đang lưu hồ sơ…');
+            apiRequest('/auth/me/profile', {
+                method: 'PUT',
+                body: JSON.stringify({
+                    fullName: document.getElementById('profile-full-name').value.trim(),
+                    address: document.getElementById('profile-address').value.trim(),
+                    bio: document.getElementById('profile-bio').value.trim()
+                })
+            }).then(function(user) {
+                persistAuthSession(user, session.token);
+                updateNavbarAuthUI();
+                var file = fileInput.files && fileInput.files[0];
+                if (!file) return user;
+                var body = new FormData();
+                body.append('file', file);
+                return apiRequest('/auth/me/avatar', { method: 'POST', body: body, isFormData: true });
+            }).then(function(user) {
+                persistAuthSession(user, session.token);
+                updateNavbarAuthUI();
+                closeProfileModal();
+                showToast('Hồ sơ đã được cập nhật.', 'success');
+            }).catch(function(error) {
+                showProfileFeedback(error.message || 'Không thể cập nhật hồ sơ.', true);
+            }).then(function() {
+                saveButton.disabled = false;
+            });
         });
     }
 
@@ -854,7 +1169,9 @@
         authModalCallbacks.onLogout = opts.onLogout || null;
 
         ensureAuthModalDom();
+        ensureProfileModalDom();
         bindAuthModalEventsOnce();
+        bindProfileModalEventsOnce();
         updateNavbarAuthUI();
 
         var navbar = document.querySelector('.navbar');
@@ -899,6 +1216,20 @@
         }
 
         document.addEventListener('click', function(e) {
+            var profileTrigger = e.target.closest ? e.target.closest('[data-profile-edit]') : null;
+            if (profileTrigger) {
+                openProfileModal();
+                return;
+            }
+            if (e.target.closest && e.target.closest('[data-profile-close]')) {
+                closeProfileModal();
+                return;
+            }
+            var profileModal = document.getElementById('profile-edit-modal');
+            if (profileModal && e.target === profileModal) {
+                closeProfileModal();
+                return;
+            }
             var authTrigger = e.target.closest ? e.target.closest('[data-auth-action]') : null;
             if (!authTrigger) return;
             var action = authTrigger.getAttribute('data-auth-action');

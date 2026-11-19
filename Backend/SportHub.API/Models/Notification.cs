@@ -14,6 +14,10 @@ public class Notification
     [Column("booking_id")]
     public long? BookingId { get; set; }
     public Booking? Booking { get; set; }
+    [Required, MaxLength(30), Column("category")]
+    public string Category { get; set; } = "BOOKING";
+    [Column("reference_id")]
+    public long? ReferenceId { get; set; }
     [Column("message"), Required, MaxLength(500)]
     public string Message { get; set; } = string.Empty;
     [Column("is_read")]

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Hồ sơ người dùng — SportHub</title>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="social-page">
+    <header class="navbar"><div class="container navbar-inner">
+        <a class="navbar-brand" href="index.html"><span class="brand-title">Sport<em>Hub</em></span></a>
+        <nav><ul class="nav-links"><li><a href="index.html">Trang chủ</a></li><li><a href="matches.html">Tìm đối thủ</a></li><li><a href="community.html">Kết nối &amp; tin nhắn</a></li></ul></nav>
+        <div class="nav-actions"><button class="btn btn-ghost btn-sm" data-auth-action="login" type="button">Đăng nhập</button><button class="btn btn-ghost btn-sm hidden" data-auth-action="logout" type="button">Đăng xuất</button></div>
+    </div></header>
+    <main class="container social-shell">
+        <section id="profile-error" class="empty-state hidden"><h2>Không thể mở hồ sơ</h2><p id="profile-error-message"></p><a class="btn btn-secondary" href="matches.html">Quay lại</a></section>
+        <section id="public-profile-card" class="public-profile-card hidden">
+            <div id="public-profile-avatar" class="public-profile-avatar">U</div>
+            <div class="public-profile-details">
+                <p class="eyebrow" id="public-profile-role"></p>
+                <h1 id="public-profile-name"></h1>
+                <p id="public-profile-bio" class="public-profile-bio"></p>
+                <div id="public-profile-meta" class="public-profile-meta"></div>
+                <div class="modal-actions">
+                    <button id="profile-friend-action" class="btn btn-primary" type="button">Kết bạn</button>
+                    <button id="profile-message-action" class="btn btn-secondary hidden" type="button">Nhắn tin</button>
+                </div>
+            </div>
+        </section>
+    </main>
+    <script id="sporthub-config" type="application/json">{"apiBaseUrl":"http://localhost:8081/api"}</script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="js/config.js"></script>
+    <script src="js/shared.js"></script>
+    <script src="js/profile.js"></script>
+</body>
+</html>

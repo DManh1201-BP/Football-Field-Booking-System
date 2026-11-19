@@ -283,11 +283,14 @@
                 : '<div class="match-center-status"><span class="match-vs-badge">VS</span></div>';
 
             var hostName = host.fullName || 'Chủ kèo';
+            var hostNameMarkup = host.id
+                ? '<a class="match-player-name social-profile-link" href="profile.html?id=' + encodeURIComponent(host.id) + '">' + S.escapeHtml(hostName) + '</a>'
+                : S.escapeHtml(hostName);
             var challengerSlotHtml = challenger
                 ? ('<div class="match-player-slot is-challenger">' +
                    '  <div class="match-player-head">' +
                    '    <span class="match-player-avatar challenger">' + S.escapeHtml(getInitials(challenger.fullName)) + '</span>' +
-                   '    <span class="match-player-name">' + S.escapeHtml(challenger.fullName || 'Đối thủ') + '</span>' +
+                   '    ' + (challenger.id ? '<a class="match-player-name social-profile-link" href="profile.html?id=' + encodeURIComponent(challenger.id) + '">' + S.escapeHtml(challenger.fullName || 'Đối thủ') + '</a>' : '<span class="match-player-name">' + S.escapeHtml(challenger.fullName || 'Đối thủ') + '</span>') +
                    '  </div>' +
                    '  <span class="match-player-sub tabular-nums">Đối thủ · Elo ' + S.escapeHtml(String(challenger.eloRating || 1000)) + '</span>' +
                    '</div>')
@@ -317,7 +320,7 @@
                 '    <div class="match-player-slot">' +
                 '      <div class="match-player-head">' +
                 '        <span class="match-player-avatar">' + S.escapeHtml(getInitials(hostName)) + '</span>' +
-                '        <span class="match-player-name">' + S.escapeHtml(hostName) + '</span>' +
+                   '        ' + hostNameMarkup +
                 '      </div>' +
                 '      <span class="match-player-sub tabular-nums">Chủ kèo · Elo ' + S.escapeHtml(String(host.eloRating || 1000)) + '</span>' +
                 '    </div>' +

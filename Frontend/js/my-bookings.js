@@ -41,6 +41,10 @@
         el.upcomingCount = document.getElementById('customer-upcoming-count');
         el.confirmedCount = document.getElementById('customer-confirmed-count');
         el.pendingCount = document.getElementById('customer-pending-count');
+        el.activityGrid = document.getElementById('activity-grid');
+        el.activityMonths = document.getElementById('activity-month-labels');
+        el.activityActiveDays = document.getElementById('activity-active-days');
+        el.activityTotalSessions = document.getElementById('activity-total-sessions');
 
         el.currentList = document.getElementById('current-bookings-list');
         el.currentFeedback = document.getElementById('current-bookings-feedback');
@@ -201,6 +205,7 @@
             .then(function(data) {
                 state.bookings = Array.isArray(data) ? data : [];
                 renderSummary();
+                renderActivityHeatmap();
                 renderCurrentBookings();
                 renderHistory();
             })
@@ -243,6 +248,62 @@
         if (el.upcomingCount) el.upcomingCount.textContent = String(upcoming);
         if (el.confirmedCount) el.confirmedCount.textContent = String(confirmed);
         if (el.pendingCount) el.pendingCount.textContent = String(pending);
+    }
+
+    function renderActivityHeatmap() {
+        if (!el.activityGrid) return;
+
+        var completedPerDay = {};
+        state.bookings.forEach(function(booking) {
+            if (S.normalizeBookingStatus(booking.status) !== 'COMPLETED') return;
+            var key = String(booking.bookingDate || '').slice(0, 10);
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(key)) return;
+            completedPerDay[key] = (completedPerDay[key] || 0) + 1;
+        });
+
+        var today = new Date();
+        today.setHours(0, 0, 0, 0);
+        var mondayOffset = (today.getDay() + 6) % 7;
+        var firstDay = new Date(today.getFullYear(), today.getMonth(), today.getDate() - mondayOffset - (52 * 7));
+        var monthNames = ['T1', 'T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'T8', 'T9', 'T10', 'T11', 'T12'];
+        var cells = [];
+        var monthLabels = [];
+        var activeDays = 0;
+        var sessions = 0;
+
+        for (var week = 0; week < 53; week += 1) {
+            var weekDate = new Date(firstDay.getFullYear(), firstDay.getMonth(), firstDay.getDate() + week * 7);
+            var monthLabel = week === 0 ? weekDate.getMonth() + 1 : null;
+
+            for (var day = 0; day < 7; day += 1) {
+                var date = new Date(firstDay.getFullYear(), firstDay.getMonth(), firstDay.getDate() + (week * 7) + day);
+                if (date.getDate() === 1) monthLabel = date.getMonth() + 1;
+                var key = date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-' + String(date.getDate()).padStart(2, '0');
+                var count = completedPerDay[key] || 0;
+                if (count > 0) {
+                    activeDays += 1;
+                    sessions += count;
+                }
+                var level = count === 0 ? 0 : Math.min(4, count);
+                var future = date > today;
+                var dateLabel = date.toLocaleDateString('vi-VN', { day: 'numeric', month: 'long', year: 'numeric' });
+                var title = dateLabel + ': ' + count + ' lượt hoàn thành';
+                cells.push('<span class="activity-day activity-level-' + level + (future ? ' is-future' : '') + '" title="' + S.escapeHtml(title) + '" aria-hidden="true"></span>');
+            }
+
+            if (monthLabel != null) {
+                // Keep the final month label inside the 53-column chart. The old
+                // 64px clamp caused late-year labels (T11/T12) to share a position.
+                var monthLeft = Math.min(week * 15, 792 - 28);
+                monthLabels.push('<span style="left:' + monthLeft + 'px">' + monthNames[monthLabel - 1] + '</span>');
+            }
+        }
+
+        el.activityGrid.innerHTML = cells.join('');
+        if (el.activityMonths) el.activityMonths.innerHTML = monthLabels.join('');
+        if (el.activityActiveDays) el.activityActiveDays.textContent = activeDays + ' ngày chơi';
+        if (el.activityTotalSessions) el.activityTotalSessions.textContent = sessions + ' lượt đã hoàn thành trong 52 tuần gần nhất';
+        el.activityGrid.setAttribute('aria-label', 'Trong 52 tuần gần nhất: ' + activeDays + ' ngày chơi, ' + sessions + ' booking hoàn thành.');
     }
 
     function renderCurrentBookings() {

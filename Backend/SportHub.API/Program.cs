@@ -8,6 +8,7 @@ using Microsoft.OpenApi.Models;
 using SportHub.API.Data;
 using SportHub.API.DTOs;
 using SportHub.API.Middleware;
+using SportHub.API.Models;
 using SportHub.API.Repositories;
 using SportHub.API.Services;
 
@@ -49,6 +50,45 @@ builder.Services
     })
     .AddJwtBearer(options =>
     {
+        options.Events = new JwtBearerEvents
+        {
+            OnTokenValidated = async context =>
+            {
+                var idValue = context.Principal?.FindFirst("userId")?.Value
+                    ?? context.Principal?.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                var tokenRole = context.Principal?.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value
+                    ?? context.Principal?.FindFirst("role")?.Value;
+                if (!long.TryParse(idValue, out var userId) || string.IsNullOrWhiteSpace(tokenRole))
+                {
+                    context.HttpContext.RequestServices.GetRequiredService<ILoggerFactory>()
+                        .CreateLogger("JwtBearer").LogWarning("Rejected JWT: required user ID or role claim is missing.");
+                    context.Fail("Token identity is invalid.");
+                    return;
+                }
+
+                var db = context.HttpContext.RequestServices.GetRequiredService<SportHubDbContext>();
+                var user = await db.Users.AsNoTracking()
+                    .Where(u => u.Id == userId)
+                    .Select(u => new { u.Role, u.IsActive })
+                    .FirstOrDefaultAsync(context.HttpContext.RequestAborted);
+                if (user is null || !user.IsActive ||
+                    !string.Equals(UserRoleExtensions.NormalizeRole(user.Role),
+                        UserRoleExtensions.NormalizeRole(tokenRole), StringComparison.OrdinalIgnoreCase))
+                {
+                    context.HttpContext.RequestServices.GetRequiredService<ILoggerFactory>()
+                        .CreateLogger("JwtBearer").LogWarning(
+                            "Rejected JWT role for user {UserId}: account missing/inactive or token role differs from current account role.", userId);
+                    context.Fail("User is inactive or the role in this token is outdated. Please sign in again.");
+                }
+            },
+            OnAuthenticationFailed = context =>
+            {
+                context.HttpContext.RequestServices.GetRequiredService<ILoggerFactory>()
+                    .CreateLogger("JwtBearer").LogWarning(context.Exception, "JWT authentication failed.");
+                return Task.CompletedTask;
+            }
+        };
+
         options.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
@@ -72,6 +112,9 @@ builder.Services.AddScoped<IMatchRepository, MatchRepository>();
 
 builder.Services.AddSingleton<IPasswordHasher, LegacyAwarePasswordHasher>();
 builder.Services.AddSingleton<IJwtService, JwtService>();
+var googleSettings = builder.Configuration.GetSection("Google").Get<GoogleSettings>() ?? new GoogleSettings();
+builder.Services.AddSingleton(googleSettings);
+builder.Services.AddSingleton<IGoogleIdTokenValidator, GoogleIdTokenValidator>();
 builder.Services.AddScoped<IAuthService, AuthService>();
 builder.Services.AddScoped<IFieldService, FieldService>();
 builder.Services.AddScoped<IBookingService, BookingService>();
@@ -79,6 +122,7 @@ builder.Services.AddScoped<IAdminService, AdminService>();
 builder.Services.AddScoped<IMatchService, MatchService>();
 builder.Services.AddScoped<NotificationService>();
 builder.Services.AddScoped<FieldOwnerBookingService>();
+builder.Services.AddScoped<SocialService>();
 
 // 4. Controllers, JSON Serialization & Unified Validation Error Contract
 builder.Services

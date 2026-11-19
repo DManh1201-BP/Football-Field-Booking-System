@@ -21,6 +21,8 @@ Thư mục này chứa schema SQL Server của SportHub 2.0. Theo architecture b
 
 Nếu database `SportHubDb` đã được tạo trước khi có tính năng thông báo, không chạy lại toàn bộ schema. Mở `migrations/20261119_add_notifications.sql` trong SSMS, chọn đúng database `SportHubDb` và chạy một lần để tạo bảng `notifications` cùng index. Script có kiểm tra tồn tại nên có thể chạy lại an toàn.
 
+Để bật đăng nhập/đăng ký Google trên database đã có, chạy `migrations/20261120_add_google_auth.sql` một lần trên `SportHubDb`. Script thêm `users.google_sub` và unique filtered index để liên kết Google account ổn định; script có thể chạy lại an toàn.
+
 ## Kết nối API
 
 Connection string mặc định trong `appsettings.json` dùng Windows Authentication:

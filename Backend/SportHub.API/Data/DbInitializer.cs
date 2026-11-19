@@ -11,6 +11,8 @@ public static class DbInitializer
         using var scope = services.CreateScope();
         var dbContext = scope.ServiceProvider.GetRequiredService<SportHubDbContext>();
         var passwordHasher = scope.ServiceProvider.GetRequiredService<IPasswordHasher>();
+        var connection = dbContext.Database.GetDbConnection();
+        logger.LogInformation("SportHub database target: {DataSource} / {Database}", connection.DataSource, connection.Database);
 
         var pendingMigrations = await dbContext.Database.GetPendingMigrationsAsync();
         if (pendingMigrations.Any())
@@ -21,6 +23,9 @@ public static class DbInitializer
         {
             await dbContext.Database.EnsureCreatedAsync();
         }
+
+        // EnsureCreated only creates schema for a brand-new database. Existing databases
+        // are upgraded with the versioned SQL migration run separately by a DB owner.
 
         var shouldSeed = configuration.GetValue<bool>("SeedSampleData");
         if (!shouldSeed)

@@ -67,6 +67,33 @@
     margin-top: var(--space-3);
 }
 
+.google-auth-section {
+    margin-top: var(--space-4);
+}
+
+.auth-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: var(--space-3);
+    color: var(--text-muted);
+    font-size: 0.78rem;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+    content: "";
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+}
+
+.google-signin-button {
+    display: flex;
+    justify-content: center;
+    min-height: 40px;
+}
+
 /* ===== Concierge Widget ===== */
 
 .chatbot-toggle {
