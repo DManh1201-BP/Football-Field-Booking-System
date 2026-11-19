@@ -255,13 +255,21 @@
 
     function configureRoleVisibility(role) {
         var isAdmin = role === 'ADMIN';
-        if (el.tabBookingsBtn) el.tabBookingsBtn.classList.toggle('hidden', !isAdmin);
+        if (el.tabBookingsBtn) el.tabBookingsBtn.classList.remove('hidden');
         if (el.kpiGrid) el.kpiGrid.classList.toggle('hidden', !isAdmin);
         if (el.analyticsGrid) el.analyticsGrid.classList.toggle('hidden', !isAdmin);
         if (el.overviewPendingPanel) el.overviewPendingPanel.classList.toggle('hidden', !isAdmin);
 
         if (!isAdmin) {
-            switchTab('fields');
+            var overview = document.getElementById('admin-panel-overview');
+            if (overview) overview.classList.add('hidden');
+            var bookingsLabel = el.tabBookingsBtn && el.tabBookingsBtn.querySelector('.admin-nav-tab-left span:last-child');
+            if (bookingsLabel) bookingsLabel.textContent = 'Booking sân của tôi';
+            var panelTitle = document.querySelector('#admin-panel-bookings .panel-head h3');
+            var panelDescription = document.querySelector('#admin-panel-bookings .panel-head p');
+            if (panelTitle) panelTitle.textContent = 'Booking tại sân của tôi';
+            if (panelDescription) panelDescription.textContent = 'Xem yêu cầu đặt sân và xác nhận hoặc từ chối booking thuộc các sân bạn sở hữu.';
+            switchTab('bookings');
         }
     }
 
@@ -299,6 +307,8 @@
         if (isAdmin) {
             requests.push(S.apiRequest('/admin/revenue/summary', { method: 'GET' }));
             requests.push(S.apiRequest('/admin/bookings', { method: 'GET' }));
+        } else {
+            requests.push(S.apiRequest('/owner/bookings', { method: 'GET' }));
         }
 
         Promise.all(requests)
@@ -314,6 +324,9 @@
                     renderSummary();
                     renderAnalyticsCharts();
                     renderOverviewPending();
+                    renderBookingsTable();
+                } else {
+                    state.bookings = Array.isArray(results[1]) ? results[1] : [];
                     renderBookingsTable();
                 }
                 renderFieldsTable();
@@ -458,7 +471,7 @@
         var field = b.field || {};
         var status = S.normalizeBookingStatus(b.status);
         var canConfirm = status === 'PENDING' || status === 'HOLD';
-        var canCancel = status !== 'CANCELLED' && status !== 'COMPLETED';
+        var canCancel = state.role === 'ADMIN' && status !== 'CANCELLED' && status !== 'COMPLETED';
         var customerName = user.fullName || user.email || 'Khách';
 
         var actionsHtml = '';
@@ -505,7 +518,8 @@
                     return;
                 }
                 btn.disabled = true;
-                S.apiRequest('/admin/bookings/' + encodeURIComponent(btn.getAttribute('data-id')) + '/reject', {
+            var endpoint = state.role === 'OWNER' ? '/owner/bookings/' : '/admin/bookings/';
+            S.apiRequest(endpoint + encodeURIComponent(btn.getAttribute('data-id')) + '/reject', {
                     method: 'PATCH', body: JSON.stringify({ reason: reason.trim() })
                 }).then(function() {
                     S.showToast('Đã từ chối booking và gửi thông báo cho khách.', 'success');
@@ -528,7 +542,8 @@
 
     function confirmBooking(bookingId, btn) {
         if (btn) btn.disabled = true;
-        S.apiRequest('/admin/bookings/' + encodeURIComponent(bookingId) + '/confirm', { method: 'PATCH' })
+        var endpoint = state.role === 'OWNER' ? '/owner/bookings/' : '/admin/bookings/';
+        S.apiRequest(endpoint + encodeURIComponent(bookingId) + '/confirm', { method: 'PATCH' })
             .then(function() {
                 S.showToast('Đã xác nhận booking #' + bookingId, 'success');
                 loadAdminData();

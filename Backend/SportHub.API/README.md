@@ -102,6 +102,12 @@ Backend/SportHub.API/
 | Admin | `GET /api/admin/bookings` | `ADMIN` | Quản lý danh sách booking |
 | Admin | `GET /api/admin/revenue/summary` | `ADMIN` | Tổng hợp số lượng & doanh thu |
 | Admin | `PATCH /api/admin/bookings/{bookingId}/confirm` | `ADMIN` | Xác nhận booking |
+| Admin | `PATCH /api/admin/bookings/{bookingId}/reject` | `ADMIN` | Từ chối booking đang chờ và gửi thông báo cho người đặt |
+| Owner | `GET /api/owner/bookings` | `OWNER` | Xem booking thuộc các sân do chủ sân sở hữu |
+| Owner | `PATCH /api/owner/bookings/{bookingId}/confirm` | `OWNER` | Xác nhận booking của sân mình; backend kiểm tra xung đột |
+| Owner | `PATCH /api/owner/bookings/{bookingId}/reject` | `OWNER` | Từ chối booking của sân mình và gửi thông báo cho người đặt |
+| Notifications | `GET /api/notifications/me` | Authenticated | Xem tối đa 50 thông báo gần nhất của tài khoản |
+| Notifications | `PATCH /api/notifications/{id}/read` | Authenticated | Đánh dấu thông báo của chính tài khoản đã đọc |
 | Matches | `GET /api/matches` | Public | Danh sách trận giao lưu/thách đấu |
 | Matches | `POST /api/matches` | Authenticated | Tạo trận giao lưu mới |
 | Matches | `POST /api/matches/{id}/join` | Authenticated | Tham gia trận đấu đang mở |
