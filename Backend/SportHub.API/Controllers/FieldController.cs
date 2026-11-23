@@ -20,7 +20,17 @@ public class FieldController : ControllerBase
     [AllowAnonymous]
     public async Task<ActionResult<List<FieldDto>>> GetAllFields(CancellationToken cancellationToken)
     {
-        var fields = await _fieldService.GetAllFieldsAsync(cancellationToken);
+        long? currentUserId = User.TryGetUserId(out var uid) ? uid : null;
+        var fields = await _fieldService.GetAllFieldsAsync(currentUserId, User.IsAdmin(), cancellationToken);
+        return Ok(fields);
+    }
+
+    [HttpGet("manage")]
+    [Authorize(Roles = "ADMIN,OWNER")]
+    public async Task<ActionResult<List<FieldDto>>> GetManagedFields(CancellationToken cancellationToken)
+    {
+        long? currentUserId = User.TryGetUserId(out var uid) ? uid : null;
+        var fields = await _fieldService.GetManagedFieldsAsync(currentUserId, User.IsAdmin(), cancellationToken);
         return Ok(fields);
     }
 
@@ -107,6 +117,64 @@ public class FieldController : ControllerBase
         long? currentUserId = User.TryGetUserId(out var uid) ? uid : null;
         var updated = await _fieldService.UploadFieldImageAsync(id, file, currentUserId, User.IsAdmin(), cancellationToken);
         return Ok(updated);
+    }
+
+    [HttpPost("{id:long}/verification-doc")]
+    [Authorize(Roles = "ADMIN,OWNER")]
+    public async Task<ActionResult<FieldDto>> UploadVerificationDoc(
+        long id,
+        IFormFile file,
+        CancellationToken cancellationToken)
+    {
+        long? currentUserId = User.TryGetUserId(out var uid) ? uid : null;
+        var updated = await _fieldService.UploadVerificationDocAsync(id, file, currentUserId, User.IsAdmin(), cancellationToken);
+        return Ok(updated);
+    }
+
+    [HttpPost("community-suggest")]
+    [Authorize]
+    public async Task<ActionResult<FieldDto>> SuggestCommunityField(
+        [FromBody] CommunityFieldSuggestDto request,
+        CancellationToken cancellationToken)
+    {
+        if (!User.TryGetUserId(out var uid)) return Unauthorized();
+        var created = await _fieldService.SuggestCommunityFieldAsync(request, uid, cancellationToken);
+        return StatusCode(StatusCodes.Status201Created, created);
+    }
+
+    [HttpPost("claim-evidence")]
+    [Authorize]
+    public async Task<ActionResult<object>> UploadClaimEvidence(
+        IFormFile file,
+        CancellationToken cancellationToken)
+    {
+        if (!User.TryGetUserId(out var uid)) return Unauthorized();
+        var url = await _fieldService.UploadClaimEvidenceAsync(file, uid, cancellationToken);
+        return Ok(new { url });
+    }
+
+    [HttpPost("{id:long}/claim")]
+    [Authorize]
+    public async Task<ActionResult<FieldClaimResponseDto>> SubmitClaim(
+        long id,
+        [FromBody] FieldClaimCreateDto request,
+        CancellationToken cancellationToken)
+    {
+        if (!User.TryGetUserId(out var uid)) return Unauthorized();
+        var claim = await _fieldService.SubmitClaimAsync(id, uid, request, cancellationToken);
+        return StatusCode(StatusCodes.Status201Created, claim);
+    }
+
+    [HttpPost("{id:long}/report")]
+    [Authorize]
+    public async Task<ActionResult<FieldReportResponseDto>> ReportField(
+        long id,
+        [FromBody] FieldReportCreateDto request,
+        CancellationToken cancellationToken)
+    {
+        if (!User.TryGetUserId(out var uid)) return Unauthorized();
+        var report = await _fieldService.ReportFieldAsync(id, uid, request, cancellationToken);
+        return StatusCode(StatusCodes.Status201Created, report);
     }
 
     [HttpGet("health")]

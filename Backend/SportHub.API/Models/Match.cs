@@ -76,6 +76,61 @@ public class Match
     [Column("notes")]
     public string? Notes { get; set; }
 
+    [Required]
+    [MaxLength(20)]
+    [Column("match_mode")]
+    public string MatchMode { get; set; } = "TEAM_CHALLENGE";
+
+    [Column("max_slots")]
+    public int MaxSlots { get; set; } = 2;
+
+    [Column("pre_reserved_slots")]
+    public int PreReservedSlots { get; set; } = 1;
+
+    [Column("booking_id")]
+    public long? BookingId { get; set; }
+
+    public Booking? Booking { get; set; }
+
+    [Column("is_ranked")]
+    public bool IsRanked { get; set; } = true;
+
+    [Required]
+    [MaxLength(30)]
+    [Column("score_status")]
+    public string ScoreStatus { get; set; } = "NONE";
+
+    [Column("proposed_host_score")]
+    public int? ProposedHostScore { get; set; }
+
+    [Column("proposed_challenger_score")]
+    public int? ProposedChallengerScore { get; set; }
+
+    [Column("score_submitted_by_user_id")]
+    public long? ScoreSubmittedByUserId { get; set; }
+
+    [Column("score_submitted_at")]
+    public DateTime? ScoreSubmittedAt { get; set; }
+
+    [Column("score_confirm_deadline")]
+    public DateTime? ScoreConfirmDeadline { get; set; }
+
+    [Column("disputed_host_score")]
+    public int? DisputedHostScore { get; set; }
+
+    [Column("disputed_challenger_score")]
+    public int? DisputedChallengerScore { get; set; }
+
+    [MaxLength(500)]
+    [Column("dispute_reason")]
+    public string? DisputeReason { get; set; }
+
+    [MaxLength(500)]
+    [Column("dispute_evidence_url")]
+    public string? DisputeEvidenceUrl { get; set; }
+
+    public ICollection<MatchParticipant> Participants { get; set; } = new List<MatchParticipant>();
+
     [Column("created_at")]
     public DateTime CreatedAt { get; set; } = DateTime.Now;
 

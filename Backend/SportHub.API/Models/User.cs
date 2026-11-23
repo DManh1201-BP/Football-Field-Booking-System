@@ -58,6 +58,9 @@ public class User
     [Column("elo_rating")]
     public int EloRating { get; set; } = 1000;
 
+    [Column("reliability_score")]
+    public int ReliabilityScore { get; set; } = 100;
+
     [Column("created_at")]
     public DateTime CreatedAt { get; set; } = DateTime.Now;
 

@@ -31,4 +31,18 @@ public class FieldOwnerBookingsController : ControllerBase
         if (!User.TryGetUserId(out var ownerId)) return Unauthorized();
         return Ok(await _service.RejectAsync(ownerId, bookingId, request?.Reason, ct));
     }
+
+    [HttpPost("walk-in")]
+    public async Task<ActionResult<BookingResponseDto>> CreateWalkIn([FromBody] WalkInBookingCreateDto request, CancellationToken ct)
+    {
+        if (!User.TryGetUserId(out var ownerId)) return Unauthorized();
+        return StatusCode(StatusCodes.Status201Created, await _service.CreateWalkInAsync(ownerId, request, ct));
+    }
+
+    [HttpPatch("{bookingId:long}/rain-out")]
+    public async Task<ActionResult<BookingResponseDto>> RainOut(long bookingId, [FromBody] RainOutDto request, CancellationToken ct)
+    {
+        if (!User.TryGetUserId(out var ownerId)) return Unauthorized();
+        return Ok(await _service.RainOutAsync(ownerId, bookingId, request?.Reason, ct));
+    }
 }

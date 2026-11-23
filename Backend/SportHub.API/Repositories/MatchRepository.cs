@@ -25,6 +25,8 @@ public class MatchRepository : IMatchRepository
             .Include(m => m.HostUser)
             .Include(m => m.ChallengerUser)
             .Include(m => m.Field)
+            .Include(m => m.Participants)
+                .ThenInclude(p => p.User)
             .AsQueryable();
 
         if (!string.IsNullOrWhiteSpace(sportType))
@@ -63,6 +65,8 @@ public class MatchRepository : IMatchRepository
             .Include(m => m.HostUser)
             .Include(m => m.ChallengerUser)
             .Include(m => m.Field)
+            .Include(m => m.Participants)
+                .ThenInclude(p => p.User)
             .FirstOrDefaultAsync(m => m.Id == id, cancellationToken);
     }
 

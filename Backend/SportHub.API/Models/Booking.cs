@@ -67,4 +67,27 @@ public class Booking
     [MaxLength(300)]
     [Column("cancellation_reason")]
     public string? CancellationReason { get; set; }
+
+    [Required]
+    [MaxLength(20)]
+    [Column("booking_type")]
+    public string BookingType { get; set; } = "ONLINE";
+
+    [Column("expected_players")]
+    public int? ExpectedPlayers { get; set; }
+
+    [Column("deposit_amount", TypeName = "decimal(10, 2)")]
+    public decimal DepositAmount { get; set; } = 0m;
+
+    [Required]
+    [MaxLength(20)]
+    [Column("payment_status")]
+    public string PaymentStatus { get; set; } = "UNPAID";
+
+    [MaxLength(120)]
+    [Column("cancellation_policy_applied")]
+    public string? CancellationPolicyApplied { get; set; }
+
+    [Column("checked_in_at")]
+    public DateTime? CheckedInAt { get; set; }
 }

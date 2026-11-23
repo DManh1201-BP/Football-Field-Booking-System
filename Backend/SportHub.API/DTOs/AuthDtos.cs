@@ -52,6 +52,7 @@ public class UserProfileResponseDto
     public string? AvatarUrl { get; set; }
     public string Role { get; set; } = string.Empty;
     public int EloRating { get; set; }
+    public int ReliabilityScore { get; set; }
 
     public static UserProfileResponseDto FromUser(User user)
     {
@@ -65,7 +66,8 @@ public class UserProfileResponseDto
             Bio = user.Bio,
             AvatarUrl = user.AvatarUrl,
             Role = UserRoleExtensions.NormalizeRole(user.Role),
-            EloRating = user.EloRating
+            EloRating = user.EloRating,
+            ReliabilityScore = user.ReliabilityScore
         };
     }
 }

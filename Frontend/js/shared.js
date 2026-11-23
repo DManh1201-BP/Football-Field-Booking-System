@@ -66,7 +66,9 @@
         HOLD: { label: 'Đang giữ chỗ', className: 'hold', icon: 'timer' },
         CONFIRMED: { label: 'Đã xác nhận', className: 'success', icon: 'check-circle-2' },
         COMPLETED: { label: 'Hoàn thành', className: 'success', icon: 'badge-check' },
-        CANCELLED: { label: 'Đã hủy', className: 'error', icon: 'x-circle' }
+        CANCELLED: { label: 'Đã hủy', className: 'error', icon: 'x-circle' },
+        EXPIRED: { label: 'Quá hạn', className: 'error', icon: 'clock-alert' },
+        RAIN_OUT: { label: 'Hoãn thời tiết', className: 'hold', icon: 'cloud-rain' }
     };
 
     var MATCH_STATUS_META = {
@@ -123,7 +125,8 @@
             bio: user.bio || '',
             avatarUrl: user.avatarUrl || '',
             role: normalizeRole(user.role),
-            eloRating: Number(user.eloRating || 1000)
+            eloRating: Number(user.eloRating || 1000),
+            reliabilityScore: user.reliabilityScore != null ? Number(user.reliabilityScore) : 100
         };
     }
 
@@ -1257,6 +1260,35 @@
         refreshIcons();
     }
 
+    function getFieldTrustBadge(field) {
+        if (!field) return '';
+        var source = String(field.venueSource || 'PARTNER').toUpperCase();
+        var ver = String(field.verificationStatus || 'APPROVED').toUpperCase();
+        if (source === 'COMMUNITY_UNCLAIMED' || ver === 'UNCLAIMED') {
+            return '<span class="status-badge hold" title="Sân công cộng/chưa liên kết đặt online"><i data-lucide="users" aria-hidden="true"></i><span>Sân cộng đồng</span></span>';
+        }
+        if (ver === 'APPROVED') {
+            return '<span class="status-badge success" title="Đã xác thực địa điểm &amp; giấy tờ"><i data-lucide="shield-check" aria-hidden="true"></i><span>Đã xác thực</span></span>';
+        }
+        if (ver === 'PENDING_REVIEW') {
+            return '<span class="status-badge pending"><i data-lucide="clock" aria-hidden="true"></i><span>Chờ duyệt</span></span>';
+        }
+        if (ver === 'REJECTED') {
+            return '<span class="status-badge error"><i data-lucide="x-circle" aria-hidden="true"></i><span>Từ chối</span></span>';
+        }
+        if (ver === 'SUSPENDED') {
+            return '<span class="status-badge error"><i data-lucide="ban" aria-hidden="true"></i><span>Tạm ngưng</span></span>';
+        }
+        return '';
+    }
+
+    function getMatchModeLabel(mode) {
+        var upper = String(mode || 'TEAM_CHALLENGE').toUpperCase();
+        if (upper === 'SOLO_LOBBY') return 'Ghép lẻ (Solo)';
+        if (upper === 'CUSTOM_PRIVATE') return 'Trận riêng tư';
+        return 'Kèo 2 đội';
+    }
+
     function syncCurrentUser() {
         var session = loadAuthSession();
         if (!session.token) {
@@ -1308,6 +1340,8 @@
         normalizeBookingStatus: normalizeBookingStatus,
         renderBookingStatusBadge: renderBookingStatusBadge,
         renderMatchStatusBadge: renderMatchStatusBadge,
+        getFieldTrustBadge: getFieldTrustBadge,
+        getMatchModeLabel: getMatchModeLabel,
         refreshIcons: refreshIcons,
         showToast: showToast,
         openConfirmDialog: openConfirmDialog,

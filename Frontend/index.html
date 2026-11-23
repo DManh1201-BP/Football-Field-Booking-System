@@ -283,6 +283,10 @@
                         <span id="results-available-note">Đang tải danh sách sân...</span>
                     </div>
                     <div class="results-controls">
+                        <button id="open-suggest-field-btn" class="btn btn-secondary btn-sm" type="button">
+                            <i data-lucide="map-pin-plus" class="btn-icon" aria-hidden="true"></i>
+                            <span>Đề xuất sân</span>
+                        </button>
                         <label class="checkbox-field">
                             <input id="available-only-toggle" type="checkbox">
                             <span>Chỉ sân đang mở đặt</span>
@@ -510,13 +514,29 @@
 
                     <div class="modal-details-card">
                         <div class="modal-detail-row"><i data-lucide="map-pin" aria-hidden="true"></i><span><strong>Địa chỉ:</strong> <span id="modal-field-location"></span></span></div>
+                        <div id="modal-field-map-row" class="modal-detail-row hidden"><i data-lucide="navigation" aria-hidden="true"></i><span><strong>Bản đồ:</strong> <a id="modal-field-map-link" class="social-profile-link" href="#" target="_blank" rel="noopener">Mở vị trí trên Google Maps</a></span></div>
                         <div class="modal-detail-row"><i data-lucide="file-text" aria-hidden="true"></i><span><strong>Mô tả:</strong> <span id="modal-field-description"></span></span></div>
                         <div id="modal-field-owner-row" class="modal-detail-row hidden"><i data-lucide="user-round" aria-hidden="true"></i><span><strong>Chủ sân:</strong> <a id="modal-field-owner-link" class="social-profile-link" href="#">Xem hồ sơ và liên hệ</a></span></div>
                         <div id="modal-field-amenities" class="field-amenities"></div>
+                        <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap;">
+                            <button id="open-report-field-btn" class="btn btn-ghost btn-sm" type="button">
+                                <i data-lucide="flag" class="btn-icon" aria-hidden="true"></i>
+                                <span>Báo cáo sai thông tin</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
 
                 <div class="booking-panel">
+                    <div id="community-field-panel" class="hold-option-card hidden" style="padding:18px;margin-bottom:12px;">
+                        <h3 class="booking-panel-title" style="margin-bottom:6px;">Sân cộng đồng · Chưa đặt online</h3>
+                        <p class="secondary-text" style="margin-bottom:14px;">Khu vực này chưa có chủ sân liên kết xác thực. Bạn vẫn có thể hẹn bạn bè hoặc tìm đối thủ thi đấu tại địa điểm này, hoặc gửi yêu cầu nhận quyền quản lý nếu bạn là chủ sân.</p>
+                        <div class="modal-actions" style="flex-wrap:wrap;">
+                            <a id="community-create-match-link" class="btn btn-primary btn-sm" href="matches.html">Tạo kèo tại sân này</a>
+                            <button id="open-claim-field-btn" class="btn btn-secondary btn-sm" type="button">Tôi là chủ sân (Claim)</button>
+                        </div>
+                    </div>
+                    <div id="online-booking-container">
                     <div>
                         <h3 class="booking-panel-title">Đặt lịch sân này</h3>
                         <p class="secondary-text">Chọn ngày thi đấu để kiểm tra khung giờ trống trực tiếp.</p>
@@ -555,6 +575,11 @@
                         </div>
 
                         <label class="form-field">
+                            <span>Số người dự kiến (tùy chọn)</span>
+                            <input id="booking-expected-players" name="expectedPlayers" type="number" min="1" max="100" placeholder="VD: 10 hoặc 14">
+                        </label>
+
+                        <label class="form-field">
                             <span>Ghi chú cho chủ sân</span>
                             <textarea id="booking-notes" name="notes" rows="2" placeholder="Yêu cầu thêm (thuê bóng, áo bib, số lượng người)..."></textarea>
                         </label>
@@ -583,8 +608,105 @@
                         </div>
                         <p id="booking-feedback" class="booking-feedback hidden" role="status"></p>
                     </form>
+                    </div>
                 </div>
             </div>
+        </div>
+    </div>
+
+    <!-- Suggest Community Field Modal -->
+    <div id="suggest-field-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="suggest-field-title" aria-hidden="true">
+        <div class="modal-content modal-sm" tabindex="-1">
+            <div class="modal-header">
+                <div>
+                    <h2 id="suggest-field-title">Đề xuất sân cộng đồng</h2>
+                    <p class="secondary-text">Khu vực bạn chưa có chủ sân? Đóng góp sân công cộng để cộng đồng hẹn kèo.</p>
+                </div>
+                <button class="close-modal" type="button" data-close-index-modal aria-label="Đóng"><i data-lucide="x" aria-hidden="true"></i></button>
+            </div>
+            <form id="suggest-field-form" class="booking-form" novalidate>
+                <label class="form-field"><span>Tên sân *</span><input id="suggest-name" type="text" placeholder="VD: Sân bóng công viên KDC Hiệp Thành" required></label>
+                <div class="booking-grid">
+                    <label class="form-field">
+                        <span>Môn thể thao *</span>
+                        <select id="suggest-sport" required>
+                            <option value="FOOTBALL">Bóng đá</option>
+                            <option value="VOLLEYBALL">Bóng chuyền</option>
+                            <option value="BADMINTON">Cầu lông</option>
+                            <option value="BASKETBALL">Bóng rổ</option>
+                            <option value="TENNIS">Tennis</option>
+                        </select>
+                    </label>
+                    <label class="form-field"><span>Sức chứa</span><input id="suggest-capacity" type="number" min="1" max="100" value="10"></label>
+                </div>
+                <label class="form-field"><span>Địa chỉ *</span><input id="suggest-location" type="text" placeholder="Số nhà, tên đường..." required></label>
+                <div class="booking-grid">
+                    <label class="form-field"><span>Thành phố</span><input id="suggest-city" type="text" placeholder="Thủ Dầu Một"></label>
+                    <label class="form-field"><span>Tỉnh</span><input id="suggest-province" type="text" placeholder="Bình Dương"></label>
+                    <label class="form-field"><span>Vĩ độ (Latitude)</span><input id="suggest-lat" type="number" step="0.000001" placeholder="10.980400"></label>
+                    <label class="form-field"><span>Kinh độ (Longitude)</span><input id="suggest-lng" type="number" step="0.000001" placeholder="106.651900"></label>
+                </div>
+                <label class="form-field"><span>Link bản đồ (tùy chọn)</span><input id="suggest-map-url" type="url" placeholder="https://maps.google.com/..."></label>
+                <label class="form-field"><span>Mô tả</span><textarea id="suggest-desc" rows="2" placeholder="Sân công cộng, mở tự do..."></textarea></label>
+                <div class="modal-actions">
+                    <button id="suggest-submit-btn" class="btn btn-primary" type="submit">Gửi Admin duyệt</button>
+                    <button class="btn btn-secondary" type="button" data-close-index-modal>Đóng</button>
+                </div>
+                <p id="suggest-feedback" class="booking-feedback hidden" role="alert"></p>
+            </form>
+        </div>
+    </div>
+
+    <!-- Claim Field Ownership Modal -->
+    <div id="claim-field-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="claim-field-title" aria-hidden="true">
+        <div class="modal-content modal-sm" tabindex="-1">
+            <div class="modal-header">
+                <div>
+                    <h2 id="claim-field-title">Xác minh quyền chủ sân</h2>
+                    <p id="claim-field-subtitle" class="secondary-text"></p>
+                </div>
+                <button class="close-modal" type="button" data-close-index-modal aria-label="Đóng"><i data-lucide="x" aria-hidden="true"></i></button>
+            </div>
+            <form id="claim-field-form" class="booking-form" novalidate>
+                <label class="form-field"><span>Link Google Maps của sân</span><input id="claim-map-url" type="url" placeholder="https://maps.google.com/..."></label>
+                <label class="form-field"><span>Ảnh giấy tờ / bảng giá tại sân (upload nội bộ)</span><input id="claim-evidence-file" type="file" accept=".jpg,.jpeg,.png,.webp,.pdf"></label>
+                <label class="form-field"><span>Thông tin chứng minh quyền sở hữu *</span><textarea id="claim-notes" rows="3" placeholder="Tên chủ sân, SĐT liên hệ quầy đặt sân, mã số hộ kinh doanh..." required></textarea></label>
+                <div class="modal-actions">
+                    <button id="claim-submit-btn" class="btn btn-primary" type="submit">Gửi yêu cầu xác minh</button>
+                    <button class="btn btn-secondary" type="button" data-close-index-modal>Đóng</button>
+                </div>
+                <p id="claim-feedback" class="booking-feedback hidden" role="alert"></p>
+            </form>
+        </div>
+    </div>
+
+    <!-- Report Field Modal -->
+    <div id="report-field-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="report-field-title" aria-hidden="true">
+        <div class="modal-content modal-sm" tabindex="-1">
+            <div class="modal-header">
+                <div>
+                    <h2 id="report-field-title">Báo cáo sân sai thông tin</h2>
+                    <p id="report-field-subtitle" class="secondary-text"></p>
+                </div>
+                <button class="close-modal" type="button" data-close-index-modal aria-label="Đóng"><i data-lucide="x" aria-hidden="true"></i></button>
+            </div>
+            <form id="report-field-form" class="booking-form" novalidate>
+                <label class="form-field">
+                    <span>Lý do báo cáo *</span>
+                    <select id="report-reason" required>
+                        <option value="Sân không tồn tại / Địa chỉ giả">Sân không tồn tại / Địa chỉ giả</option>
+                        <option value="Sai giá niêm yết hoặc phụ thu vô lý">Sai giá niêm yết hoặc phụ thu vô lý</option>
+                        <option value="Sân đã đóng cửa / ngừng hoạt động">Sân đã đóng cửa / ngừng hoạt động</option>
+                        <option value="Mạo danh chủ sân">Mạo danh chủ sân</option>
+                    </select>
+                </label>
+                <label class="form-field"><span>Chi tiết bổ sung</span><textarea id="report-details" rows="3" placeholder="Mô tả cụ thể vấn đề bạn gặp phải..."></textarea></label>
+                <div class="modal-actions">
+                    <button id="report-submit-btn" class="btn btn-danger" type="submit">Gửi báo cáo</button>
+                    <button class="btn btn-secondary" type="button" data-close-index-modal>Đóng</button>
+                </div>
+                <p id="report-feedback" class="booking-feedback hidden" role="alert"></p>
+            </form>
         </div>
     </div>
 

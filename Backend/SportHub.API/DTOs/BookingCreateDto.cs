@@ -28,6 +28,9 @@ public class BookingCreateDto : IValidatableObject
 
     public bool HoldOnly { get; set; } = false;
 
+    [Range(1, 100, ErrorMessage = "Expected players must be between 1 and 100")]
+    public int? ExpectedPlayers { get; set; }
+
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
         if (BookingDate.HasValue && BookingDate.Value < DateOnly.FromDateTime(DateTime.Today))
@@ -59,6 +62,13 @@ public class BookingResponseDto
     public DateTime? HoldExpiresAt { get; set; }
     public string? CustomerPhone { get; set; }
     public string? Notes { get; set; }
+    public string? CancellationReason { get; set; }
+    public string BookingType { get; set; } = "ONLINE";
+    public int? ExpectedPlayers { get; set; }
+    public decimal DepositAmount { get; set; }
+    public string PaymentStatus { get; set; } = "UNPAID";
+    public string? CancellationPolicyApplied { get; set; }
+    public DateTime? CheckedInAt { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 
@@ -77,10 +87,63 @@ public class BookingResponseDto
             HoldExpiresAt = booking.HoldExpiresAt,
             CustomerPhone = booking.CustomerPhone,
             Notes = booking.Notes,
+            CancellationReason = booking.CancellationReason,
+            BookingType = booking.BookingType,
+            ExpectedPlayers = booking.ExpectedPlayers,
+            DepositAmount = booking.DepositAmount,
+            PaymentStatus = booking.PaymentStatus,
+            CancellationPolicyApplied = booking.CancellationPolicyApplied,
+            CheckedInAt = booking.CheckedInAt,
             CreatedAt = booking.CreatedAt,
             UpdatedAt = booking.UpdatedAt
         };
     }
+}
+
+public class WalkInBookingCreateDto : IValidatableObject
+{
+    [Required(ErrorMessage = "Field ID is required")]
+    public long? FieldId { get; set; }
+
+    [Required(ErrorMessage = "Booking date is required")]
+    public DateOnly? BookingDate { get; set; }
+
+    [Required(ErrorMessage = "Start time is required")]
+    public TimeOnly? StartTime { get; set; }
+
+    [Required(ErrorMessage = "End time is required")]
+    public TimeOnly? EndTime { get; set; }
+
+    [Required(ErrorMessage = "Customer name is required")]
+    [MaxLength(100)]
+    public string CustomerName { get; set; } = string.Empty;
+
+    [MaxLength(20)]
+    public string? CustomerPhone { get; set; }
+
+    [Range(1, 100)]
+    public int? ExpectedPlayers { get; set; }
+
+    [MaxLength(500)]
+    public string? Notes { get; set; }
+
+    public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+    {
+        if (BookingDate.HasValue && BookingDate.Value < DateOnly.FromDateTime(DateTime.Today))
+        {
+            yield return new ValidationResult("Booking date must be today or later", new[] { nameof(BookingDate) });
+        }
+        if (StartTime.HasValue && EndTime.HasValue && EndTime.Value <= StartTime.Value)
+        {
+            yield return new ValidationResult("End time must be after start time", new[] { nameof(EndTime) });
+        }
+    }
+}
+
+public class RainOutDto
+{
+    [MaxLength(300)]
+    public string? Reason { get; set; }
 }
 
 public class PublicBookingScheduleDto

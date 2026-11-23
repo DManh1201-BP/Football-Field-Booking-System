@@ -60,6 +60,43 @@ public class Field
     [JsonIgnore]
     public User? Owner { get; set; }
 
+    [Required]
+    [MaxLength(30)]
+    [Column("venue_source")]
+    public string VenueSource { get; set; } = "PARTNER";
+
+    [Required]
+    [MaxLength(30)]
+    [Column("verification_status")]
+    public string VerificationStatus { get; set; } = "APPROVED";
+
+    [Column("latitude", TypeName = "decimal(9, 6)")]
+    public decimal? Latitude { get; set; }
+
+    [Column("longitude", TypeName = "decimal(9, 6)")]
+    public decimal? Longitude { get; set; }
+
+    [MaxLength(500)]
+    [Column("map_url")]
+    public string? MapUrl { get; set; }
+
+    [MaxLength(500)]
+    [Column("verification_doc_url")]
+    public string? VerificationDocUrl { get; set; }
+
+    [MaxLength(500)]
+    [Column("verification_notes")]
+    public string? VerificationNotes { get; set; }
+
+    [Column("verified_at")]
+    public DateTime? VerifiedAt { get; set; }
+
+    [Column("verified_by_admin_id")]
+    public long? VerifiedByAdminId { get; set; }
+
+    [Column("is_indoor")]
+    public bool IsIndoor { get; set; } = false;
+
     [Column("created_at")]
     public DateTime CreatedAt { get; set; } = DateTime.Now;
 

@@ -123,6 +123,7 @@ builder.Services.AddScoped<IMatchService, MatchService>();
 builder.Services.AddScoped<NotificationService>();
 builder.Services.AddScoped<FieldOwnerBookingService>();
 builder.Services.AddScoped<SocialService>();
+builder.Services.AddHostedService<BookingMatchLifecycleService>();
 
 // 4. Controllers, JSON Serialization & Unified Validation Error Contract
 builder.Services

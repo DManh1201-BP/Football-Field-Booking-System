@@ -79,4 +79,55 @@ public class NotificationService
         await _db.SaveChangesAsync(ct);
         return true;
     }
+
+    public async Task NotifyAdminsAsync(string category, long? referenceId, string message, CancellationToken ct = default)
+    {
+        var adminIds = await _db.Users.AsNoTracking()
+            .Where(u => u.IsActive && u.Role == "ADMIN")
+            .Select(u => u.Id)
+            .ToListAsync(ct);
+        if (adminIds.Count == 0) return;
+
+        var trimmed = message.Length > 500 ? message[..500] : message;
+        _db.Notifications.AddRange(adminIds.Select(adminId => new Notification
+        {
+            UserId = adminId,
+            Category = category,
+            ReferenceId = referenceId,
+            Message = trimmed
+        }));
+        await _db.SaveChangesAsync(ct);
+    }
+
+    public async Task NotifyBookingMatchParticipantsAsync(long bookingId, string message, CancellationToken ct = default)
+    {
+        var matches = await _db.Matches
+            .Include(m => m.Participants)
+            .Where(m => m.BookingId == bookingId && m.Status != "COMPLETED" && m.Status != "CANCELLED")
+            .ToListAsync(ct);
+        if (matches.Count == 0) return;
+
+        var recipientIds = new HashSet<long>();
+        foreach (var match in matches)
+        {
+            recipientIds.Add(match.HostUserId);
+            if (match.ChallengerUserId.HasValue) recipientIds.Add(match.ChallengerUserId.Value);
+            foreach (var p in match.Participants.Where(p => p.Status is "JOINED" or "CHECKED_IN" or "WAITLISTED"))
+            {
+                recipientIds.Add(p.UserId);
+            }
+        }
+        if (recipientIds.Count == 0) return;
+
+        var trimmed = message.Length > 500 ? message[..500] : message;
+        _db.Notifications.AddRange(recipientIds.Select(uid => new Notification
+        {
+            UserId = uid,
+            BookingId = bookingId,
+            Category = "MATCH",
+            ReferenceId = matches[0].Id,
+            Message = trimmed
+        }));
+        await _db.SaveChangesAsync(ct);
+    }
 }

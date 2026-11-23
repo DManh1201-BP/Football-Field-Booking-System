@@ -11,8 +11,12 @@ public class SportHubDbContext : DbContext
 
     public DbSet<User> Users => Set<User>();
     public DbSet<Field> Fields => Set<Field>();
+    public DbSet<FieldClaimRequest> FieldClaimRequests => Set<FieldClaimRequest>();
+    public DbSet<FieldReport> FieldReports => Set<FieldReport>();
     public DbSet<Booking> Bookings => Set<Booking>();
     public DbSet<Match> Matches => Set<Match>();
+    public DbSet<MatchParticipant> MatchParticipants => Set<MatchParticipant>();
+    public DbSet<UserSportRating> UserSportRatings => Set<UserSportRating>();
     public DbSet<Notification> Notifications => Set<Notification>();
     public DbSet<FriendRequest> FriendRequests => Set<FriendRequest>();
     public DbSet<Conversation> Conversations => Set<Conversation>();
@@ -41,6 +45,9 @@ public class SportHubDbContext : DbContext
 
             entity.Property(u => u.EloRating)
                 .HasDefaultValue(1000);
+
+            entity.Property(u => u.ReliabilityScore)
+                .HasDefaultValue(100);
         });
 
         modelBuilder.Entity<Field>(entity =>
@@ -49,18 +56,45 @@ public class SportHubDbContext : DbContext
             entity.HasIndex(f => f.City).HasDatabaseName("idx_city");
             entity.HasIndex(f => f.SportType).HasDatabaseName("idx_sport_type");
             entity.HasIndex(f => f.IsAvailable).HasDatabaseName("idx_available");
+            entity.HasIndex(f => new { f.VenueSource, f.VerificationStatus }).HasDatabaseName("idx_fields_verification");
 
             entity.Property(f => f.PricePerHour)
                 .HasPrecision(10, 2);
 
+            entity.Property(f => f.Latitude)
+                .HasPrecision(9, 6);
+
+            entity.Property(f => f.Longitude)
+                .HasPrecision(9, 6);
+
             entity.Property(f => f.IsAvailable)
                 .HasDefaultValue(true);
+
+            entity.Property(f => f.VenueSource)
+                .HasDefaultValue("PARTNER");
+
+            entity.Property(f => f.VerificationStatus)
+                .HasDefaultValue("APPROVED");
 
             entity.HasOne(f => f.Owner)
                 .WithMany(u => u.OwnedFields)
                 .HasForeignKey(f => f.OwnerId)
                 .OnDelete(DeleteBehavior.SetNull)
                 .HasConstraintName("fk_owner");
+        });
+
+        modelBuilder.Entity<FieldClaimRequest>(entity =>
+        {
+            entity.HasIndex(c => new { c.FieldId, c.Status });
+            entity.HasOne(c => c.Field).WithMany().HasForeignKey(c => c.FieldId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(c => c.ClaimantUser).WithMany().HasForeignKey(c => c.ClaimantUserId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<FieldReport>(entity =>
+        {
+            entity.HasIndex(r => new { r.FieldId, r.Status });
+            entity.HasOne(r => r.Field).WithMany().HasForeignKey(r => r.FieldId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(r => r.ReporterUser).WithMany().HasForeignKey(r => r.ReporterUserId).OnDelete(DeleteBehavior.Restrict);
         });
 
         modelBuilder.Entity<Booking>(entity =>
@@ -74,8 +108,18 @@ public class SportHubDbContext : DbContext
             entity.Property(b => b.TotalPrice)
                 .HasPrecision(10, 2);
 
+            entity.Property(b => b.DepositAmount)
+                .HasPrecision(10, 2)
+                .HasDefaultValue(0m);
+
             entity.Property(b => b.Status)
                 .HasDefaultValue("PENDING");
+
+            entity.Property(b => b.BookingType)
+                .HasDefaultValue("ONLINE");
+
+            entity.Property(b => b.PaymentStatus)
+                .HasDefaultValue("UNPAID");
 
             entity.Property(b => b.RowVersion)
                 .IsRowVersion();
@@ -118,6 +162,26 @@ public class SportHubDbContext : DbContext
                 .HasForeignKey(m => m.FieldId)
                 .OnDelete(DeleteBehavior.SetNull)
                 .HasConstraintName("fk_matches_field");
+
+            entity.HasOne(m => m.Booking)
+                .WithMany()
+                .HasForeignKey(m => m.BookingId)
+                .OnDelete(DeleteBehavior.NoAction)
+                .HasConstraintName("fk_matches_booking");
+        });
+
+        modelBuilder.Entity<MatchParticipant>(entity =>
+        {
+            entity.HasIndex(p => new { p.MatchId, p.UserId, p.Status });
+            entity.HasOne(p => p.Match).WithMany(m => m.Participants).HasForeignKey(p => p.MatchId).OnDelete(DeleteBehavior.Cascade);
+            entity.HasOne(p => p.User).WithMany().HasForeignKey(p => p.UserId).OnDelete(DeleteBehavior.Restrict);
+        });
+
+        modelBuilder.Entity<UserSportRating>(entity =>
+        {
+            entity.HasIndex(r => new { r.UserId, r.SportType }).IsUnique();
+            entity.Property(r => r.EloRating).HasDefaultValue(1000);
+            entity.HasOne(r => r.User).WithMany().HasForeignKey(r => r.UserId).OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<Notification>(entity =>

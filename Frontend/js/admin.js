@@ -9,6 +9,8 @@
         fields: [],
         users: [],
         bookings: [],
+        claims: [],
+        reports: [],
         activeTab: 'overview',
         bookingStatusFilter: 'ALL',
         bookingSearch: '',
@@ -47,8 +49,25 @@
         el.pendingBadge = document.getElementById('admin-pending-badge');
         el.tabBookingsBtn = document.getElementById('admin-tab-bookings-btn');
         el.tabUsersBtn = document.getElementById('admin-tab-users-btn');
+        el.tabModerationBtn = document.getElementById('admin-tab-moderation-btn');
+        el.moderationBadge = document.getElementById('admin-moderation-badge');
+        el.claimsBody = document.getElementById('admin-claims-body');
+        el.reportsBody = document.getElementById('admin-reports-body');
         el.usersBody = document.getElementById('admin-users-body');
         el.refreshBtn = document.getElementById('admin-refresh-btn');
+        el.openWalkinBtn = document.getElementById('open-walkin-btn');
+        el.walkinModal = document.getElementById('walkin-modal');
+        el.walkinForm = document.getElementById('walkin-form');
+        el.walkinFieldId = document.getElementById('walkin-field-id');
+        el.walkinDate = document.getElementById('walkin-date');
+        el.walkinStart = document.getElementById('walkin-start');
+        el.walkinEnd = document.getElementById('walkin-end');
+        el.walkinName = document.getElementById('walkin-name');
+        el.walkinPhone = document.getElementById('walkin-phone');
+        el.walkinPlayers = document.getElementById('walkin-players');
+        el.walkinNotes = document.getElementById('walkin-notes');
+        el.walkinSubmit = document.getElementById('walkin-submit');
+        el.walkinFeedback = document.getElementById('walkin-feedback');
 
         el.kpiGrid = document.getElementById('admin-kpi-grid');
         el.analyticsGrid = document.getElementById('admin-analytics-grid');
@@ -92,10 +111,18 @@
         el.fieldProvince = document.getElementById('field-province');
         el.fieldCapacity = document.getElementById('field-capacity');
         el.fieldAvailable = document.getElementById('field-available');
+        el.fieldIndoor = document.getElementById('field-indoor');
+        el.fieldLatitude = document.getElementById('field-latitude');
+        el.fieldLongitude = document.getElementById('field-longitude');
+        el.fieldMapUrl = document.getElementById('field-map-url');
+        el.fieldVenueSourceWrap = document.getElementById('field-venue-source-wrap');
+        el.fieldVenueSource = document.getElementById('field-venue-source');
         el.fieldAmenities = document.getElementById('field-amenities');
         el.fieldImageUrl = document.getElementById('field-image-url');
         el.fieldImageFile = document.getElementById('field-image-file');
         el.fieldImagePreview = document.getElementById('field-image-preview');
+        el.fieldVerificationDocFile = document.getElementById('field-verification-doc-file');
+        el.fieldVerificationDocLink = document.getElementById('field-verification-doc-link');
         el.fieldDescription = document.getElementById('field-description');
         el.fieldFormFeedback = document.getElementById('field-form-feedback');
         el.fieldSaveBtn = document.getElementById('field-save-btn');
@@ -228,6 +255,15 @@
         });
 
         if (el.cancelForm) el.cancelForm.addEventListener('submit', handleAdminCancelSubmit);
+        if (el.openWalkinBtn) el.openWalkinBtn.addEventListener('click', openWalkinModal);
+        if (el.walkinForm) el.walkinForm.addEventListener('submit', handleWalkinSubmit);
+        if (el.walkinModal) {
+            el.walkinModal.addEventListener('click', function(e) {
+                if (e.target === el.walkinModal || (e.target.closest && e.target.closest('[data-close-walkin]'))) {
+                    closeWalkinModal();
+                }
+            });
+        }
         if (el.cancelModal) {
             el.cancelModal.addEventListener('click', function(e) {
                 if (e.target === el.cancelModal || (e.target.closest && e.target.closest('[data-close-admin-cancel]'))) {
@@ -240,6 +276,7 @@
             if (e.key === 'Escape') {
                 closeFieldDrawer();
                 closeCancelModal();
+                closeWalkinModal();
             }
         });
     }
@@ -283,7 +320,10 @@
     function configureRoleVisibility(role) {
         var isAdmin = role === 'ADMIN';
         if (el.tabUsersBtn) el.tabUsersBtn.classList.toggle('hidden', !isAdmin);
+        if (el.tabModerationBtn) el.tabModerationBtn.classList.toggle('hidden', !isAdmin);
+        if (el.openWalkinBtn) el.openWalkinBtn.classList.toggle('hidden', isAdmin);
         if (el.fieldOwnerField) el.fieldOwnerField.classList.toggle('hidden', !isAdmin);
+        if (el.fieldVenueSourceWrap) el.fieldVenueSourceWrap.classList.toggle('hidden', !isAdmin);
         if (el.tabBookingsBtn) el.tabBookingsBtn.classList.remove('hidden');
         if (el.kpiGrid) el.kpiGrid.classList.toggle('hidden', !isAdmin);
         if (el.analyticsGrid) el.analyticsGrid.classList.toggle('hidden', !isAdmin);
@@ -319,7 +359,8 @@
             overview: document.getElementById('admin-panel-overview'),
             bookings: document.getElementById('admin-panel-bookings'),
             fields: document.getElementById('admin-panel-fields'),
-            users: document.getElementById('admin-panel-users')
+            users: document.getElementById('admin-panel-users'),
+            moderation: document.getElementById('admin-panel-moderation')
         };
 
         Object.keys(panels).forEach(function(key) {
@@ -331,29 +372,31 @@
 
     function loadAdminData() {
         var isAdmin = state.role === 'ADMIN';
-        var requests = [S.apiRequest('/fields', { method: 'GET' })];
+        var requests = [S.apiRequest('/fields/manage', { method: 'GET' })];
 
         if (isAdmin) {
             requests.push(S.apiRequest('/admin/bookings', { method: 'GET' }));
             requests.push(S.apiRequest('/admin/users', { method: 'GET' }));
+            requests.push(S.apiRequest('/admin/field-claims', { method: 'GET' }));
+            requests.push(S.apiRequest('/admin/field-reports', { method: 'GET' }));
         } else {
             requests.push(S.apiRequest('/owner/bookings', { method: 'GET' }));
         }
 
         Promise.all(requests)
             .then(function(results) {
-                var allFields = Array.isArray(results[0]) ? results[0] : [];
-                state.fields = isAdmin
-                    ? allFields
-                    : allFields.filter(function(f) { return String(f.ownerId) === String(state.currentUser.id); });
+                state.fields = Array.isArray(results[0]) ? results[0] : [];
 
                 if (isAdmin) {
                     state.bookings = Array.isArray(results[1]) ? results[1] : [];
                     state.users = Array.isArray(results[2]) ? results[2] : [];
+                    state.claims = Array.isArray(results[3]) ? results[3] : [];
+                    state.reports = Array.isArray(results[4]) ? results[4] : [];
                     renderSummary();
                     renderAnalyticsCharts();
                     renderBookingsTable();
                     renderUsersTable();
+                    renderModerationTables();
                     populateOwnerSelect();
                 } else {
                     state.bookings = Array.isArray(results[1]) ? results[1] : [];
@@ -512,8 +555,10 @@
         var field = b.field || {};
         var status = S.normalizeBookingStatus(b.status);
         var canConfirm = status === 'PENDING' || status === 'HOLD';
-        var canCancel = state.role === 'ADMIN' && status !== 'CANCELLED' && status !== 'COMPLETED';
+        var canCancel = state.role === 'ADMIN' && status !== 'CANCELLED' && status !== 'COMPLETED' && status !== 'EXPIRED' && status !== 'RAIN_OUT';
+        var canRainOut = (status === 'PENDING' || status === 'HOLD' || status === 'CONFIRMED') && !field.isIndoor;
         var customerName = user.fullName || user.email || 'Khách';
+        var walkInTag = b.bookingType === 'WALK_IN' ? ' <span class="match-chip">Walk-in</span>' : '';
         var customerNameMarkup = state.role === 'OWNER' && user.id
             ? '<a class="social-profile-link" href="profile.html?id=' + encodeURIComponent(user.id) + '">' + S.escapeHtml(customerName) + '</a>'
             : S.escapeHtml(customerName);
@@ -522,6 +567,9 @@
         if (canConfirm) {
             actionsHtml += '<button class="btn btn-primary btn-compact" type="button" data-action="confirm-booking" data-id="' + S.escapeHtml(b.id) + '">Xác nhận</button>';
             actionsHtml += '<button class="btn btn-danger-soft btn-compact" type="button" data-action="reject-booking" data-id="' + S.escapeHtml(b.id) + '">Từ chối</button>';
+        }
+        if (canRainOut) {
+            actionsHtml += '<button class="btn btn-secondary btn-compact" type="button" data-action="rainout-booking" data-id="' + S.escapeHtml(b.id) + '" title="Hoãn bất khả kháng do thời tiết">Hoãn mưa</button>';
         }
         if (canCancel) {
             actionsHtml += '<button class="btn btn-danger-soft btn-compact" type="button" data-action="cancel-booking" data-id="' + S.escapeHtml(b.id) + '">Hủy</button>';
@@ -533,8 +581,9 @@
         return '<tr>' +
             '<td><div class="admin-customer-cell">' +
             '  <span class="admin-customer-avatar">' + S.escapeHtml(getInitials(customerName)) + '</span>' +
-            '  <div><strong>' + customerNameMarkup + '</strong>' +
+            '  <div><strong>' + customerNameMarkup + '</strong>' + walkInTag +
             (b.customerPhone ? '<div class="admin-subtext tabular-nums">' + S.escapeHtml(b.customerPhone) + '</div>' : '') +
+            (b.notes ? '<div class="admin-subtext">' + S.escapeHtml(b.notes) + '</div>' : '') +
             '  </div>' +
             '</div></td>' +
             '<td><strong>' + S.escapeHtml(field.name || 'Sân thể thao') + '</strong></td>' +
@@ -580,6 +629,25 @@
                 var id = btn.getAttribute('data-id');
                 var booking = state.bookings.find(function(item) { return String(item.id) === String(id); });
                 if (booking) openAdminCancelModal(booking);
+            });
+        });
+
+        Array.prototype.forEach.call(container.querySelectorAll('[data-action="rainout-booking"]'), function(btn) {
+            btn.addEventListener('click', function() {
+                var id = btn.getAttribute('data-id');
+                var reason = window.prompt('Lý do hoãn thời tiết (RAIN_OUT):', 'Trời mưa to không thể thi đấu');
+                if (reason === null) return;
+                btn.disabled = true;
+                var endpoint = state.role === 'OWNER' ? '/owner/bookings/' : '/admin/bookings/';
+                S.apiRequest(endpoint + encodeURIComponent(id) + '/rain-out', {
+                    method: 'PATCH', body: JSON.stringify({ reason: reason.trim() })
+                }).then(function() {
+                    S.showToast('Đã chuyển booking sang trạng thái Hoãn thời tiết (RAIN_OUT).', 'info');
+                    loadAdminData();
+                }).catch(function(err) {
+                    S.showToast(err.message || 'Không thể hoãn lịch.', 'error');
+                    btn.disabled = false;
+                });
             });
         });
     }
@@ -684,22 +752,36 @@
 
         el.fieldsBody.innerHTML = filtered.map(function(field) {
             var sportMeta = S.getSportMeta(field.sportType);
-            var statusHtml = field.isAvailable !== false
-                ? '<span class="status-badge success"><i data-lucide="check-circle-2" aria-hidden="true"></i><span>Mở đặt</span></span>'
-                : '<span class="status-badge error"><i data-lucide="ban" aria-hidden="true"></i><span>Tạm ngưng</span></span>';
+            var statusHtml = S.getFieldTrustBadge(field) + ' ' + (field.isAvailable !== false
+                ? '<span class="status-badge success"><span>Mở đặt</span></span>'
+                : '<span class="status-badge error"><span>Đang khóa</span></span>');
+            var mapUrl = field.mapUrl || (field.latitude != null && field.longitude != null ? ('https://maps.google.com/?q=' + field.latitude + ',' + field.longitude) : '');
+            var docUrl = field.verificationDocUrl ? S.resolveMediaUrl(field.verificationDocUrl) : '';
+            var proofHtml = (mapUrl ? '<a class="social-profile-link" href="' + S.escapeHtml(mapUrl) + '" target="_blank" rel="noopener">Bản đồ</a>' : '') +
+                (mapUrl && docUrl ? ' · ' : '') +
+                (docUrl ? '<a class="social-profile-link" href="' + S.escapeHtml(docUrl) + '" target="_blank" rel="noopener">Hồ sơ/Bảng giá</a>' : '');
+            var canVerify = state.role === 'ADMIN' && field.verificationStatus === 'PENDING_REVIEW';
 
             return '<tr>' +
                 '<td class="tabular-nums"><span class="admin-id-pill">#' + S.escapeHtml(field.id) + '</span></td>' +
-                '<td><strong>' + S.escapeHtml(field.name) + '</strong><div class="admin-subtext">' + S.escapeHtml(field.location || '') + '</div></td>' +
+                '<td><strong>' + S.escapeHtml(field.name) + '</strong><div class="admin-subtext">' + S.escapeHtml(field.location || '') + '</div>' + (proofHtml ? ('<div class="admin-subtext">' + proofHtml + '</div>') : '') + '</td>' +
                 '<td><span class="match-chip">' + S.escapeHtml(sportMeta.label) + '</span></td>' +
                 '<td class="tabular-nums"><strong>' + S.formatCurrency(field.pricePerHour || 0) + ' đ</strong></td>' +
                 '<td>' + statusHtml + '</td>' +
                 '<td><div class="admin-actions-cell">' +
+                (canVerify ? '<button class="btn btn-primary btn-compact" type="button" data-field-verify="' + S.escapeHtml(field.id) + ':APPROVED">Duyệt</button><button class="btn btn-danger-soft btn-compact" type="button" data-field-verify="' + S.escapeHtml(field.id) + ':REJECTED">Từ chối</button>' : '') +
                 '  <button class="btn btn-secondary btn-compact" type="button" data-field-edit="' + S.escapeHtml(field.id) + '">Sửa</button>' +
                 (canDelete ? '<button class="btn btn-danger-soft btn-compact" type="button" data-field-delete="' + S.escapeHtml(field.id) + '">Xóa</button>' : '') +
                 '</div></td>' +
                 '</tr>';
         }).join('');
+
+        Array.prototype.forEach.call(el.fieldsBody.querySelectorAll('[data-field-verify]'), function(btn) {
+            btn.addEventListener('click', function() {
+                var parts = btn.getAttribute('data-field-verify').split(':');
+                verifyFieldAction(parts[0], parts[1], btn);
+            });
+        });
 
         Array.prototype.forEach.call(el.fieldsBody.querySelectorAll('[data-field-edit]'), function(btn) {
             btn.addEventListener('click', function() {
@@ -772,6 +854,21 @@
         if (el.fieldImageFile) el.fieldImageFile.value = '';
         if (el.fieldDescription) el.fieldDescription.value = field.description || '';
         if (el.fieldAvailable) el.fieldAvailable.checked = field.isAvailable !== false;
+        if (el.fieldIndoor) el.fieldIndoor.checked = !!field.isIndoor;
+        if (el.fieldLatitude) el.fieldLatitude.value = field.latitude != null ? field.latitude : '';
+        if (el.fieldLongitude) el.fieldLongitude.value = field.longitude != null ? field.longitude : '';
+        if (el.fieldMapUrl) el.fieldMapUrl.value = field.mapUrl || '';
+        if (el.fieldVenueSource) el.fieldVenueSource.value = field.venueSource || 'PARTNER';
+        if (el.fieldVerificationDocFile) el.fieldVerificationDocFile.value = '';
+        if (el.fieldVerificationDocLink) {
+            if (field.verificationDocUrl) {
+                el.fieldVerificationDocLink.innerHTML = '<a class="social-profile-link" href="' + S.escapeHtml(S.resolveMediaUrl(field.verificationDocUrl)) + '" target="_blank" rel="noopener">Xem hồ sơ xác thực hiện tại</a>';
+                el.fieldVerificationDocLink.classList.remove('hidden');
+            } else {
+                el.fieldVerificationDocLink.innerHTML = '';
+                el.fieldVerificationDocLink.classList.add('hidden');
+            }
+        }
         if (el.fieldOwnerId) el.fieldOwnerId.value = field.ownerId == null ? '' : String(field.ownerId);
 
         syncAmenityPresetButtons();
@@ -803,6 +900,16 @@
         if (el.fieldId) el.fieldId.value = '';
         if (el.fieldSport) el.fieldSport.value = 'FOOTBALL';
         if (el.fieldAvailable) el.fieldAvailable.checked = true;
+        if (el.fieldIndoor) el.fieldIndoor.checked = false;
+        if (el.fieldLatitude) el.fieldLatitude.value = '';
+        if (el.fieldLongitude) el.fieldLongitude.value = '';
+        if (el.fieldMapUrl) el.fieldMapUrl.value = '';
+        if (el.fieldVenueSource) el.fieldVenueSource.value = 'PARTNER';
+        if (el.fieldVerificationDocFile) el.fieldVerificationDocFile.value = '';
+        if (el.fieldVerificationDocLink) {
+            el.fieldVerificationDocLink.innerHTML = '';
+            el.fieldVerificationDocLink.classList.add('hidden');
+        }
         if (el.fieldOwnerId) el.fieldOwnerId.value = '';
         if (el.fieldImageFile) el.fieldImageFile.value = '';
         syncAmenityPresetButtons();
@@ -878,6 +985,8 @@
             return;
         }
 
+        var latRaw = valueOf(el.fieldLatitude);
+        var lngRaw = valueOf(el.fieldLongitude);
         var payload = {
             name: name,
             sportType: sportType,
@@ -889,12 +998,17 @@
             amenities: valueOf(el.fieldAmenities) || null,
             imageUrl: valueOf(el.fieldImageUrl) || null,
             description: valueOf(el.fieldDescription) || null,
-            isAvailable: !!(el.fieldAvailable && el.fieldAvailable.checked)
+            isAvailable: !!(el.fieldAvailable && el.fieldAvailable.checked),
+            isIndoor: !!(el.fieldIndoor && el.fieldIndoor.checked),
+            latitude: latRaw ? Number(latRaw) : null,
+            longitude: lngRaw ? Number(lngRaw) : null,
+            mapUrl: valueOf(el.fieldMapUrl) || null
         };
         if (state.role === 'ADMIN') {
             var selectedOwnerId = valueOf(el.fieldOwnerId);
             if (selectedOwnerId) payload.ownerId = Number(selectedOwnerId);
             else if (state.editingFieldId) payload.clearOwner = true;
+            if (el.fieldVenueSource) payload.venueSource = el.fieldVenueSource.value;
         }
 
         var fieldId = state.editingFieldId;
@@ -909,16 +1023,30 @@
             body: JSON.stringify(payload)
         })
             .then(function(savedField) {
+                var targetId = savedField && savedField.id;
                 var imageFile = el.fieldImageFile && el.fieldImageFile.files ? el.fieldImageFile.files[0] : null;
-                if (imageFile && savedField && savedField.id) {
-                    showFormFeedback('Đang tải ảnh lên máy chủ...', false);
-                    return uploadFieldImage(savedField.id, imageFile);
+                var docFile = el.fieldVerificationDocFile && el.fieldVerificationDocFile.files ? el.fieldVerificationDocFile.files[0] : null;
+                var chain = Promise.resolve(savedField);
+                if (imageFile && targetId) {
+                    chain = chain.then(function() {
+                        showFormFeedback('Đang tải ảnh sân lên máy chủ...', false);
+                        return uploadFieldImage(targetId, imageFile);
+                    });
                 }
-                return savedField;
+                if (docFile && targetId) {
+                    chain = chain.then(function() {
+                        showFormFeedback('Đang tải hồ sơ xác thực lên máy chủ...', false);
+                        return uploadVerificationDoc(targetId, docFile);
+                    });
+                }
+                return chain;
             })
             .then(function() {
                 closeFieldDrawer();
-                S.showToast(fieldId ? 'Cập nhật sân thành công.' : 'Đã thêm sân mới thành công.', 'success');
+                var msg = fieldId
+                    ? 'Cập nhật sân thành công.'
+                    : (state.role === 'OWNER' ? 'Đã tạo sân mới ở trạng thái Chờ Admin duyệt xác thực.' : 'Đã thêm sân mới thành công.');
+                S.showToast(msg, 'success');
                 loadAdminData();
             })
             .catch(function(err) {
@@ -936,6 +1064,177 @@
             method: 'POST',
             isFormData: true,
             body: formData
+        });
+    }
+
+    function uploadVerificationDoc(fieldId, file) {
+        var formData = new FormData();
+        formData.append('file', file);
+        return S.apiRequest('/fields/' + encodeURIComponent(fieldId) + '/verification-doc', {
+            method: 'POST',
+            isFormData: true,
+            body: formData
+        });
+    }
+
+    function verifyFieldAction(fieldId, decision, btn) {
+        var notes = decision === 'REJECTED'
+            ? window.prompt('Nhập lý do từ chối hồ sơ sân:', 'Ảnh/giấy tờ bảng giá chưa rõ ràng')
+            : 'Đã kiểm tra ảnh chụp, tọa độ và giấy tờ hợp lệ.';
+        if (notes === null) return;
+        if (btn) btn.disabled = true;
+        S.apiRequest('/admin/fields/' + encodeURIComponent(fieldId) + '/verify', {
+            method: 'PATCH',
+            body: JSON.stringify({ decision: decision, notes: notes.trim() })
+        }).then(function() {
+            S.showToast(decision === 'APPROVED' ? 'Đã duyệt sân và mở đặt công khai.' : 'Đã từ chối hồ sơ sân.', 'success');
+            loadAdminData();
+        }).catch(function(err) {
+            S.showToast(err.message || 'Không thể duyệt sân.', 'error');
+            if (btn) btn.disabled = false;
+        });
+    }
+
+    function renderModerationTables() {
+        var pendingClaims = state.claims.filter(function(c) { return c.status === 'PENDING'; }).length;
+        var openReports = state.reports.filter(function(r) { return r.status === 'OPEN'; }).length;
+        var pendingFields = state.fields.filter(function(f) { return f.verificationStatus === 'PENDING_REVIEW'; }).length;
+        if (el.moderationBadge) el.moderationBadge.textContent = String(pendingClaims + openReports + pendingFields);
+
+        if (el.claimsBody) {
+            if (!state.claims.length) {
+                el.claimsBody.innerHTML = '<tr><td colspan="5" class="table-empty">Chưa có yêu cầu nhận quyền chủ sân nào.</td></tr>';
+            } else {
+                el.claimsBody.innerHTML = state.claims.map(function(c) {
+                    var proof = [];
+                    if (c.mapUrl) proof.push('<a class="social-profile-link" href="' + S.escapeHtml(c.mapUrl) + '" target="_blank" rel="noopener">Google Maps</a>');
+                    if (c.evidenceDocUrl) proof.push('<a class="social-profile-link" href="' + S.escapeHtml(S.resolveMediaUrl(c.evidenceDocUrl)) + '" target="_blank" rel="noopener">Giấy tờ</a>');
+                    var actions = c.status === 'PENDING'
+                        ? '<button class="btn btn-primary btn-compact" type="button" data-claim-review="' + S.escapeHtml(c.id) + ':APPROVED">Duyệt</button><button class="btn btn-danger-soft btn-compact" type="button" data-claim-review="' + S.escapeHtml(c.id) + ':REJECTED">Từ chối</button>'
+                        : '<span class="secondary-text">Đã xử lý</span>';
+                    return '<tr>' +
+                        '<td><strong>' + S.escapeHtml(c.fieldName) + '</strong></td>' +
+                        '<td>' + S.escapeHtml(c.claimantName) + '<div class="admin-subtext">' + S.escapeHtml(c.claimantEmail) + '</div></td>' +
+                        '<td>' + S.escapeHtml(c.notes || '') + (proof.length ? ('<div class="admin-subtext">' + proof.join(' · ') + '</div>') : '') + '</td>' +
+                        '<td><span class="match-chip">' + S.escapeHtml(c.status) + '</span></td>' +
+                        '<td><div class="admin-actions-cell">' + actions + '</div></td>' +
+                        '</tr>';
+                }).join('');
+                Array.prototype.forEach.call(el.claimsBody.querySelectorAll('[data-claim-review]'), function(btn) {
+                    btn.addEventListener('click', function() {
+                        var parts = btn.getAttribute('data-claim-review').split(':');
+                        var note = parts[1] === 'REJECTED' ? window.prompt('Lý do từ chối claim:') : 'Xác minh hợp lệ';
+                        if (note === null) return;
+                        btn.disabled = true;
+                        S.apiRequest('/admin/field-claims/' + encodeURIComponent(parts[0]) + '/review', {
+                            method: 'PATCH', body: JSON.stringify({ decision: parts[1], adminNote: note })
+                        }).then(function() {
+                            S.showToast('Đã xử lý yêu cầu nhận quyền sân.', 'success');
+                            loadAdminData();
+                        }).catch(function(err) {
+                            S.showToast(err.message || 'Lỗi xử lý claim.', 'error');
+                            btn.disabled = false;
+                        });
+                    });
+                });
+            }
+        }
+
+        if (el.reportsBody) {
+            if (!state.reports.length) {
+                el.reportsBody.innerHTML = '<tr><td colspan="5" class="table-empty">Chưa có báo cáo sân nào từ cộng đồng.</td></tr>';
+            } else {
+                el.reportsBody.innerHTML = state.reports.map(function(r) {
+                    var actions = r.status === 'OPEN'
+                        ? '<button class="btn btn-secondary btn-compact" type="button" data-report-resolve="' + S.escapeHtml(r.id) + ':DISMISSED:0">Bỏ qua</button><button class="btn btn-danger-soft btn-compact" type="button" data-report-resolve="' + S.escapeHtml(r.id) + ':RESOLVED:1">Tạm ngưng sân</button>'
+                        : '<span class="secondary-text">Đã xử lý</span>';
+                    return '<tr>' +
+                        '<td><strong>' + S.escapeHtml(r.fieldName) + '</strong></td>' +
+                        '<td>' + S.escapeHtml(r.reporterName) + '</td>' +
+                        '<td><strong>' + S.escapeHtml(r.reason) + '</strong>' + (r.details ? ('<div class="admin-subtext">' + S.escapeHtml(r.details) + '</div>') : '') + '</td>' +
+                        '<td><span class="match-chip">' + S.escapeHtml(r.status) + '</span></td>' +
+                        '<td><div class="admin-actions-cell">' + actions + '</div></td>' +
+                        '</tr>';
+                }).join('');
+                Array.prototype.forEach.call(el.reportsBody.querySelectorAll('[data-report-resolve]'), function(btn) {
+                    btn.addEventListener('click', function() {
+                        var parts = btn.getAttribute('data-report-resolve').split(':');
+                        btn.disabled = true;
+                        S.apiRequest('/admin/field-reports/' + encodeURIComponent(parts[0]) + '/resolve', {
+                            method: 'PATCH',
+                            body: JSON.stringify({ status: parts[1], suspendField: parts[2] === '1' })
+                        }).then(function() {
+                            S.showToast('Đã xử lý báo cáo sân.', 'info');
+                            loadAdminData();
+                        }).catch(function(err) {
+                            S.showToast(err.message || 'Lỗi xử lý báo cáo.', 'error');
+                            btn.disabled = false;
+                        });
+                    });
+                });
+            }
+        }
+    }
+
+    function openWalkinModal() {
+        if (!el.walkinModal) return;
+        if (el.walkinFieldId) {
+            el.walkinFieldId.innerHTML = state.fields.map(function(f) {
+                return '<option value="' + S.escapeHtml(f.id) + '">' + S.escapeHtml(f.name) + '</option>';
+            }).join('');
+        }
+        if (el.walkinDate) {
+            el.walkinDate.min = S.formatDateForInput(new Date());
+            el.walkinDate.value = S.formatDateForInput(new Date());
+        }
+        if (el.walkinFeedback) el.walkinFeedback.className = 'booking-feedback hidden';
+        el.walkinModal.classList.remove('hidden');
+        el.walkinModal.setAttribute('aria-hidden', 'false');
+        document.body.classList.add('modal-open');
+    }
+
+    function closeWalkinModal() {
+        if (!el.walkinModal || el.walkinModal.classList.contains('hidden')) return;
+        el.walkinModal.classList.add('hidden');
+        el.walkinModal.setAttribute('aria-hidden', 'true');
+        if (!document.querySelector('.modal:not(.hidden)')) document.body.classList.remove('modal-open');
+    }
+
+    function handleWalkinSubmit(e) {
+        e.preventDefault();
+        var fieldId = el.walkinFieldId ? Number(el.walkinFieldId.value) : 0;
+        var name = el.walkinName ? el.walkinName.value.trim() : '';
+        if (!fieldId || !name) {
+            if (el.walkinFeedback) {
+                el.walkinFeedback.textContent = 'Vui lòng chọn sân và nhập tên khách.';
+                el.walkinFeedback.className = 'booking-feedback error';
+            }
+            return;
+        }
+        if (el.walkinSubmit) el.walkinSubmit.disabled = true;
+        S.apiRequest('/owner/bookings/walk-in', {
+            method: 'POST',
+            body: JSON.stringify({
+                fieldId: fieldId,
+                bookingDate: el.walkinDate.value,
+                startTime: el.walkinStart.value,
+                endTime: el.walkinEnd.value,
+                customerName: name,
+                customerPhone: el.walkinPhone ? el.walkinPhone.value.trim() || null : null,
+                expectedPlayers: el.walkinPlayers && el.walkinPlayers.value ? Number(el.walkinPlayers.value) : null,
+                notes: el.walkinNotes ? el.walkinNotes.value.trim() || null : null
+            })
+        }).then(function() {
+            closeWalkinModal();
+            S.showToast('Đã khóa lịch khách vãng lai thành công!', 'success');
+            loadAdminData();
+        }).catch(function(err) {
+            if (el.walkinFeedback) {
+                el.walkinFeedback.textContent = err.message || 'Không thể khóa lịch.';
+                el.walkinFeedback.className = 'booking-feedback error';
+            }
+        }).then(function() {
+            if (el.walkinSubmit) el.walkinSubmit.disabled = false;
         });
     }
 

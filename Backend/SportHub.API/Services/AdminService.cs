@@ -110,6 +110,37 @@ public class AdminService : IAdminService
         var updated = await _bookingRepository.UpdateAsync(booking, cancellationToken);
         await _notifications.CreateAsync(booking.UserId, booking.Id,
             $"Booking #{booking.Id} bị từ chối. Lý do: {booking.CancellationReason}", cancellationToken);
+        await _notifications.NotifyBookingMatchParticipantsAsync(booking.Id,
+            $"Booking #{booking.Id} cho trận đấu đã bị từ chối: {booking.CancellationReason}", cancellationToken);
+        return BookingResponseDto.FromEntity(updated);
+    }
+
+    public async Task<BookingResponseDto> RainOutBookingAsync(long bookingId, string? reason, CancellationToken cancellationToken = default)
+    {
+        var booking = await _bookingRepository.GetByIdAsync(bookingId, cancellationToken)
+            ?? throw new KeyNotFoundException($"Booking not found: {bookingId}");
+
+        if (booking.Status is not ("PENDING" or "HOLD" or "CONFIRMED"))
+        {
+            throw new ArgumentException("Only active bookings can be marked as RAIN_OUT");
+        }
+
+        booking.Status = "RAIN_OUT";
+        booking.HoldExpiresAt = null;
+        booking.CancellationReason = string.IsNullOrWhiteSpace(reason) ? "Hoãn do thời tiết / sự cố bất khả kháng" : reason.Trim();
+        booking.CancellationPolicyApplied = "Bất khả kháng (RAIN_OUT): Miễn phạt, hoàn cọc 100%";
+        if (booking.PaymentStatus is "DEPOSIT_PAID" or "PAID")
+        {
+            booking.PaymentStatus = "REFUNDED";
+        }
+
+        var updated = await _bookingRepository.UpdateAsync(booking, cancellationToken);
+        await _notifications.CreateAsync(booking.UserId, booking.Id,
+            $"Booking #{booking.Id} tại {booking.Field.Name} được hoãn bất khả kháng ({booking.CancellationReason}) và hoàn cọc 100%.",
+            cancellationToken);
+        await _notifications.NotifyBookingMatchParticipantsAsync(booking.Id,
+            $"Trận đấu tại {booking.Field.Name} được hoãn do thời tiết/sự cố ({booking.CancellationReason}).",
+            cancellationToken);
         return BookingResponseDto.FromEntity(updated);
     }
 }
