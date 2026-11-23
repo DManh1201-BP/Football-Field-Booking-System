@@ -237,6 +237,50 @@
         return origin + (trimmed.charAt(0) === '/' ? trimmed : '/' + trimmed);
     }
 
+    function openProtectedDocument(pathOrUrl) {
+        var session = loadAuthSession();
+        if (!session.token) {
+            showToast('Bạn cần đăng nhập bằng tài khoản Admin hoặc Chủ sân để xem tài liệu này.', 'error');
+            return Promise.reject(new Error('Unauthorized'));
+        }
+        var baseUrl = getSportHubApiBaseUrl();
+        var origin = getSportHubApiOrigin();
+        var url = /^https?:\/\//i.test(pathOrUrl)
+            ? pathOrUrl
+            : (String(pathOrUrl).indexOf('/api/') === 0
+                ? origin + pathOrUrl
+                : baseUrl + (pathOrUrl.charAt(0) === '/' ? pathOrUrl : '/' + pathOrUrl));
+
+        return fetch(url, {
+            method: 'GET',
+            headers: { Authorization: 'Bearer ' + session.token }
+        }).then(function(response) {
+            if (response.status === 401 || response.status === 403) {
+                throw new Error('Bạn không có quyền xem tài liệu xác minh này.');
+            }
+            if (!response.ok) {
+                return response.json().catch(function() { return {}; }).then(function(body) {
+                    throw new Error(body.message || ('Không thể tải tài liệu (HTTP ' + response.status + ')'));
+                });
+            }
+            return response.blob();
+        }).then(function(blob) {
+            var blobUrl = URL.createObjectURL(blob);
+            var opened = window.open(blobUrl, '_blank', 'noopener');
+            if (!opened) {
+                var a = document.createElement('a');
+                a.href = blobUrl;
+                a.download = 'verification-document';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            }
+            global.setTimeout(function() { URL.revokeObjectURL(blobUrl); }, 60000);
+        }).catch(function(err) {
+            showToast(err.message || 'Không thể mở tài liệu xác minh.', 'error');
+        });
+    }
+
     function isPlaceholderUrl(url) {
         return !url || /via\.placeholder\.com/i.test(url);
     }
@@ -1326,6 +1370,7 @@
         createAuthHeaders: createAuthHeaders,
         apiRequest: apiRequest,
         resolveMediaUrl: resolveMediaUrl,
+        openProtectedDocument: openProtectedDocument,
         getSportMeta: getSportMeta,
         getFieldFallbackSvgMarkup: getFieldFallbackSvgMarkup,
         renderFieldMediaMarkup: renderFieldMediaMarkup,

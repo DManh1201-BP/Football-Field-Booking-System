@@ -41,17 +41,17 @@ public class FieldService : IFieldService
         _notifications = notifications;
     }
 
-    public async Task<List<FieldDto>> GetAllFieldsAsync(long? currentUserId = null, bool isAdmin = false, CancellationToken cancellationToken = default)
+    public async Task<List<PublicFieldDto>> GetAllFieldsAsync(long? currentUserId = null, bool isAdmin = false, CancellationToken cancellationToken = default)
     {
         var fields = await _fieldRepository.GetAllAsync(cancellationToken);
         if (isAdmin)
         {
-            return fields.Select(FieldDto.FromEntity).ToList();
+            return fields.Select(PublicFieldDto.FromEntity).ToList();
         }
 
         return fields
             .Where(f => f.VerificationStatus is "APPROVED" or "UNCLAIMED" || (currentUserId.HasValue && f.OwnerId == currentUserId.Value))
-            .Select(FieldDto.FromEntity)
+            .Select(PublicFieldDto.FromEntity)
             .ToList();
     }
 
@@ -72,33 +72,46 @@ public class FieldService : IFieldService
         return owned.Select(FieldDto.FromEntity).ToList();
     }
 
-    public async Task<FieldDto> GetFieldByIdAsync(long id, CancellationToken cancellationToken = default)
+    public async Task<PublicFieldDto> GetFieldByIdAsync(long id, CancellationToken cancellationToken = default)
     {
         var field = await _fieldRepository.GetByIdAsync(id, cancellationToken)
             ?? throw new KeyNotFoundException($"Field not found: {id}");
 
+        return PublicFieldDto.FromEntity(field);
+    }
+
+    public async Task<FieldDto> GetManagedFieldByIdAsync(long id, long? currentUserId, bool isAdmin, CancellationToken cancellationToken = default)
+    {
+        var field = await _fieldRepository.GetByIdAsync(id, cancellationToken)
+            ?? throw new KeyNotFoundException($"Field not found: {id}");
+
+        if (!isAdmin && (!currentUserId.HasValue || field.OwnerId != currentUserId.Value))
+        {
+            throw new UnauthorizedAccessException("Bạn không có quyền xem thông tin quản lý của sân này.");
+        }
+
         return FieldDto.FromEntity(field);
     }
 
-    public async Task<List<FieldDto>> GetAvailableFieldsAsync(CancellationToken cancellationToken = default)
+    public async Task<List<PublicFieldDto>> GetAvailableFieldsAsync(CancellationToken cancellationToken = default)
     {
         var fields = await _fieldRepository.GetAvailableAsync(cancellationToken);
-        return fields.Select(FieldDto.FromEntity).ToList();
+        return fields.Select(PublicFieldDto.FromEntity).ToList();
     }
 
-    public async Task<List<FieldDto>> GetFieldsByCityAsync(string city, CancellationToken cancellationToken = default)
+    public async Task<List<PublicFieldDto>> GetFieldsByCityAsync(string city, CancellationToken cancellationToken = default)
     {
         var fields = await _fieldRepository.GetAvailableByCityAsync(city, cancellationToken);
-        return fields.Select(FieldDto.FromEntity).ToList();
+        return fields.Select(PublicFieldDto.FromEntity).ToList();
     }
 
-    public async Task<List<FieldDto>> GetFieldsBySportTypeAsync(string sportType, CancellationToken cancellationToken = default)
+    public async Task<List<PublicFieldDto>> GetFieldsBySportTypeAsync(string sportType, CancellationToken cancellationToken = default)
     {
         var fields = await _fieldRepository.GetAvailableBySportTypeAsync(sportType, cancellationToken);
-        return fields.Select(FieldDto.FromEntity).ToList();
+        return fields.Select(PublicFieldDto.FromEntity).ToList();
     }
 
-    public async Task<List<FieldDto>> SearchFieldsAsync(FieldSearchQueryDto query, CancellationToken cancellationToken = default)
+    public async Task<List<PublicFieldDto>> SearchFieldsAsync(FieldSearchQueryDto query, CancellationToken cancellationToken = default)
     {
         if (query.StartTime.HasValue && query.EndTime.HasValue && query.EndTime.Value <= query.StartTime.Value)
         {
@@ -111,7 +124,7 @@ public class FieldService : IFieldService
         }
 
         var fields = await _fieldRepository.SearchAvailableAsync(query, cancellationToken);
-        return fields.Select(FieldDto.FromEntity).ToList();
+        return fields.Select(PublicFieldDto.FromEntity).ToList();
     }
 
     public async Task<FieldDto> CreateFieldAsync(FieldCreateDto dto, long? currentUserId = null, bool isAdmin = false, CancellationToken cancellationToken = default)
@@ -151,8 +164,6 @@ public class FieldService : IFieldService
             Latitude = dto.Latitude,
             Longitude = dto.Longitude,
             MapUrl = ResolveMapUrl(dto.MapUrl, dto.Latitude, dto.Longitude),
-            VerificationDocUrl = dto.VerificationDocUrl?.Trim(),
-            VerificationNotes = dto.VerificationNotes?.Trim(),
             VerifiedAt = isAdmin ? DateTime.Now : null,
             VerifiedByAdminId = isAdmin ? currentUserId : null,
             IsIndoor = dto.IsIndoor
@@ -168,7 +179,7 @@ public class FieldService : IFieldService
         return FieldDto.FromEntity(saved);
     }
 
-    public async Task<FieldDto> SuggestCommunityFieldAsync(CommunityFieldSuggestDto dto, long currentUserId, CancellationToken cancellationToken = default)
+    public async Task<PublicFieldDto> SuggestCommunityFieldAsync(CommunityFieldSuggestDto dto, long currentUserId, CancellationToken cancellationToken = default)
     {
         var normalizedSport = dto.SportType.Trim().ToUpperInvariant();
         await EnsureNoGeoDuplicateAsync(dto.Latitude, dto.Longitude, normalizedSport, excludeFieldId: null, cancellationToken);
@@ -200,7 +211,7 @@ public class FieldService : IFieldService
         await _notifications.NotifyAdminsAsync("VERIFICATION", saved.Id,
             $"Người dùng #{currentUserId} vừa đề xuất sân cộng đồng \"{saved.Name}\" cần duyệt.", cancellationToken);
 
-        return FieldDto.FromEntity(saved);
+        return PublicFieldDto.FromEntity(saved);
     }
 
     public async Task<FieldDto> UpdateFieldAsync(long id, FieldUpdateDto dto, long? currentUserId = null, bool isAdmin = false, CancellationToken cancellationToken = default)
@@ -242,8 +253,6 @@ public class FieldService : IFieldService
         {
             field.MapUrl = ResolveMapUrl(dto.MapUrl ?? field.MapUrl, field.Latitude, field.Longitude);
         }
-        if (dto.VerificationDocUrl is not null) field.VerificationDocUrl = dto.VerificationDocUrl.Trim();
-        if (dto.VerificationNotes is not null) field.VerificationNotes = dto.VerificationNotes.Trim();
         if (dto.IsIndoor.HasValue) field.IsIndoor = dto.IsIndoor.Value;
 
         if (dto.IsAvailable.HasValue)
@@ -291,8 +300,11 @@ public class FieldService : IFieldService
             throw new UnauthorizedAccessException($"You do not have permission to upload images for field {id}");
         }
 
-        field.ImageUrl = await SaveUploadAsync(file, "fields", $"field_{id}", AllowedImageExtensions, MaxImageBytes,
+        var webRoot = _environment.WebRootPath ?? Path.Combine(_environment.ContentRootPath, "wwwroot");
+        var folder = Path.Combine(webRoot, "uploads", "fields");
+        var savedFileName = await SaveFileToDirectoryAsync(file, folder, $"field_{id}", AllowedImageExtensions, MaxImageBytes,
             "Only .jpg, .jpeg, .png, and .webp images are supported", cancellationToken);
+        field.ImageUrl = $"/uploads/fields/{savedFileName}";
 
         var updated = await _fieldRepository.UpdateAsync(field, cancellationToken);
         return FieldDto.FromEntity(updated);
@@ -308,8 +320,10 @@ public class FieldService : IFieldService
             throw new UnauthorizedAccessException($"You do not have permission to upload verification docs for field {id}");
         }
 
-        field.VerificationDocUrl = await SaveUploadAsync(file, "verifications", $"verify_field_{id}", AllowedDocExtensions, MaxDocBytes,
+        var privateDir = GetPrivateVerificationDirectory();
+        var savedFileName = await SaveFileToDirectoryAsync(file, privateDir, $"verify_field_{id}", AllowedDocExtensions, MaxDocBytes,
             "Only .jpg, .jpeg, .png, .webp, and .pdf files are supported", cancellationToken);
+        field.VerificationDocUrl = savedFileName;
 
         if (!isAdmin && field.VerificationStatus is "REJECTED" or "PENDING_REVIEW")
         {
@@ -321,6 +335,25 @@ public class FieldService : IFieldService
 
         var updated = await _fieldRepository.UpdateAsync(field, cancellationToken);
         return FieldDto.FromEntity(updated);
+    }
+
+    public async Task<PrivateFileResult> GetVerificationDocAsync(long id, long currentUserId, bool isAdmin, CancellationToken cancellationToken = default)
+    {
+        var field = await _fieldRepository.GetByIdAsync(id, cancellationToken)
+            ?? throw new KeyNotFoundException($"Field not found: {id}");
+
+        // Permission MUST be verified from DB field ownership, never from client-supplied URL or params.
+        if (!isAdmin && (!field.OwnerId.HasValue || field.OwnerId.Value != currentUserId))
+        {
+            throw new UnauthorizedAccessException("Bạn không có quyền xem tài liệu xác minh của sân này.");
+        }
+
+        if (string.IsNullOrWhiteSpace(field.VerificationDocUrl))
+        {
+            throw new KeyNotFoundException("Sân này chưa có tài liệu xác minh.");
+        }
+
+        return ResolvePrivateFile(field.VerificationDocUrl);
     }
 
     public async Task<FieldDto> VerifyFieldAsync(long id, long adminId, FieldVerifyDto dto, CancellationToken cancellationToken = default)
@@ -365,8 +398,29 @@ public class FieldService : IFieldService
 
     public async Task<string> UploadClaimEvidenceAsync(IFormFile file, long claimantUserId, CancellationToken cancellationToken = default)
     {
-        return await SaveUploadAsync(file, "verifications", $"claim_user_{claimantUserId}", AllowedDocExtensions, MaxDocBytes,
+        var privateDir = GetPrivateVerificationDirectory();
+        return await SaveFileToDirectoryAsync(file, privateDir, $"claim_user_{claimantUserId}", AllowedDocExtensions, MaxDocBytes,
             "Only .jpg, .jpeg, .png, .webp, and .pdf files are supported", cancellationToken);
+    }
+
+    public async Task<PrivateFileResult> GetClaimEvidenceAsync(long claimId, long currentUserId, bool isAdmin, CancellationToken cancellationToken = default)
+    {
+        var claim = await _db.FieldClaimRequests
+            .AsNoTracking()
+            .FirstOrDefaultAsync(c => c.Id == claimId, cancellationToken)
+            ?? throw new KeyNotFoundException($"Claim request not found: {claimId}");
+
+        if (!isAdmin && claim.ClaimantUserId != currentUserId)
+        {
+            throw new UnauthorizedAccessException("Bạn không có quyền xem tài liệu xác minh quyền sở hữu này.");
+        }
+
+        if (string.IsNullOrWhiteSpace(claim.EvidenceDocUrl))
+        {
+            throw new KeyNotFoundException("Yêu cầu này không có tài liệu đính kèm.");
+        }
+
+        return ResolvePrivateFile(claim.EvidenceDocUrl);
     }
 
     public async Task<FieldClaimResponseDto> SubmitClaimAsync(long fieldId, long claimantUserId, FieldClaimCreateDto dto, CancellationToken cancellationToken = default)
@@ -386,11 +440,29 @@ public class FieldService : IFieldService
             throw new ArgumentException("Bạn đã gửi yêu cầu xác minh quyền sở hữu sân này và đang chờ duyệt.");
         }
 
+        string? validatedEvidenceKey = null;
+        if (!string.IsNullOrWhiteSpace(dto.EvidenceDocUrl))
+        {
+            var rawKey = dto.EvidenceDocUrl.Trim();
+            var safeName = Path.GetFileName(rawKey);
+            if (!string.Equals(rawKey, safeName, StringComparison.Ordinal) ||
+                !safeName.StartsWith($"claim_user_{claimantUserId}_", StringComparison.Ordinal))
+            {
+                throw new ArgumentException("Mã tài liệu chứng minh không hợp lệ.");
+            }
+            var fullPath = Path.Combine(GetPrivateVerificationDirectory(), safeName);
+            if (!File.Exists(fullPath))
+            {
+                throw new ArgumentException("Không tìm thấy tệp tài liệu đã tải lên.");
+            }
+            validatedEvidenceKey = safeName;
+        }
+
         var claim = new FieldClaimRequest
         {
             FieldId = fieldId,
             ClaimantUserId = claimantUserId,
-            EvidenceDocUrl = dto.EvidenceDocUrl?.Trim(),
+            EvidenceDocUrl = validatedEvidenceKey,
             MapUrl = dto.MapUrl?.Trim(),
             Notes = dto.Notes.Trim(),
             Status = "PENDING"
@@ -455,7 +527,7 @@ public class FieldService : IFieldService
             claim.Field.VerifiedByAdminId = adminId;
             if (!string.IsNullOrWhiteSpace(claim.EvidenceDocUrl))
             {
-                claim.Field.VerificationDocUrl = claim.EvidenceDocUrl;
+                claim.Field.VerificationDocUrl = Path.GetFileName(claim.EvidenceDocUrl);
             }
             if (!string.IsNullOrWhiteSpace(claim.MapUrl))
             {
@@ -559,6 +631,40 @@ public class FieldService : IFieldService
         return FieldReportResponseDto.FromEntity(report);
     }
 
+    private string GetPrivateVerificationDirectory()
+    {
+        var dir = Path.Combine(_environment.ContentRootPath, "App_Data", "verification-documents");
+        Directory.CreateDirectory(dir);
+        return dir;
+    }
+
+    private PrivateFileResult ResolvePrivateFile(string storedValue)
+    {
+        var safeFileName = Path.GetFileName(storedValue.Trim());
+        if (string.IsNullOrWhiteSpace(safeFileName))
+        {
+            throw new KeyNotFoundException("Tài liệu xác minh không tồn tại.");
+        }
+
+        var fullPath = Path.Combine(GetPrivateVerificationDirectory(), safeFileName);
+        if (!File.Exists(fullPath))
+        {
+            throw new KeyNotFoundException("Không tìm thấy tệp tài liệu xác minh trong kho lưu trữ.");
+        }
+
+        var ext = Path.GetExtension(safeFileName).ToLowerInvariant();
+        var contentType = ext switch
+        {
+            ".jpg" or ".jpeg" => "image/jpeg",
+            ".png" => "image/png",
+            ".webp" => "image/webp",
+            ".pdf" => "application/pdf",
+            _ => "application/octet-stream"
+        };
+
+        return new PrivateFileResult(fullPath, contentType, safeFileName);
+    }
+
     private async Task EnsureNoGeoDuplicateAsync(decimal? lat, decimal? lng, string sportType, long? excludeFieldId, CancellationToken ct)
     {
         if (!lat.HasValue || !lng.HasValue) return;
@@ -601,9 +707,9 @@ public class FieldService : IFieldService
         return null;
     }
 
-    private async Task<string> SaveUploadAsync(
+    private static async Task<string> SaveFileToDirectoryAsync(
         IFormFile file,
-        string subFolder,
+        string targetFolder,
         string prefix,
         HashSet<string> allowedExts,
         long maxBytes,
@@ -624,16 +730,13 @@ public class FieldService : IFieldService
             throw new ArgumentException(extError);
         }
 
-        var webRoot = _environment.WebRootPath ?? Path.Combine(_environment.ContentRootPath, "wwwroot");
-        var folder = Path.Combine(webRoot, "uploads", subFolder);
-        Directory.CreateDirectory(folder);
-
+        Directory.CreateDirectory(targetFolder);
         var safeFileName = $"{prefix}_{Guid.NewGuid():N}{extension.ToLowerInvariant()}";
-        var fullPath = Path.Combine(folder, safeFileName);
+        var fullPath = Path.Combine(targetFolder, safeFileName);
         await using (var stream = new FileStream(fullPath, FileMode.Create))
         {
             await file.CopyToAsync(stream, ct);
         }
-        return $"/uploads/{subFolder}/{safeFileName}";
+        return safeFileName;
     }
 }

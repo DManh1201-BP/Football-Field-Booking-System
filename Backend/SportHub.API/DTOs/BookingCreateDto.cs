@@ -53,7 +53,7 @@ public class BookingResponseDto
 {
     public long Id { get; set; }
     public UserProfileResponseDto User { get; set; } = null!;
-    public FieldDto Field { get; set; } = null!;
+    public PublicFieldDto Field { get; set; } = null!;
     public DateOnly BookingDate { get; set; }
     public TimeOnly StartTime { get; set; }
     public TimeOnly EndTime { get; set; }
@@ -78,7 +78,7 @@ public class BookingResponseDto
         {
             Id = booking.Id,
             User = UserProfileResponseDto.FromUser(booking.User),
-            Field = FieldDto.FromEntity(booking.Field),
+            Field = PublicFieldDto.FromEntity(booking.Field),
             BookingDate = booking.BookingDate,
             StartTime = booking.StartTime,
             EndTime = booking.EndTime,

@@ -3,6 +3,59 @@ using SportHub.API.Models;
 
 namespace SportHub.API.DTOs;
 
+public class PublicFieldDto
+{
+    public long Id { get; set; }
+    public string Name { get; set; } = string.Empty;
+    public string? Description { get; set; }
+    public string Location { get; set; } = string.Empty;
+    public string? City { get; set; }
+    public string? Province { get; set; }
+    public string? ImageUrl { get; set; }
+    public decimal PricePerHour { get; set; }
+    public int? Capacity { get; set; }
+    public string SportType { get; set; } = string.Empty;
+    public string? Amenities { get; set; }
+    public bool IsAvailable { get; set; }
+    public long? OwnerId { get; set; }
+    public string VenueSource { get; set; } = "PARTNER";
+    public string VerificationStatus { get; set; } = "APPROVED";
+    public decimal? Latitude { get; set; }
+    public decimal? Longitude { get; set; }
+    public string? MapUrl { get; set; }
+    public bool IsIndoor { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
+
+    public static PublicFieldDto FromEntity(Field field)
+    {
+        return new PublicFieldDto
+        {
+            Id = field.Id,
+            Name = field.Name,
+            Description = field.Description,
+            Location = field.Location,
+            City = field.City,
+            Province = field.Province,
+            ImageUrl = field.ImageUrl,
+            PricePerHour = field.PricePerHour,
+            Capacity = field.Capacity,
+            SportType = field.SportType,
+            Amenities = field.Amenities,
+            IsAvailable = field.IsAvailable,
+            OwnerId = field.OwnerId,
+            VenueSource = field.VenueSource,
+            VerificationStatus = field.VerificationStatus,
+            Latitude = field.Latitude,
+            Longitude = field.Longitude,
+            MapUrl = field.MapUrl,
+            IsIndoor = field.IsIndoor,
+            CreatedAt = field.CreatedAt,
+            UpdatedAt = field.UpdatedAt
+        };
+    }
+}
+
 public class FieldDto
 {
     public long Id { get; set; }
@@ -23,6 +76,7 @@ public class FieldDto
     public decimal? Latitude { get; set; }
     public decimal? Longitude { get; set; }
     public string? MapUrl { get; set; }
+    public bool HasVerificationDoc { get; set; }
     public string? VerificationDocUrl { get; set; }
     public string? VerificationNotes { get; set; }
     public DateTime? VerifiedAt { get; set; }
@@ -32,6 +86,7 @@ public class FieldDto
 
     public static FieldDto FromEntity(Field field)
     {
+        var hasDoc = !string.IsNullOrWhiteSpace(field.VerificationDocUrl);
         return new FieldDto
         {
             Id = field.Id,
@@ -52,7 +107,8 @@ public class FieldDto
             Latitude = field.Latitude,
             Longitude = field.Longitude,
             MapUrl = field.MapUrl,
-            VerificationDocUrl = field.VerificationDocUrl,
+            HasVerificationDoc = hasDoc,
+            VerificationDocUrl = hasDoc ? $"/api/fields/{field.Id}/verification-doc" : null,
             VerificationNotes = field.VerificationNotes,
             VerifiedAt = field.VerifiedAt,
             IsIndoor = field.IsIndoor,
@@ -112,12 +168,6 @@ public class FieldCreateDto
     [MaxLength(500)]
     public string? MapUrl { get; set; }
 
-    [MaxLength(500)]
-    public string? VerificationDocUrl { get; set; }
-
-    [MaxLength(500)]
-    public string? VerificationNotes { get; set; }
-
     public bool IsIndoor { get; set; } = false;
 }
 
@@ -168,12 +218,6 @@ public class FieldUpdateDto
 
     [MaxLength(500)]
     public string? MapUrl { get; set; }
-
-    [MaxLength(500)]
-    public string? VerificationDocUrl { get; set; }
-
-    [MaxLength(500)]
-    public string? VerificationNotes { get; set; }
 
     public bool? IsIndoor { get; set; }
 }
@@ -256,6 +300,7 @@ public class FieldClaimResponseDto
     public long ClaimantUserId { get; set; }
     public string ClaimantName { get; set; } = string.Empty;
     public string ClaimantEmail { get; set; } = string.Empty;
+    public bool HasEvidenceDoc { get; set; }
     public string? EvidenceDocUrl { get; set; }
     public string? MapUrl { get; set; }
     public string? Notes { get; set; }
@@ -264,22 +309,27 @@ public class FieldClaimResponseDto
     public DateTime CreatedAt { get; set; }
     public DateTime? ReviewedAt { get; set; }
 
-    public static FieldClaimResponseDto FromEntity(FieldClaimRequest entity) => new()
+    public static FieldClaimResponseDto FromEntity(FieldClaimRequest entity)
     {
-        Id = entity.Id,
-        FieldId = entity.FieldId,
-        FieldName = entity.Field?.Name ?? $"#{entity.FieldId}",
-        ClaimantUserId = entity.ClaimantUserId,
-        ClaimantName = entity.ClaimantUser?.FullName ?? "Người dùng",
-        ClaimantEmail = entity.ClaimantUser?.Email ?? string.Empty,
-        EvidenceDocUrl = entity.EvidenceDocUrl,
-        MapUrl = entity.MapUrl,
-        Notes = entity.Notes,
-        Status = entity.Status,
-        AdminNote = entity.AdminNote,
-        CreatedAt = entity.CreatedAt,
-        ReviewedAt = entity.ReviewedAt
-    };
+        var hasEvidence = !string.IsNullOrWhiteSpace(entity.EvidenceDocUrl);
+        return new FieldClaimResponseDto
+        {
+            Id = entity.Id,
+            FieldId = entity.FieldId,
+            FieldName = entity.Field?.Name ?? $"#{entity.FieldId}",
+            ClaimantUserId = entity.ClaimantUserId,
+            ClaimantName = entity.ClaimantUser?.FullName ?? "Người dùng",
+            ClaimantEmail = entity.ClaimantUser?.Email ?? string.Empty,
+            HasEvidenceDoc = hasEvidence,
+            EvidenceDocUrl = hasEvidence ? $"/api/admin/field-claims/{entity.Id}/evidence" : null,
+            MapUrl = entity.MapUrl,
+            Notes = entity.Notes,
+            Status = entity.Status,
+            AdminNote = entity.AdminNote,
+            CreatedAt = entity.CreatedAt,
+            ReviewedAt = entity.ReviewedAt
+        };
+    }
 }
 
 public class FieldReportCreateDto

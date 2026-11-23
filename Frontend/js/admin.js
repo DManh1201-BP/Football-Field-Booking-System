@@ -756,10 +756,15 @@
                 ? '<span class="status-badge success"><span>Mở đặt</span></span>'
                 : '<span class="status-badge error"><span>Đang khóa</span></span>');
             var mapUrl = field.mapUrl || (field.latitude != null && field.longitude != null ? ('https://maps.google.com/?q=' + field.latitude + ',' + field.longitude) : '');
-            var docUrl = field.verificationDocUrl ? S.resolveMediaUrl(field.verificationDocUrl) : '';
+            var canViewDoc = state.role === 'ADMIN' || (state.currentUser && String(field.ownerId) === String(state.currentUser.id));
+            var hasDoc = !!(field.hasVerificationDoc || field.verificationDocUrl);
+            var docMarkup = hasDoc
+                ? (canViewDoc
+                    ? '<button type="button" class="social-profile-link" style="background:none;border:0;padding:0;cursor:pointer;" data-view-verification-doc="' + S.escapeHtml(field.id) + '">Hồ sơ/Bảng giá</button>'
+                    : '<span class="secondary-text">Không có quyền xem tài liệu</span>')
+                : '';
             var proofHtml = (mapUrl ? '<a class="social-profile-link" href="' + S.escapeHtml(mapUrl) + '" target="_blank" rel="noopener">Bản đồ</a>' : '') +
-                (mapUrl && docUrl ? ' · ' : '') +
-                (docUrl ? '<a class="social-profile-link" href="' + S.escapeHtml(docUrl) + '" target="_blank" rel="noopener">Hồ sơ/Bảng giá</a>' : '');
+                (mapUrl && docMarkup ? ' · ' : '') + docMarkup;
             var canVerify = state.role === 'ADMIN' && field.verificationStatus === 'PENDING_REVIEW';
 
             return '<tr>' +
@@ -780,6 +785,12 @@
             btn.addEventListener('click', function() {
                 var parts = btn.getAttribute('data-field-verify').split(':');
                 verifyFieldAction(parts[0], parts[1], btn);
+            });
+        });
+
+        Array.prototype.forEach.call(el.fieldsBody.querySelectorAll('[data-view-verification-doc]'), function(btn) {
+            btn.addEventListener('click', function() {
+                S.openProtectedDocument('/fields/' + encodeURIComponent(btn.getAttribute('data-view-verification-doc')) + '/verification-doc');
             });
         });
 
@@ -861,8 +872,19 @@
         if (el.fieldVenueSource) el.fieldVenueSource.value = field.venueSource || 'PARTNER';
         if (el.fieldVerificationDocFile) el.fieldVerificationDocFile.value = '';
         if (el.fieldVerificationDocLink) {
-            if (field.verificationDocUrl) {
-                el.fieldVerificationDocLink.innerHTML = '<a class="social-profile-link" href="' + S.escapeHtml(S.resolveMediaUrl(field.verificationDocUrl)) + '" target="_blank" rel="noopener">Xem hồ sơ xác thực hiện tại</a>';
+            var hasDoc = !!(field.hasVerificationDoc || field.verificationDocUrl);
+            var canViewDoc = state.role === 'ADMIN' || (state.currentUser && String(field.ownerId) === String(state.currentUser.id));
+            if (hasDoc && canViewDoc) {
+                el.fieldVerificationDocLink.innerHTML = '<button type="button" class="btn btn-secondary btn-sm" id="drawer-view-verification-doc-btn">Xem hồ sơ xác thực hiện tại</button>';
+                el.fieldVerificationDocLink.classList.remove('hidden');
+                var viewBtn = document.getElementById('drawer-view-verification-doc-btn');
+                if (viewBtn) {
+                    viewBtn.addEventListener('click', function() {
+                        S.openProtectedDocument('/fields/' + encodeURIComponent(field.id) + '/verification-doc');
+                    });
+                }
+            } else if (hasDoc) {
+                el.fieldVerificationDocLink.innerHTML = '<span class="secondary-text">Bạn không có quyền xem tài liệu xác minh của sân này.</span>';
                 el.fieldVerificationDocLink.classList.remove('hidden');
             } else {
                 el.fieldVerificationDocLink.innerHTML = '';
@@ -1108,7 +1130,9 @@
                 el.claimsBody.innerHTML = state.claims.map(function(c) {
                     var proof = [];
                     if (c.mapUrl) proof.push('<a class="social-profile-link" href="' + S.escapeHtml(c.mapUrl) + '" target="_blank" rel="noopener">Google Maps</a>');
-                    if (c.evidenceDocUrl) proof.push('<a class="social-profile-link" href="' + S.escapeHtml(S.resolveMediaUrl(c.evidenceDocUrl)) + '" target="_blank" rel="noopener">Giấy tờ</a>');
+                    if (c.hasEvidenceDoc || c.evidenceDocUrl) {
+                        proof.push('<button type="button" class="social-profile-link" style="background:none;border:0;padding:0;cursor:pointer;" data-view-claim-evidence="' + S.escapeHtml(c.id) + '">Giấy tờ</button>');
+                    }
                     var actions = c.status === 'PENDING'
                         ? '<button class="btn btn-primary btn-compact" type="button" data-claim-review="' + S.escapeHtml(c.id) + ':APPROVED">Duyệt</button><button class="btn btn-danger-soft btn-compact" type="button" data-claim-review="' + S.escapeHtml(c.id) + ':REJECTED">Từ chối</button>'
                         : '<span class="secondary-text">Đã xử lý</span>';
@@ -1120,6 +1144,11 @@
                         '<td><div class="admin-actions-cell">' + actions + '</div></td>' +
                         '</tr>';
                 }).join('');
+                Array.prototype.forEach.call(el.claimsBody.querySelectorAll('[data-view-claim-evidence]'), function(btn) {
+                    btn.addEventListener('click', function() {
+                        S.openProtectedDocument('/admin/field-claims/' + encodeURIComponent(btn.getAttribute('data-view-claim-evidence')) + '/evidence');
+                    });
+                });
                 Array.prototype.forEach.call(el.claimsBody.querySelectorAll('[data-claim-review]'), function(btn) {
                     btn.addEventListener('click', function() {
                         var parts = btn.getAttribute('data-claim-review').split(':');

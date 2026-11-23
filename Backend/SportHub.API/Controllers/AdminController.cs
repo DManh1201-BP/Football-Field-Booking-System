@@ -69,6 +69,16 @@ public class AdminController : ControllerBase
         return Ok(await _fieldService.GetClaimRequestsAsync(cancellationToken));
     }
 
+    [HttpGet("field-claims/{claimId:long}/evidence")]
+    public async Task<IActionResult> DownloadClaimEvidence(long claimId, CancellationToken cancellationToken)
+    {
+        if (!User.TryGetUserId(out var adminId)) return Unauthorized();
+        var fileResult = await _fieldService.GetClaimEvidenceAsync(claimId, adminId, isAdmin: true, cancellationToken);
+        Response.Headers["X-Content-Type-Options"] = "nosniff";
+        Response.Headers["Cache-Control"] = "no-store";
+        return PhysicalFile(fileResult.FilePath, fileResult.ContentType, enableRangeProcessing: false);
+    }
+
     [HttpPatch("field-claims/{claimId:long}/review")]
     public async Task<ActionResult<FieldClaimResponseDto>> ReviewFieldClaim(
         long claimId,

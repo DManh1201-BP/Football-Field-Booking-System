@@ -19,6 +19,8 @@ appsettings.Local.json
 # Uploaded files
 Backend/SportHub.API/wwwroot/uploads/fields/*
 !Backend/SportHub.API/wwwroot/uploads/fields/.gitkeep
+Backend/SportHub.API/App_Data/verification-documents/*
+!Backend/SportHub.API/App_Data/verification-documents/.gitkeep
 
 # OS files
 .DS_Store

@@ -161,7 +161,7 @@ public class MatchResponseDto
     public string? City { get; set; }
     public string? Location { get; set; }
     public long? FieldId { get; set; }
-    public FieldDto? Field { get; set; }
+    public PublicFieldDto? Field { get; set; }
     public long? BookingId { get; set; }
     public UserProfileResponseDto HostUser { get; set; } = null!;
     public UserProfileResponseDto? ChallengerUser { get; set; }
@@ -219,7 +219,7 @@ public class MatchResponseDto
             City = match.City,
             Location = match.Location,
             FieldId = match.FieldId,
-            Field = match.Field is not null ? FieldDto.FromEntity(match.Field) : null,
+            Field = match.Field is not null ? PublicFieldDto.FromEntity(match.Field) : null,
             BookingId = match.BookingId,
             HostUser = UserProfileResponseDto.FromUser(match.HostUser),
             ChallengerUser = match.ChallengerUser is not null

@@ -1135,7 +1135,7 @@
             var fd = new FormData();
             fd.append('file', file);
             uploadPromise = S.apiRequest('/fields/claim-evidence', { method: 'POST', isFormData: true, body: fd })
-                .then(function(res) { return res && res.url ? res.url : null; });
+                .then(function(res) { return res && (res.fileKey || res.url) ? (res.fileKey || res.url) : null; });
         }
         uploadPromise
             .then(function(evidenceUrl) {

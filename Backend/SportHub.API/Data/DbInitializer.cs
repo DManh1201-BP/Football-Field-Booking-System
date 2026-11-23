@@ -25,6 +25,7 @@ public static class DbInitializer
         }
 
         await EnsureRealWorldSchemaUpgradesAsync(dbContext, logger);
+        await MigrateLegacyVerificationDocsAsync(dbContext, services, logger);
 
         // EnsureCreated only creates schema for a brand-new database. Existing databases
         // are upgraded with the versioned SQL migration run separately by a DB owner.
@@ -516,5 +517,85 @@ public static class DbInitializer
             await dbContext.Database.ExecuteSqlRawAsync(sql);
         }
         logger.LogInformation("Verified real-world use-case schema upgrades.");
+    }
+
+    private static async Task MigrateLegacyVerificationDocsAsync(SportHubDbContext dbContext, IServiceProvider services, ILogger logger)
+    {
+        var env = services.GetRequiredService<IWebHostEnvironment>();
+        var webRoot = env.WebRootPath ?? Path.Combine(env.ContentRootPath, "wwwroot");
+        var legacyDir = Path.Combine(webRoot, "uploads", "verifications");
+        var privateDir = Path.Combine(env.ContentRootPath, "App_Data", "verification-documents");
+        Directory.CreateDirectory(privateDir);
+
+        var movedCount = 0;
+        if (Directory.Exists(legacyDir))
+        {
+            foreach (var filePath in Directory.GetFiles(legacyDir))
+            {
+                var fileName = Path.GetFileName(filePath);
+                if (string.Equals(fileName, ".gitkeep", StringComparison.OrdinalIgnoreCase))
+                {
+                    File.Delete(filePath);
+                    continue;
+                }
+
+                var destPath = Path.Combine(privateDir, fileName);
+                if (!File.Exists(destPath))
+                {
+                    File.Move(filePath, destPath);
+                }
+                else
+                {
+                    File.Delete(filePath);
+                }
+                movedCount++;
+            }
+
+            try
+            {
+                Directory.Delete(legacyDir, recursive: true);
+            }
+            catch (Exception ex)
+            {
+                logger.LogWarning(ex, "Could not remove legacy directory {LegacyDir}", legacyDir);
+            }
+        }
+
+        var updatedFields = 0;
+        var fieldsWithLegacyUrl = await dbContext.Fields
+            .Where(f => f.VerificationDocUrl != null && (f.VerificationDocUrl.Contains("/") || f.VerificationDocUrl.Contains("\\")))
+            .ToListAsync();
+        foreach (var field in fieldsWithLegacyUrl)
+        {
+            if (field.VerificationDocUrl is not null &&
+                !field.VerificationDocUrl.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+            {
+                field.VerificationDocUrl = Path.GetFileName(field.VerificationDocUrl.Trim());
+                updatedFields++;
+            }
+        }
+
+        var claimsWithLegacyUrl = await dbContext.FieldClaimRequests
+            .Where(c => c.EvidenceDocUrl != null && (c.EvidenceDocUrl.Contains("/") || c.EvidenceDocUrl.Contains("\\")))
+            .ToListAsync();
+        foreach (var claim in claimsWithLegacyUrl)
+        {
+            if (claim.EvidenceDocUrl is not null &&
+                !claim.EvidenceDocUrl.StartsWith("http", StringComparison.OrdinalIgnoreCase))
+            {
+                claim.EvidenceDocUrl = Path.GetFileName(claim.EvidenceDocUrl.Trim());
+                updatedFields++;
+            }
+        }
+
+        if (updatedFields > 0)
+        {
+            await dbContext.SaveChangesAsync();
+        }
+
+        if (movedCount > 0 || updatedFields > 0)
+        {
+            logger.LogInformation("Migrated {MovedFiles} legacy verification files and normalized {DbRecords} database records to private storage.", movedCount, updatedFields);
+        }
     }
 }
