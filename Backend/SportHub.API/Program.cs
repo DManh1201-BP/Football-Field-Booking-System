@@ -123,6 +123,7 @@ builder.Services.AddScoped<IMatchService, MatchService>();
 builder.Services.AddScoped<NotificationService>();
 builder.Services.AddScoped<FieldOwnerBookingService>();
 builder.Services.AddScoped<SocialService>();
+builder.Services.AddHostedService<BookingMatchLifecycleService>();
 
 // 4. Controllers, JSON Serialization & Unified Validation Error Contract
 builder.Services
@@ -233,6 +234,17 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+app.Use(async (context, next) =>
+{
+    if (context.Request.Path.StartsWithSegments("/uploads/verifications", StringComparison.OrdinalIgnoreCase))
+    {
+        context.Response.StatusCode = StatusCodes.Status404NotFound;
+        return;
+    }
+
+    await next();
+});
 
 app.UseStaticFiles();
 app.UseCors("SportHubCors");

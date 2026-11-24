@@ -51,6 +51,8 @@ public class BookingRepository : IBookingRepository
             .AsNoTracking()
             .Where(b => b.FieldId == fieldId &&
                 b.Status != "CANCELLED" &&
+                b.Status != "EXPIRED" &&
+                b.Status != "RAIN_OUT" &&
                 (b.Status != "HOLD" || (b.HoldExpiresAt != null && b.HoldExpiresAt > now)))
             .OrderBy(b => b.BookingDate)
             .ThenBy(b => b.StartTime)
@@ -82,6 +84,8 @@ public class BookingRepository : IBookingRepository
             b.FieldId == fieldId &&
             b.BookingDate == bookingDate &&
             b.Status != "CANCELLED" &&
+            b.Status != "EXPIRED" &&
+            b.Status != "RAIN_OUT" &&
             (b.Status != "HOLD" || (b.HoldExpiresAt != null && b.HoldExpiresAt > now)) &&
             b.StartTime < endTime &&
             b.EndTime > startTime);
@@ -117,13 +121,31 @@ public class BookingRepository : IBookingRepository
     public async Task<int> CompleteElapsedBookingsAsync(CancellationToken cancellationToken = default)
     {
         var now = DateTime.Now;
-        var elapsed = await _dbContext.Bookings.Where(b =>
-            (b.Status == "CONFIRMED" || b.Status == "PENDING") &&
-            (b.BookingDate < DateOnly.FromDateTime(now) ||
-             (b.BookingDate == DateOnly.FromDateTime(now) && b.EndTime <= TimeOnly.FromDateTime(now))))
+        var today = DateOnly.FromDateTime(now);
+        var currentTime = TimeOnly.FromDateTime(now);
+
+        var elapsedConfirmed = await _dbContext.Bookings.Where(b =>
+            b.Status == "CONFIRMED" &&
+            (b.BookingDate < today || (b.BookingDate == today && b.EndTime <= currentTime)))
             .ToListAsync(cancellationToken);
-        foreach (var booking in elapsed) booking.Status = "COMPLETED";
-        return elapsed.Count == 0 ? 0 : await _dbContext.SaveChangesAsync(cancellationToken);
+        foreach (var booking in elapsedConfirmed)
+        {
+            booking.Status = "COMPLETED";
+        }
+
+        var expiredPending = await _dbContext.Bookings.Where(b =>
+            b.Status == "PENDING" &&
+            (b.BookingDate < today || (b.BookingDate == today && b.StartTime <= currentTime)))
+            .ToListAsync(cancellationToken);
+        foreach (var booking in expiredPending)
+        {
+            booking.Status = "EXPIRED";
+            booking.CancellationReason ??= "Quá giờ bắt đầu nhưng chưa được xác nhận";
+        }
+
+        return (elapsedConfirmed.Count + expiredPending.Count) == 0
+            ? 0
+            : await _dbContext.SaveChangesAsync(cancellationToken);
     }
 
     public async Task<Booking> AddAsync(Booking booking, CancellationToken cancellationToken = default)

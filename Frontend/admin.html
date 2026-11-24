@@ -124,6 +124,10 @@
                         <button id="admin-tab-users-btn" class="admin-nav-tab hidden" type="button" data-admin-tab="users" role="tab" aria-selected="false">
                             <span class="admin-nav-tab-left"><i data-lucide="users-round" aria-hidden="true"></i><span>Tài khoản &amp; phân quyền</span></span>
                         </button>
+                        <button id="admin-tab-moderation-btn" class="admin-nav-tab hidden" type="button" data-admin-tab="moderation" role="tab" aria-selected="false">
+                            <span class="admin-nav-tab-left"><i data-lucide="shield-check" aria-hidden="true"></i><span>Kiểm duyệt &amp; khiếu nại</span></span>
+                            <span id="admin-moderation-badge" class="admin-tab-badge">0</span>
+                        </button>
                     </div>
                     <button id="admin-refresh-btn" class="btn btn-secondary btn-sm" type="button">
                         <i data-lucide="refresh-cw" class="btn-icon" aria-hidden="true"></i>
@@ -148,6 +152,17 @@
                         <div class="account-panel">
                             <div class="panel-head"><div><h3>Tài khoản &amp; phân quyền</h3><p>Gán role CUSTOMER, OWNER hoặc ADMIN. Sau khi đổi role, người dùng cần đăng nhập lại để nhận quyền mới.</p></div></div>
                             <div class="table-wrap"><table class="booking-table"><thead><tr><th>Người dùng</th><th>Email</th><th>Điện thoại</th><th>Role</th><th>Thao tác</th></tr></thead><tbody id="admin-users-body"></tbody></table></div>
+                        </div>
+                    </section>
+
+                    <section id="admin-panel-moderation" class="admin-tab-panel hidden">
+                        <div class="account-panel" style="margin-bottom:20px;">
+                            <div class="panel-head"><div><h3>Yêu cầu nhận quyền sở hữu sân (Claim)</h3><p>Duyệt hồ sơ chủ sân muốn xác minh sở hữu các sân cộng đồng chưa liên kết.</p></div></div>
+                            <div class="table-wrap"><table class="booking-table"><thead><tr><th>Sân</th><th>Người gửi</th><th>Bằng chứng &amp; Ghi chú</th><th>Trạng thái</th><th>Thao tác</th></tr></thead><tbody id="admin-claims-body"></tbody></table></div>
+                        </div>
+                        <div class="account-panel">
+                            <div class="panel-head"><div><h3>Báo cáo sân từ cộng đồng</h3><p>Xử lý các báo cáo sân giả, sai giá hoặc đã đóng cửa.</p></div></div>
+                            <div class="table-wrap"><table class="booking-table"><thead><tr><th>Sân</th><th>Người báo cáo</th><th>Lý do &amp; Chi tiết</th><th>Trạng thái</th><th>Thao tác</th></tr></thead><tbody id="admin-reports-body"></tbody></table></div>
                         </div>
                     </section>
 
@@ -227,6 +242,10 @@
                                     <h3>Danh sách toàn bộ booking</h3>
                                     <p>Tìm kiếm, lọc theo trạng thái, xác nhận hoặc hủy booking kèm lý do.</p>
                                 </div>
+                                <button id="open-walkin-btn" class="btn btn-primary btn-sm hidden" type="button">
+                                    <i data-lucide="calendar-plus" class="btn-icon" aria-hidden="true"></i>
+                                    <span>Khóa lịch vãng lai (Walk-in)</span>
+                                </button>
                             </div>
 
                             <div class="toolbar-inline">
@@ -235,6 +254,7 @@
                                     <button class="filter-tab" type="button" data-booking-status="PENDING">Chờ xác nhận</button>
                                     <button class="filter-tab" type="button" data-booking-status="HOLD">Giữ chỗ</button>
                                     <button class="filter-tab" type="button" data-booking-status="CONFIRMED">Đã xác nhận</button>
+                                    <button class="filter-tab" type="button" data-booking-status="RAIN_OUT">Hoãn mưa</button>
                                     <button class="filter-tab" type="button" data-booking-status="CANCELLED">Đã hủy</button>
                                 </div>
                                 <div class="search-inline">
@@ -374,7 +394,30 @@
                                 <input id="field-available" type="checkbox" checked>
                                 <span>Đang mở đặt sân</span>
                             </label>
+                            <label class="checkbox-field" style="margin-top:6px;">
+                                <input id="field-indoor" type="checkbox">
+                                <span>Sân trong nhà (có mái che)</span>
+                            </label>
                         </div>
+                        <label class="form-field">
+                            <span>Vĩ độ (Latitude)</span>
+                            <input id="field-latitude" type="number" step="0.000001" placeholder="10.980400">
+                        </label>
+                        <label class="form-field">
+                            <span>Kinh độ (Longitude)</span>
+                            <input id="field-longitude" type="number" step="0.000001" placeholder="106.651900">
+                        </label>
+                        <label class="form-field form-field-wide">
+                            <span>Link Google Maps (tùy chọn)</span>
+                            <input id="field-map-url" type="url" placeholder="https://maps.google.com/?q=...">
+                        </label>
+                        <label id="field-venue-source-wrap" class="form-field form-field-wide hidden">
+                            <span>Loại nguồn sân (Admin)</span>
+                            <select id="field-venue-source">
+                                <option value="PARTNER">Sân đối tác (PARTNER)</option>
+                                <option value="COMMUNITY_UNCLAIMED">Sân cộng đồng chưa liên kết (UNCLAIMED)</option>
+                            </select>
+                        </label>
                         <label id="field-owner-field" class="form-field form-field-wide hidden">
                             <span>Chủ sân (OWNER)</span>
                             <select id="field-owner-id"><option value="">Chưa gán chủ sân</option></select>
@@ -400,6 +443,11 @@
                             <input id="field-image-file" type="file" accept=".jpg,.jpeg,.png,.webp,image/*">
                         </label>
                         <div id="field-image-preview" class="field-image-preview form-field-wide hidden"></div>
+                        <label class="form-field form-field-wide">
+                            <span>Hồ sơ xác thực: Ảnh giấy tờ / Bảng giá sân (upload nội bộ, &lt;= 8MB)</span>
+                            <input id="field-verification-doc-file" type="file" accept=".jpg,.jpeg,.png,.webp,.pdf">
+                        </label>
+                        <div id="field-verification-doc-link" class="form-field form-field-wide hidden"></div>
                         <label class="form-field form-field-wide">
                             <span>Mô tả sân</span>
                             <textarea id="field-description" rows="3" placeholder="Mô tả chất lượng mặt sân, giờ mở cửa..."></textarea>
@@ -437,6 +485,36 @@
                     <button class="btn btn-secondary" type="button" data-close-admin-cancel>Đóng</button>
                 </div>
                 <p id="admin-cancel-feedback" class="booking-feedback hidden" role="alert"></p>
+            </form>
+        </div>
+    </div>
+
+    <!-- Owner Walk-in / Manual Block Modal -->
+    <div id="walkin-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="walkin-title" aria-hidden="true">
+        <div class="modal-content modal-sm" tabindex="-1">
+            <div class="modal-header">
+                <div>
+                    <h2 id="walkin-title">Khóa lịch khách vãng lai / Zalo</h2>
+                    <p class="secondary-text">Ghi nhận khách đặt ngoài hệ thống để chống trùng lịch đặt online.</p>
+                </div>
+                <button class="close-modal" type="button" data-close-walkin aria-label="Đóng"><i data-lucide="x" aria-hidden="true"></i></button>
+            </div>
+            <form id="walkin-form" class="booking-form" novalidate>
+                <label class="form-field"><span>Chọn sân của bạn *</span><select id="walkin-field-id" required></select></label>
+                <div class="booking-grid">
+                    <label class="form-field"><span>Ngày *</span><input id="walkin-date" type="date" required></label>
+                    <label class="form-field"><span>Số người dự kiến</span><input id="walkin-players" type="number" min="1" max="100" placeholder="10"></label>
+                    <label class="form-field"><span>Giờ bắt đầu *</span><input id="walkin-start" type="time" value="18:00" required></label>
+                    <label class="form-field"><span>Giờ kết thúc *</span><input id="walkin-end" type="time" value="19:30" required></label>
+                    <label class="form-field"><span>Tên khách / Đội *</span><input id="walkin-name" type="text" placeholder="Anh Tuấn (Đặt qua Zalo)" required></label>
+                    <label class="form-field"><span>SĐT khách</span><input id="walkin-phone" type="tel" placeholder="090..."></label>
+                </div>
+                <label class="form-field"><span>Ghi chú</span><input id="walkin-notes" type="text" placeholder="Đã thu tiền cọc tại quầy..."></label>
+                <div class="modal-actions">
+                    <button id="walkin-submit" class="btn btn-primary" type="submit">Khóa khung giờ này</button>
+                    <button class="btn btn-secondary" type="button" data-close-walkin>Hủy</button>
+                </div>
+                <p id="walkin-feedback" class="booking-feedback hidden" role="alert"></p>
             </form>
         </div>
     </div>

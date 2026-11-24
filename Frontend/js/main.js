@@ -121,6 +121,7 @@
         el.bookingStartTime = document.getElementById('booking-start-time');
         el.bookingEndTime = document.getElementById('booking-end-time');
         el.bookingPhone = document.getElementById('booking-phone');
+        el.bookingExpectedPlayers = document.getElementById('booking-expected-players');
         el.bookingNotes = document.getElementById('booking-notes');
         el.bookingHoldOnly = document.getElementById('booking-hold-only');
         el.bookingDurationText = document.getElementById('booking-duration-text');
@@ -128,6 +129,32 @@
         el.submitBookingBtn = document.getElementById('submit-booking-btn');
         el.cancelBookingBtn = document.getElementById('cancel-booking-btn');
         el.bookingFeedback = document.getElementById('booking-feedback');
+
+        el.modalMapRow = document.getElementById('modal-field-map-row');
+        el.modalMapLink = document.getElementById('modal-field-map-link');
+        el.communityFieldPanel = document.getElementById('community-field-panel');
+        el.communityCreateMatchLink = document.getElementById('community-create-match-link');
+        el.onlineBookingContainer = document.getElementById('online-booking-container');
+
+        el.openSuggestBtn = document.getElementById('open-suggest-field-btn');
+        el.suggestModal = document.getElementById('suggest-field-modal');
+        el.suggestForm = document.getElementById('suggest-field-form');
+        el.suggestFeedback = document.getElementById('suggest-feedback');
+        el.suggestSubmitBtn = document.getElementById('suggest-submit-btn');
+
+        el.openClaimBtn = document.getElementById('open-claim-field-btn');
+        el.claimModal = document.getElementById('claim-field-modal');
+        el.claimSubtitle = document.getElementById('claim-field-subtitle');
+        el.claimForm = document.getElementById('claim-field-form');
+        el.claimFeedback = document.getElementById('claim-feedback');
+        el.claimSubmitBtn = document.getElementById('claim-submit-btn');
+
+        el.openReportBtn = document.getElementById('open-report-field-btn');
+        el.reportModal = document.getElementById('report-field-modal');
+        el.reportSubtitle = document.getElementById('report-field-subtitle');
+        el.reportForm = document.getElementById('report-field-form');
+        el.reportFeedback = document.getElementById('report-feedback');
+        el.reportSubmitBtn = document.getElementById('report-submit-btn');
 
         el.chatbotToggle = document.getElementById('chatbot-toggle');
         el.chatbotPanel = document.getElementById('chatbot-panel');
@@ -266,6 +293,22 @@
             el.chatbotForm.addEventListener('submit', handleChatbotSubmit);
         }
 
+        if (el.openSuggestBtn) el.openSuggestBtn.addEventListener('click', openSuggestModal);
+        if (el.suggestForm) el.suggestForm.addEventListener('submit', handleSuggestSubmit);
+        if (el.openClaimBtn) el.openClaimBtn.addEventListener('click', openClaimModal);
+        if (el.claimForm) el.claimForm.addEventListener('submit', handleClaimSubmit);
+        if (el.openReportBtn) el.openReportBtn.addEventListener('click', openReportModal);
+        if (el.reportForm) el.reportForm.addEventListener('submit', handleReportSubmit);
+
+        [el.suggestModal, el.claimModal, el.reportModal].forEach(function(m) {
+            if (!m) return;
+            m.addEventListener('click', function(e) {
+                if (e.target === m || (e.target.closest && e.target.closest('[data-close-index-modal]'))) {
+                    closeSecondaryModal(m);
+                }
+            });
+        });
+
         Array.prototype.forEach.call(document.querySelectorAll('.chatbot-quick-chip'), function(chip) {
             chip.addEventListener('click', function() {
                 var q = chip.getAttribute('data-chat-query') || '';
@@ -341,7 +384,13 @@
             sportType: String(field.sportType || '').toUpperCase(),
             amenities: field.amenities || '',
             isAvailable: field.isAvailable !== false,
-            ownerId: field.ownerId || null
+            ownerId: field.ownerId || null,
+            venueSource: String(field.venueSource || 'PARTNER').toUpperCase(),
+            verificationStatus: String(field.verificationStatus || 'APPROVED').toUpperCase(),
+            latitude: field.latitude != null ? Number(field.latitude) : null,
+            longitude: field.longitude != null ? Number(field.longitude) : null,
+            mapUrl: field.mapUrl || '',
+            isIndoor: !!field.isIndoor
         };
     }
 
@@ -524,12 +573,19 @@
             return '<span class="amenity-tag">' + S.escapeHtml(tag) + '</span>';
         }).join('') + (extraAmenitiesCount > 0 ? '<span class="amenity-tag">+' + extraAmenitiesCount + '</span>' : '');
 
-        var statusBadge = field.isAvailable
-            ? '<span class="status-badge success"><i data-lucide="check-circle-2" aria-hidden="true"></i><span>Khả dụng</span></span>'
-            : '<span class="status-badge error"><i data-lucide="ban" aria-hidden="true"></i><span>Tạm ngưng</span></span>';
+        var isCommunity = field.venueSource === 'COMMUNITY_UNCLAIMED';
+        var statusBadge = isCommunity
+            ? S.getFieldTrustBadge(field)
+            : (field.isAvailable
+                ? S.getFieldTrustBadge(field)
+                : '<span class="status-badge error"><i data-lucide="ban" aria-hidden="true"></i><span>Tạm ngưng</span></span>');
 
         var locationText = field.location || field.city || 'Chưa cập nhật địa chỉ';
-        var bookDisabledAttr = field.isAvailable ? '' : ' disabled title="Sân hiện đang tạm ngưng nhận đặt"';
+        var bookDisabledAttr = (!isCommunity && !field.isAvailable) ? ' disabled title="Sân hiện đang tạm ngưng nhận đặt"' : '';
+        var bookBtnLabel = isCommunity ? 'Hẹn kèo' : 'Đặt lịch';
+        var priceMarkup = isCommunity
+            ? '<span class="field-price">Cộng đồng</span><span class="field-price-unit">Tự liên hệ sân</span>'
+            : '<span class="field-price">' + S.formatCurrency(field.pricePerHour) + '₫</span><span class="field-price-unit">Mỗi giờ</span>';
 
         card.innerHTML =
             '<div class="field-image-container">' +
@@ -548,13 +604,10 @@
             '  </div>' +
             (amenitiesHtml ? '<div class="field-amenities">' + amenitiesHtml + '</div>' : '') +
             '  <div class="field-card-footer">' +
-            '    <div class="field-price-block">' +
-            '      <span class="field-price">' + S.formatCurrency(field.pricePerHour) + '₫</span>' +
-            '      <span class="field-price-unit">Mỗi giờ</span>' +
-            '    </div>' +
+            '    <div class="field-price-block">' + priceMarkup + '</div>' +
             '    <div class="field-actions">' +
             '      <button class="btn btn-secondary btn-sm field-detail-btn" type="button">Chi tiết</button>' +
-            '      <button class="btn btn-primary btn-sm field-book-btn" type="button"' + bookDisabledAttr + '>Đặt lịch</button>' +
+            '      <button class="btn btn-primary btn-sm field-book-btn" type="button"' + bookDisabledAttr + '>' + bookBtnLabel + '</button>' +
             '    </div>' +
             '  </div>' +
             '</div>';
@@ -586,7 +639,12 @@
     // ===== Field Detail & Smart Booking Modal =====
 
     function requestBookingForField(field) {
-        if (!field || !field.isAvailable) {
+        if (!field) return;
+        if (field.venueSource === 'COMMUNITY_UNCLAIMED') {
+            openFieldModal(field);
+            return;
+        }
+        if (!field.isAvailable) {
             S.showToast('Sân này hiện đang tạm ngưng nhận đặt.', 'error');
             return;
         }
@@ -640,6 +698,19 @@
             var canViewOwner = !!(field.ownerId && session.token);
             el.modalOwnerRow.classList.toggle('hidden', !canViewOwner);
             if (canViewOwner) el.modalOwnerLink.href = 'profile.html?id=' + encodeURIComponent(field.ownerId);
+        }
+        if (el.modalMapRow && el.modalMapLink) {
+            var mapHref = field.mapUrl || (field.latitude != null && field.longitude != null
+                ? ('https://maps.google.com/?q=' + field.latitude + ',' + field.longitude)
+                : '');
+            el.modalMapRow.classList.toggle('hidden', !mapHref);
+            if (mapHref) el.modalMapLink.href = mapHref;
+        }
+        var isCommunity = field.venueSource === 'COMMUNITY_UNCLAIMED';
+        if (el.communityFieldPanel) el.communityFieldPanel.classList.toggle('hidden', !isCommunity);
+        if (el.onlineBookingContainer) el.onlineBookingContainer.classList.toggle('hidden', isCommunity);
+        if (el.communityCreateMatchLink && isCommunity) {
+            el.communityCreateMatchLink.href = 'matches.html?fieldId=' + encodeURIComponent(field.id);
         }
 
         prepareBookingForm(field);
@@ -837,6 +908,8 @@
         var startTime = el.bookingStartTime ? el.bookingStartTime.value : '';
         var endTime = el.bookingEndTime ? el.bookingEndTime.value : '';
         var phone = el.bookingPhone ? el.bookingPhone.value.trim() : '';
+        var expectedPlayersRaw = el.bookingExpectedPlayers ? parseInt(el.bookingExpectedPlayers.value, 10) : NaN;
+        var expectedPlayers = Number.isFinite(expectedPlayersRaw) && expectedPlayersRaw > 0 ? expectedPlayersRaw : null;
         var notes = el.bookingNotes ? el.bookingNotes.value.trim() : '';
         var holdOnly = !!(el.bookingHoldOnly && el.bookingHoldOnly.checked);
 
@@ -894,6 +967,7 @@
                 startTime: startTime,
                 endTime: endTime,
                 customerPhone: phone,
+                expectedPlayers: expectedPlayers,
                 notes: notes,
                 holdOnly: holdOnly
             })
@@ -952,6 +1026,170 @@
     function handleAfterLogout() {
         state.pendingBookingField = null;
         state.pendingBookingDraft = null;
+    }
+
+    function openSecondaryModal(modal) {
+        if (!modal) return;
+        modal.classList.remove('hidden');
+        modal.setAttribute('aria-hidden', 'false');
+        document.body.classList.add('modal-open');
+        S.refreshIcons(modal);
+    }
+
+    function closeSecondaryModal(modal) {
+        if (!modal || modal.classList.contains('hidden')) return;
+        modal.classList.add('hidden');
+        modal.setAttribute('aria-hidden', 'true');
+        if (!document.querySelector('.modal:not(.hidden)')) {
+            document.body.classList.remove('modal-open');
+        }
+    }
+
+    function setBoxFeedback(node, msg, isError) {
+        if (!node) return;
+        if (!msg) {
+            node.textContent = '';
+            node.className = 'booking-feedback hidden';
+            return;
+        }
+        node.textContent = msg;
+        node.className = 'booking-feedback ' + (isError ? 'error' : 'success');
+    }
+
+    function openSuggestModal() {
+        var session = S.loadAuthSession();
+        if (!session.token) {
+            S.openAuthModal('login', { message: 'Đăng nhập để đề xuất sân cộng đồng mới.' });
+            return;
+        }
+        if (el.suggestForm) el.suggestForm.reset();
+        setBoxFeedback(el.suggestFeedback, '', false);
+        openSecondaryModal(el.suggestModal);
+    }
+
+    function handleSuggestSubmit(e) {
+        e.preventDefault();
+        var name = document.getElementById('suggest-name').value.trim();
+        var sportType = document.getElementById('suggest-sport').value;
+        var location = document.getElementById('suggest-location').value.trim();
+        if (!name || !location) {
+            setBoxFeedback(el.suggestFeedback, 'Vui lòng nhập tên sân và địa chỉ.', true);
+            return;
+        }
+        var latVal = document.getElementById('suggest-lat').value;
+        var lngVal = document.getElementById('suggest-lng').value;
+        var payload = {
+            name: name,
+            sportType: sportType,
+            location: location,
+            city: document.getElementById('suggest-city').value.trim() || null,
+            province: document.getElementById('suggest-province').value.trim() || null,
+            capacity: parseInt(document.getElementById('suggest-capacity').value, 10) || null,
+            latitude: latVal ? Number(latVal) : null,
+            longitude: lngVal ? Number(lngVal) : null,
+            mapUrl: document.getElementById('suggest-map-url').value.trim() || null,
+            description: document.getElementById('suggest-desc').value.trim() || null
+        };
+        if (el.suggestSubmitBtn) el.suggestSubmitBtn.disabled = true;
+        S.apiRequest('/fields/community-suggest', { method: 'POST', body: JSON.stringify(payload) })
+            .then(function() {
+                closeSecondaryModal(el.suggestModal);
+                S.showToast('Đã gửi đề xuất sân cộng đồng để Admin kiểm duyệt!', 'success');
+            })
+            .catch(function(err) {
+                setBoxFeedback(el.suggestFeedback, err.message || 'Không thể gửi đề xuất.', true);
+            })
+            .then(function() {
+                if (el.suggestSubmitBtn) el.suggestSubmitBtn.disabled = false;
+            });
+    }
+
+    function openClaimModal() {
+        if (!state.selectedField) return;
+        var session = S.loadAuthSession();
+        if (!session.token) {
+            closeModal();
+            S.openAuthModal('login', { message: 'Đăng nhập để gửi yêu cầu xác minh quyền sở hữu sân.' });
+            return;
+        }
+        if (el.claimForm) el.claimForm.reset();
+        if (el.claimSubtitle) el.claimSubtitle.textContent = state.selectedField.name;
+        setBoxFeedback(el.claimFeedback, '', false);
+        openSecondaryModal(el.claimModal);
+    }
+
+    function handleClaimSubmit(e) {
+        e.preventDefault();
+        if (!state.selectedField) return;
+        var notes = document.getElementById('claim-notes').value.trim();
+        var mapUrl = document.getElementById('claim-map-url').value.trim() || null;
+        var fileInput = document.getElementById('claim-evidence-file');
+        var file = fileInput && fileInput.files ? fileInput.files[0] : null;
+        if (!notes) {
+            setBoxFeedback(el.claimFeedback, 'Vui lòng mô tả thông tin chứng minh quyền sở hữu.', true);
+            return;
+        }
+        if (el.claimSubmitBtn) el.claimSubmitBtn.disabled = true;
+        var uploadPromise = Promise.resolve(null);
+        if (file) {
+            var fd = new FormData();
+            fd.append('file', file);
+            uploadPromise = S.apiRequest('/fields/claim-evidence', { method: 'POST', isFormData: true, body: fd })
+                .then(function(res) { return res && (res.fileKey || res.url) ? (res.fileKey || res.url) : null; });
+        }
+        uploadPromise
+            .then(function(evidenceUrl) {
+                return S.apiRequest('/fields/' + encodeURIComponent(state.selectedField.id) + '/claim', {
+                    method: 'POST',
+                    body: JSON.stringify({ mapUrl: mapUrl, evidenceDocUrl: evidenceUrl, notes: notes })
+                });
+            })
+            .then(function() {
+                closeSecondaryModal(el.claimModal);
+                S.showToast('Đã gửi hồ sơ xác minh quyền chủ sân! Admin sẽ xét duyệt sớm.', 'success');
+            })
+            .catch(function(err) {
+                setBoxFeedback(el.claimFeedback, err.message || 'Không thể gửi yêu cầu xác minh.', true);
+            })
+            .then(function() {
+                if (el.claimSubmitBtn) el.claimSubmitBtn.disabled = false;
+            });
+    }
+
+    function openReportModal() {
+        if (!state.selectedField) return;
+        var session = S.loadAuthSession();
+        if (!session.token) {
+            closeModal();
+            S.openAuthModal('login', { message: 'Đăng nhập để báo cáo thông tin sân.' });
+            return;
+        }
+        if (el.reportForm) el.reportForm.reset();
+        if (el.reportSubtitle) el.reportSubtitle.textContent = state.selectedField.name;
+        setBoxFeedback(el.reportFeedback, '', false);
+        openSecondaryModal(el.reportModal);
+    }
+
+    function handleReportSubmit(e) {
+        e.preventDefault();
+        if (!state.selectedField) return;
+        var reason = document.getElementById('report-reason').value;
+        var details = document.getElementById('report-details').value.trim() || null;
+        if (el.reportSubmitBtn) el.reportSubmitBtn.disabled = true;
+        S.apiRequest('/fields/' + encodeURIComponent(state.selectedField.id) + '/report', {
+            method: 'POST',
+            body: JSON.stringify({ reason: reason, details: details })
+        })
+            .then(function() {
+                closeSecondaryModal(el.reportModal);
+                S.showToast('Đã ghi nhận báo cáo của bạn để Admin kiểm tra.', 'info');
+            })
+            .catch(function(err) {
+                setBoxFeedback(el.reportFeedback, err.message || 'Không thể gửi báo cáo.', true);
+            })
+            .then(function() {
+                if (el.reportSubmitBtn) el.reportSubmitBtn.disabled = false;
+            });
     }
 
     // ===== Interactive Local Field Finder Assistant =====

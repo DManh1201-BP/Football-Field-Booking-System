@@ -117,4 +117,18 @@ public class BookingController : ControllerBase
 
         return Ok(cancelled);
     }
+
+    [HttpPatch("{bookingId:long}/check-in")]
+    [Authorize]
+    public async Task<ActionResult<BookingResponseDto>> CheckInBooking(
+        long bookingId,
+        CancellationToken cancellationToken)
+    {
+        if (!User.TryGetUserId(out var userId))
+        {
+            return Unauthorized();
+        }
+
+        return Ok(await _bookingService.CheckInBookingAsync(bookingId, userId, User.IsAdmin(), cancellationToken));
+    }
 }

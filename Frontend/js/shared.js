@@ -66,7 +66,9 @@
         HOLD: { label: 'Đang giữ chỗ', className: 'hold', icon: 'timer' },
         CONFIRMED: { label: 'Đã xác nhận', className: 'success', icon: 'check-circle-2' },
         COMPLETED: { label: 'Hoàn thành', className: 'success', icon: 'badge-check' },
-        CANCELLED: { label: 'Đã hủy', className: 'error', icon: 'x-circle' }
+        CANCELLED: { label: 'Đã hủy', className: 'error', icon: 'x-circle' },
+        EXPIRED: { label: 'Quá hạn', className: 'error', icon: 'clock-alert' },
+        RAIN_OUT: { label: 'Hoãn thời tiết', className: 'hold', icon: 'cloud-rain' }
     };
 
     var MATCH_STATUS_META = {
@@ -123,7 +125,8 @@
             bio: user.bio || '',
             avatarUrl: user.avatarUrl || '',
             role: normalizeRole(user.role),
-            eloRating: Number(user.eloRating || 1000)
+            eloRating: Number(user.eloRating || 1000),
+            reliabilityScore: user.reliabilityScore != null ? Number(user.reliabilityScore) : 100
         };
     }
 
@@ -232,6 +235,50 @@
         }
         var origin = getSportHubApiOrigin();
         return origin + (trimmed.charAt(0) === '/' ? trimmed : '/' + trimmed);
+    }
+
+    function openProtectedDocument(pathOrUrl) {
+        var session = loadAuthSession();
+        if (!session.token) {
+            showToast('Bạn cần đăng nhập bằng tài khoản Admin hoặc Chủ sân để xem tài liệu này.', 'error');
+            return Promise.reject(new Error('Unauthorized'));
+        }
+        var baseUrl = getSportHubApiBaseUrl();
+        var origin = getSportHubApiOrigin();
+        var url = /^https?:\/\//i.test(pathOrUrl)
+            ? pathOrUrl
+            : (String(pathOrUrl).indexOf('/api/') === 0
+                ? origin + pathOrUrl
+                : baseUrl + (pathOrUrl.charAt(0) === '/' ? pathOrUrl : '/' + pathOrUrl));
+
+        return fetch(url, {
+            method: 'GET',
+            headers: { Authorization: 'Bearer ' + session.token }
+        }).then(function(response) {
+            if (response.status === 401 || response.status === 403) {
+                throw new Error('Bạn không có quyền xem tài liệu xác minh này.');
+            }
+            if (!response.ok) {
+                return response.json().catch(function() { return {}; }).then(function(body) {
+                    throw new Error(body.message || ('Không thể tải tài liệu (HTTP ' + response.status + ')'));
+                });
+            }
+            return response.blob();
+        }).then(function(blob) {
+            var blobUrl = URL.createObjectURL(blob);
+            var opened = window.open(blobUrl, '_blank', 'noopener');
+            if (!opened) {
+                var a = document.createElement('a');
+                a.href = blobUrl;
+                a.download = 'verification-document';
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+            }
+            global.setTimeout(function() { URL.revokeObjectURL(blobUrl); }, 60000);
+        }).catch(function(err) {
+            showToast(err.message || 'Không thể mở tài liệu xác minh.', 'error');
+        });
     }
 
     function isPlaceholderUrl(url) {
@@ -1257,6 +1304,35 @@
         refreshIcons();
     }
 
+    function getFieldTrustBadge(field) {
+        if (!field) return '';
+        var source = String(field.venueSource || 'PARTNER').toUpperCase();
+        var ver = String(field.verificationStatus || 'APPROVED').toUpperCase();
+        if (source === 'COMMUNITY_UNCLAIMED' || ver === 'UNCLAIMED') {
+            return '<span class="status-badge hold" title="Sân công cộng/chưa liên kết đặt online"><i data-lucide="users" aria-hidden="true"></i><span>Sân cộng đồng</span></span>';
+        }
+        if (ver === 'APPROVED') {
+            return '<span class="status-badge success" title="Đã xác thực địa điểm &amp; giấy tờ"><i data-lucide="shield-check" aria-hidden="true"></i><span>Đã xác thực</span></span>';
+        }
+        if (ver === 'PENDING_REVIEW') {
+            return '<span class="status-badge pending"><i data-lucide="clock" aria-hidden="true"></i><span>Chờ duyệt</span></span>';
+        }
+        if (ver === 'REJECTED') {
+            return '<span class="status-badge error"><i data-lucide="x-circle" aria-hidden="true"></i><span>Từ chối</span></span>';
+        }
+        if (ver === 'SUSPENDED') {
+            return '<span class="status-badge error"><i data-lucide="ban" aria-hidden="true"></i><span>Tạm ngưng</span></span>';
+        }
+        return '';
+    }
+
+    function getMatchModeLabel(mode) {
+        var upper = String(mode || 'TEAM_CHALLENGE').toUpperCase();
+        if (upper === 'SOLO_LOBBY') return 'Ghép lẻ (Solo)';
+        if (upper === 'CUSTOM_PRIVATE') return 'Trận riêng tư';
+        return 'Kèo 2 đội';
+    }
+
     function syncCurrentUser() {
         var session = loadAuthSession();
         if (!session.token) {
@@ -1294,6 +1370,7 @@
         createAuthHeaders: createAuthHeaders,
         apiRequest: apiRequest,
         resolveMediaUrl: resolveMediaUrl,
+        openProtectedDocument: openProtectedDocument,
         getSportMeta: getSportMeta,
         getFieldFallbackSvgMarkup: getFieldFallbackSvgMarkup,
         renderFieldMediaMarkup: renderFieldMediaMarkup,
@@ -1308,6 +1385,8 @@
         normalizeBookingStatus: normalizeBookingStatus,
         renderBookingStatusBadge: renderBookingStatusBadge,
         renderMatchStatusBadge: renderMatchStatusBadge,
+        getFieldTrustBadge: getFieldTrustBadge,
+        getMatchModeLabel: getMatchModeLabel,
         refreshIcons: refreshIcons,
         showToast: showToast,
         openConfirmDialog: openConfirmDialog,

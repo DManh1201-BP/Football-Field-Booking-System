@@ -97,9 +97,14 @@ public class BookingService : IBookingService
         var user = await _userRepository.GetByIdAsync(authenticatedUserId, cancellationToken)
             ?? throw new KeyNotFoundException($"User not found: {authenticatedUserId}");
 
-        if (!field.IsAvailable)
+        if (!field.IsAvailable || field.VenueSource == "COMMUNITY_UNCLAIMED" || field.VerificationStatus != "APPROVED")
         {
-            throw new ArgumentException("Field is not available for booking");
+            throw new ArgumentException("Sân này chưa mở đặt lịch trực tuyến (chưa xác thực hoặc là sân cộng đồng tự liên hệ).");
+        }
+
+        if (request.ExpectedPlayers.HasValue && field.Capacity.HasValue && request.ExpectedPlayers.Value > field.Capacity.Value)
+        {
+            throw new ArgumentException($"Số người dự kiến ({request.ExpectedPlayers.Value}) vượt quá sức chứa tối đa của sân ({field.Capacity.Value} người).");
         }
 
         var hasConflict = await _bookingRepository.HasConflictingBookingAsync(
@@ -130,7 +135,10 @@ public class BookingService : IBookingService
             Notes = request.Notes?.Trim(),
             Status = request.HoldOnly ? "HOLD" : "PENDING",
             HoldExpiresAt = request.HoldOnly ? DateTime.Now.AddMinutes(DefaultHoldMinutes) : null,
-            TotalPrice = totalPrice
+            TotalPrice = totalPrice,
+            BookingType = "ONLINE",
+            ExpectedPlayers = request.ExpectedPlayers,
+            PaymentStatus = "UNPAID"
         };
 
         var savedBooking = await _bookingRepository.AddAsync(booking, cancellationToken);
@@ -154,9 +162,36 @@ public class BookingService : IBookingService
             throw new UnauthorizedAccessException("You are not allowed to cancel this booking");
         }
 
-        if (string.Equals(booking.Status, "COMPLETED", StringComparison.OrdinalIgnoreCase))
+        if (booking.Status is "COMPLETED" or "EXPIRED" or "RAIN_OUT" or "CANCELLED")
         {
-            throw new ArgumentException("Completed booking cannot be cancelled");
+            throw new ArgumentException("Booking đã đóng hoặc không thể hủy");
+        }
+
+        var wasConfirmed = string.Equals(booking.Status, "CONFIRMED", StringComparison.OrdinalIgnoreCase);
+        if (!isAdmin && wasConfirmed)
+        {
+            var kickoff = booking.BookingDate.ToDateTime(booking.StartTime);
+            var hoursUntil = (kickoff - DateTime.Now).TotalHours;
+            if (hoursUntil < 6)
+            {
+                booking.CancellationPolicyApplied = "Hủy sát giờ (<6h): -5 điểm uy tín";
+                booking.User.ReliabilityScore = Math.Max(0, booking.User.ReliabilityScore - 5);
+                await _userRepository.UpdateAsync(booking.User, cancellationToken);
+            }
+            else if (hoursUntil < 24)
+            {
+                booking.CancellationPolicyApplied = "Hủy muộn (6–24h): -2 điểm uy tín";
+                booking.User.ReliabilityScore = Math.Max(0, booking.User.ReliabilityScore - 2);
+                await _userRepository.UpdateAsync(booking.User, cancellationToken);
+            }
+            else
+            {
+                booking.CancellationPolicyApplied = "Hủy hợp lệ (>=24h): Miễn phạt";
+            }
+        }
+        else if (isAdmin)
+        {
+            booking.CancellationPolicyApplied = "Hủy bởi Quản trị viên";
         }
 
         booking.Status = "CANCELLED";
@@ -167,7 +202,42 @@ public class BookingService : IBookingService
         }
 
         var updated = await _bookingRepository.UpdateAsync(booking, cancellationToken);
+        await _notifications.NotifyBookingMatchParticipantsAsync(
+            booking.Id,
+            $"Cảnh báo: Booking #{booking.Id} tại {booking.Field.Name} ({booking.BookingDate:dd/MM/yyyy}) đã bị hủy.",
+            cancellationToken);
         return BookingResponseDto.FromEntity(updated);
+    }
+
+    public async Task<BookingResponseDto> CheckInBookingAsync(
+        long bookingId,
+        long requesterUserId,
+        bool isAdmin,
+        CancellationToken cancellationToken = default)
+    {
+        var booking = await _bookingRepository.GetByIdAsync(bookingId, cancellationToken)
+            ?? throw new KeyNotFoundException($"Booking not found: {bookingId}");
+
+        var isFieldOwner = booking.Field.OwnerId.HasValue && booking.Field.OwnerId.Value == requesterUserId;
+        if (!isAdmin && !isFieldOwner && booking.UserId != requesterUserId)
+        {
+            throw new UnauthorizedAccessException("You are not allowed to check in this booking");
+        }
+
+        if (booking.Status != "CONFIRMED")
+        {
+            throw new ArgumentException("Chỉ có thể check-in cho booking đã được xác nhận (CONFIRMED).");
+        }
+
+        if (!booking.CheckedInAt.HasValue)
+        {
+            booking.CheckedInAt = DateTime.Now;
+            booking.User.ReliabilityScore = Math.Min(100, booking.User.ReliabilityScore + 1);
+            await _userRepository.UpdateAsync(booking.User, cancellationToken);
+            await _bookingRepository.UpdateAsync(booking, cancellationToken);
+        }
+
+        return BookingResponseDto.FromEntity(booking);
     }
 
     public async Task<BookingResponseDto> UpdateBookingAsync(

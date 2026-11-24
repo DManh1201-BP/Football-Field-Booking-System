@@ -155,7 +155,12 @@
                 S.updateNavbarAuthUI();
 
                 if (el.sessionText) {
-                    el.sessionText.textContent = 'Tài khoản: ' + (user.fullName || user.email) + ' (' + S.getRoleLabel(user.role) + ')';
+                    el.sessionText.textContent = 'Tài khoản: ' + (user.fullName || user.email) + ' (' + S.getRoleLabel(user.role) + ') · Uy tín ' + (user.reliabilityScore != null ? user.reliabilityScore : 100) + '/100';
+                }
+                var relPill = document.getElementById('customer-reliability-pill');
+                if (relPill) {
+                    var rel = user.reliabilityScore != null ? user.reliabilityScore : 100;
+                    relPill.textContent = 'Uy tín: ' + rel + '/100';
                 }
                 if (el.accessAlert) el.accessAlert.classList.add('hidden');
                 if (el.content) el.content.classList.remove('hidden');
@@ -331,6 +336,10 @@
             var cardClass = status === 'CONFIRMED' ? 'is-confirmed' : (status === 'HOLD' ? 'is-hold' : 'is-pending');
             var locationLine = field.location || field.city || 'Chưa cập nhật địa chỉ';
             var notesLine = booking.notes ? booking.notes : 'Không có ghi chú';
+            var extraInfo = [];
+            if (booking.expectedPlayers) extraInfo.push('Dự kiến ' + booking.expectedPlayers + ' người');
+            if (booking.checkedInAt) extraInfo.push('Đã check-in');
+            var canCheckIn = status === 'CONFIRMED' && !booking.checkedInAt;
 
             return '<article class="current-booking-card ' + cardClass + '">' +
                 '  <div class="current-booking-head">' +
@@ -343,9 +352,13 @@
                 '  </div>' +
                 '  <div class="current-booking-meta">' +
                 '    <span><i data-lucide="map-pin" aria-hidden="true"></i>' + S.escapeHtml(locationLine) + '</span>' +
-                '    <span><i data-lucide="sticky-note" aria-hidden="true"></i>' + S.escapeHtml(notesLine) + '</span>' +
+                '    <span><i data-lucide="sticky-note" aria-hidden="true"></i>' + S.escapeHtml(notesLine + (extraInfo.length ? ' · ' + extraInfo.join(' · ') : '')) + '</span>' +
                 '  </div>' +
                 '  <div class="current-booking-actions">' +
+                (canCheckIn ? '<button class="btn btn-primary btn-compact" type="button" data-action="checkin-booking" data-id="' + S.escapeHtml(booking.id) + '"><i data-lucide="qr-code" class="btn-icon" aria-hidden="true"></i><span>Check-in sân</span></button>' : '') +
+                '    <a class="btn btn-secondary btn-compact" href="matches.html?bookingId=' + encodeURIComponent(booking.id) + '">' +
+                '      <i data-lucide="swords" class="btn-icon" aria-hidden="true"></i><span>Tạo kèo</span>' +
+                '    </a>' +
                 '    <button class="btn btn-secondary btn-compact" type="button" data-action="edit-booking" data-id="' + S.escapeHtml(booking.id) + '">' +
                 '      <i data-lucide="pencil" class="btn-icon" aria-hidden="true"></i><span>Đổi giờ</span>' +
                 '    </button>' +
@@ -386,8 +399,8 @@
                 el.bookingsBody.innerHTML = list.map(function(b) {
                     var field = b.field || {};
                     var status = S.normalizeBookingStatus(b.status);
-                    var noteText = (status === 'CANCELLED' && (b.cancellationReason || b.cancelReason))
-                        ? ('Lý do hủy: ' + (b.cancellationReason || b.cancelReason))
+        var noteText = (status === 'CANCELLED' || status === 'RAIN_OUT' || status === 'EXPIRED') && (b.cancellationReason || b.cancelReason)
+                        ? ((b.cancellationReason || b.cancelReason) + (b.cancellationPolicyApplied ? (' · ' + b.cancellationPolicyApplied) : ''))
                         : (b.notes || 'Không có ghi chú');
                     return '<tr>' +
                         '<td><strong>' + S.escapeHtml(field.name || 'Sân thể thao') + '</strong></td>' +
@@ -435,6 +448,17 @@
             openEditModal(booking);
         } else if (action === 'cancel-booking') {
             openCancelModal(booking);
+        } else if (action === 'checkin-booking') {
+            btn.disabled = true;
+            S.apiRequest('/bookings/' + encodeURIComponent(booking.id) + '/check-in', { method: 'PATCH' })
+                .then(function() {
+                    S.showToast('Check-in sân thành công (+1 điểm uy tín)!', 'success');
+                    verifyAndLoadBookings();
+                })
+                .catch(function(err) {
+                    S.showToast(err.message || 'Không thể check-in.', 'error');
+                    btn.disabled = false;
+                });
         }
     }
 

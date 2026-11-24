@@ -176,6 +176,17 @@
                         <i data-lucide="refresh-cw" aria-hidden="true"></i>
                     </button>
                 </div>
+                <label class="form-field" style="margin-bottom:12px;">
+                    <span>Xếp hạng theo môn</span>
+                    <select id="leaderboard-sport-filter">
+                        <option value="">Tổng hợp (Tất cả môn)</option>
+                        <option value="FOOTBALL">Bóng đá</option>
+                        <option value="VOLLEYBALL">Bóng chuyền</option>
+                        <option value="BADMINTON">Cầu lông</option>
+                        <option value="BASKETBALL">Bóng rổ</option>
+                        <option value="TENNIS">Tennis</option>
+                    </select>
+                </label>
                 <div id="leaderboard-list" class="leaderboard-list">
                     <p class="table-empty">Đang tải bảng xếp hạng...</p>
                 </div>
@@ -243,6 +254,20 @@
                 </label>
                 <div class="booking-grid">
                     <label class="form-field">
+                        <span>Chế độ trận đấu *</span>
+                        <select id="match-mode">
+                            <option value="TEAM_CHALLENGE">Kèo 2 đội (2 Đội trưởng)</option>
+                            <option value="SOLO_LOBBY">Ghép lẻ từng slot (Solo Lobby)</option>
+                            <option value="CUSTOM_PRIVATE">Trận riêng tư (1 Chủ kèo)</option>
+                        </select>
+                    </label>
+                    <label class="form-field">
+                        <span>Liên kết lịch đặt sân (tùy chọn)</span>
+                        <select id="match-booking-id">
+                            <option value="">-- Không gắn booking --</option>
+                        </select>
+                    </label>
+                    <label class="form-field">
                         <span>Môn thể thao *</span>
                         <select id="match-sport" required>
                             <option value="FOOTBALL">Bóng đá</option>
@@ -265,9 +290,17 @@
                         <span>Ngày thi đấu *</span>
                         <input id="match-date" type="date" required>
                     </label>
-                    <label class="form-field">
+                    <label id="match-missing-wrap" class="form-field">
                         <span>Số người còn thiếu</span>
-                        <input id="match-missing" type="number" min="1" max="30" value="1" required>
+                        <input id="match-missing" type="number" min="0" max="50" value="1">
+                    </label>
+                    <label id="match-max-slots-wrap" class="form-field hidden">
+                        <span>Tổng số slot của trận *</span>
+                        <input id="match-max-slots" type="number" min="2" max="50" value="10">
+                    </label>
+                    <label id="match-prereserved-wrap" class="form-field hidden">
+                        <span>Số slot đội bạn đã có</span>
+                        <input id="match-prereserved" type="number" min="1" max="49" value="1">
                     </label>
                     <label class="form-field">
                         <span>Giờ bắt đầu *</span>
@@ -278,6 +311,10 @@
                         <input id="match-end" type="time" value="19:30" required>
                     </label>
                 </div>
+                <label class="checkbox-field" style="margin:6px 0 10px;">
+                    <input id="match-is-ranked" type="checkbox" checked>
+                    <span>Tính điểm Elo xếp hạng (chỉ áp dụng khi đấu tại Sân đối tác đã xác thực)</span>
+                </label>
                 <label class="form-field">
                     <span>Sân dự kiến (tùy chọn)</span>
                     <select id="match-field-id">
@@ -331,10 +368,105 @@
                     </label>
                 </div>
                 <div class="modal-actions">
-                    <button id="result-match-submit" class="btn btn-primary" type="submit">Lưu tỷ số &amp; cập nhật Elo</button>
+                    <button id="result-match-submit" class="btn btn-primary" type="submit">Đề xuất tỉ số (chờ đối thủ xác nhận)</button>
                     <button class="btn btn-secondary" type="button" data-close-result-modal>Đóng</button>
                 </div>
                 <p id="result-match-feedback" class="booking-feedback hidden" role="alert"></p>
+            </form>
+        </div>
+    </div>
+
+    <!-- Solo Join Modal -->
+    <div id="solo-join-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="solo-join-title" aria-hidden="true">
+        <div class="modal-content modal-sm" tabindex="-1">
+            <div class="modal-header">
+                <div>
+                    <h2 id="solo-join-title">Đăng ký slot Solo Lobby</h2>
+                    <p id="solo-join-summary" class="secondary-text"></p>
+                </div>
+                <button class="close-modal" type="button" data-close-solo-join aria-label="Đóng"><i data-lucide="x" aria-hidden="true"></i></button>
+            </div>
+            <form id="solo-join-form" class="booking-form" novalidate>
+                <div class="booking-grid">
+                    <label class="form-field">
+                        <span>Chọn phe / đội</span>
+                        <select id="solo-join-side">
+                            <option value="ANY">Tự động cân bằng đội</option>
+                            <option value="A">Đội A (Chủ kèo)</option>
+                            <option value="B">Đội B (Đối thủ)</option>
+                        </select>
+                    </label>
+                    <label class="form-field">
+                        <span>Bảo lãnh bạn đi cùng</span>
+                        <select id="solo-join-guest">
+                            <option value="0">Chỉ mình tôi (1 slot)</option>
+                            <option value="1">Tôi + 1 bạn (2 slot · bảo lãnh uy tín)</option>
+                        </select>
+                    </label>
+                </div>
+                <div class="modal-actions">
+                    <button id="solo-join-submit" class="btn btn-primary" type="submit">Xác nhận đăng ký slot</button>
+                    <button class="btn btn-secondary" type="button" data-close-solo-join>Hủy</button>
+                </div>
+                <p id="solo-join-feedback" class="booking-feedback hidden" role="alert"></p>
+            </form>
+        </div>
+    </div>
+
+    <!-- Dispute Score Modal -->
+    <div id="dispute-match-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="dispute-match-title" aria-hidden="true">
+        <div class="modal-content modal-sm" tabindex="-1">
+            <div class="modal-header">
+                <div>
+                    <h2 id="dispute-match-title">Khiếu nại tỉ số trận đấu</h2>
+                    <p id="dispute-match-summary" class="secondary-text"></p>
+                </div>
+                <button class="close-modal" type="button" data-close-dispute-modal aria-label="Đóng"><i data-lucide="x" aria-hidden="true"></i></button>
+            </div>
+            <form id="dispute-match-form" class="booking-form" novalidate>
+                <div class="booking-grid">
+                    <label class="form-field"><span>Tỉ số đúng Đội A</span><input id="dispute-host-score" type="number" min="0" max="999" required></label>
+                    <label class="form-field"><span>Tỉ số đúng Đội B</span><input id="dispute-challenger-score" type="number" min="0" max="999" required></label>
+                </div>
+                <label class="form-field"><span>Lý do khiếu nại *</span><textarea id="dispute-reason" rows="2" placeholder="VD: Tỉ số thực tế kết thúc 4-3, đội bạn ghi nhầm..." required></textarea></label>
+                <label class="form-field"><span>Ảnh bằng chứng (tùy chọn, &lt;= 5MB)</span><input id="dispute-evidence-file" type="file" accept=".jpg,.jpeg,.png,.webp,image/*"></label>
+                <div class="modal-actions">
+                    <button id="dispute-match-submit" class="btn btn-danger" type="submit">Gửi khiếu nại</button>
+                    <button class="btn btn-secondary" type="button" data-close-dispute-modal>Đóng</button>
+                </div>
+                <p id="dispute-match-feedback" class="booking-feedback hidden" role="alert"></p>
+            </form>
+        </div>
+    </div>
+
+    <!-- Resolve Dispute Modal (Admin / Verified Field Owner) -->
+    <div id="resolve-match-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="resolve-match-title" aria-hidden="true">
+        <div class="modal-content modal-sm" tabindex="-1">
+            <div class="modal-header">
+                <div>
+                    <h2 id="resolve-match-title">Phân xử tranh chấp tỉ số</h2>
+                    <p id="resolve-match-summary" class="secondary-text"></p>
+                </div>
+                <button class="close-modal" type="button" data-close-resolve-modal aria-label="Đóng"><i data-lucide="x" aria-hidden="true"></i></button>
+            </div>
+            <form id="resolve-match-form" class="booking-form" novalidate>
+                <p id="resolve-dispute-context" class="secondary-text"></p>
+                <label class="form-field">
+                    <span>Quyết định phân xử</span>
+                    <select id="resolve-decision">
+                        <option value="CONFIRM">Chốt tỉ số cuối &amp; tính Elo</option>
+                        <option value="VOID">Hủy kết quả trận đấu (VOID · không tính Elo)</option>
+                    </select>
+                </label>
+                <div id="resolve-score-inputs" class="booking-grid">
+                    <label class="form-field"><span>Điểm Đội A cuối</span><input id="resolve-host-score" type="number" min="0" max="999"></label>
+                    <label class="form-field"><span>Điểm Đội B cuối</span><input id="resolve-challenger-score" type="number" min="0" max="999"></label>
+                </div>
+                <div class="modal-actions">
+                    <button id="resolve-match-submit" class="btn btn-primary" type="submit">Lưu phán quyết</button>
+                    <button class="btn btn-secondary" type="button" data-close-resolve-modal>Đóng</button>
+                </div>
+                <p id="resolve-match-feedback" class="booking-feedback hidden" role="alert"></p>
             </form>
         </div>
     </div>

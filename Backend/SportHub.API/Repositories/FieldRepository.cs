@@ -34,11 +34,14 @@ public class FieldRepository : IFieldRepository
             .AnyAsync(f => f.Id == id, cancellationToken);
     }
 
+    private static bool IsPubliclyVisibleStatus(string? status) =>
+        status is "APPROVED" or "UNCLAIMED";
+
     public async Task<List<Field>> GetAvailableAsync(CancellationToken cancellationToken = default)
     {
         return await _dbContext.Fields
             .AsNoTracking()
-            .Where(f => f.IsAvailable)
+            .Where(f => f.IsAvailable && (f.VerificationStatus == "APPROVED" || f.VerificationStatus == "UNCLAIMED"))
             .OrderBy(f => f.Id)
             .ToListAsync(cancellationToken);
     }
@@ -48,7 +51,7 @@ public class FieldRepository : IFieldRepository
         var normalizedCity = city.Trim();
         return await _dbContext.Fields
             .AsNoTracking()
-            .Where(f => f.IsAvailable && f.City != null && f.City == normalizedCity)
+            .Where(f => f.IsAvailable && (f.VerificationStatus == "APPROVED" || f.VerificationStatus == "UNCLAIMED") && f.City != null && f.City == normalizedCity)
             .OrderBy(f => f.Name)
             .ToListAsync(cancellationToken);
     }
@@ -58,7 +61,7 @@ public class FieldRepository : IFieldRepository
         var normalizedSport = sportType.Trim().ToUpperInvariant();
         return await _dbContext.Fields
             .AsNoTracking()
-            .Where(f => f.IsAvailable && f.SportType.ToUpper() == normalizedSport)
+            .Where(f => f.IsAvailable && (f.VerificationStatus == "APPROVED" || f.VerificationStatus == "UNCLAIMED") && f.SportType.ToUpper() == normalizedSport)
             .OrderBy(f => f.Name)
             .ToListAsync(cancellationToken);
     }
@@ -67,7 +70,7 @@ public class FieldRepository : IFieldRepository
     {
         var fieldsQuery = _dbContext.Fields
             .AsNoTracking()
-            .Where(f => f.IsAvailable);
+            .Where(f => f.IsAvailable && (f.VerificationStatus == "APPROVED" || f.VerificationStatus == "UNCLAIMED"));
 
         if (!string.IsNullOrWhiteSpace(query.City))
         {
@@ -108,6 +111,8 @@ public class FieldRepository : IFieldRepository
                 b.FieldId == f.Id &&
                 b.BookingDate == date &&
                 b.Status != "CANCELLED" &&
+                b.Status != "EXPIRED" &&
+                b.Status != "RAIN_OUT" &&
                 (b.Status != "HOLD" || (b.HoldExpiresAt != null && b.HoldExpiresAt > now)) &&
                 b.StartTime < end &&
                 b.EndTime > start));
